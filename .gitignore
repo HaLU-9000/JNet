@@ -2,5 +2,7 @@ env/
 dataset/
 models/
 results/
-.ipynb
+test.ipynb
 __pycache__/
+dataset_test/
+nohup.out
