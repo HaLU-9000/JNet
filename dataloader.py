@@ -80,7 +80,7 @@ class CustomDataset(Dataset):
         inp = inp.unfold(1, zsize , zsize ,)\
                  .unfold(2, xsize , xsize ,)\
                  .unfold(3, ysize , ysize ,)
-        return inp.view(-1, 1, zsize, xsize, ysize)
+        return inp.contiguous().view(-1, 1, zsize, xsize, ysize)
 
     def __getitem__(self, idx):
         return self.blurs[idx], self.trues[idx]

@@ -3,3 +3,4 @@ dataset/
 models/
 results/
 .ipynb
+__pycache__/
