@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 class EarlyStopping():
     """
     modified from https://qiita.com/ku_a_i/items/ba33c9ce3449da23b503
