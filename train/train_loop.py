@@ -1,6 +1,7 @@
+import sys
+sys.path.append('utils')
 import torch
-from utils.earlystopping import EarlyStopping
-
+import utils.earlystopping
 
 loss_list = []
 val_list  = []
