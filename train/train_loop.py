@@ -1,11 +1,10 @@
 import sys
-sys.path.append('utils')
+sys.path.append('/home/haruhiko/Documents/JNet')
 import torch
-import utils.earlystopping
-
+from utils.earlystopping import EarlyStopping
 loss_list = []
 val_list  = []
-def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader):
+def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, device):
     earlystopping = EarlyStopping(patience=10, verbose=True)
     for epoch in range(1, n_epochs + 1):
         loss_sum     = 0.0
