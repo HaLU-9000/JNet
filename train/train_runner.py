@@ -13,7 +13,7 @@ sr_hidden_channels_list = [64, 64]
 nblocks                 = 2
 activation              = nn.ReLU()
 dropout                 = 0.5
-torch.manual_seed(419)
+torch.manual_seed(620)
 
 model = model.JNet(hidden_channels_list    = hidden_channels_list    ,
                    nblocks                 = nblocks                 ,
