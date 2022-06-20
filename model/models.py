@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.functional as F
+import torch.nn.functional as F
 #import torch.distributions as dist
 
 class JNetBlock0(nn.Module):

@@ -26,3 +26,5 @@ model                = JNet(hidden_channels_list    = hidden_channels_list    ,
                             bet_xy                  = 6.                      ,
                             bet_z                   = 35.                     ,)
 model                = model.to(device = device)
+x, r = model(torch.ones(1, 1, 128, 128, 128, device=device))
+print(x.shape)
