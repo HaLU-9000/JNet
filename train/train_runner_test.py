@@ -65,4 +65,5 @@ train_loop(
     val_loader   = val_data  ,
     device       = device    ,)
 
-torch.save(model.to('cpu').state_dict(), f'model/{model_name}.pt')
+#torch.save(model.to('cpu').state_dict(), f'model/{model_name}.pt')
+#dont need this because earlystopping have already saved the SoTA model

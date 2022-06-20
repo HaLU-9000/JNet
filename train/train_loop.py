@@ -5,7 +5,7 @@ from utils.earlystopping import EarlyStopping
 loss_list = []
 val_list  = []
 def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, device):
-    earlystopping = EarlyStopping(patience=10, verbose=True)
+    earlystopping = EarlyStopping(patience=10, verbose=True, path='model')
     for epoch in range(1, n_epochs + 1):
         loss_sum     = 0.0
         valloss_sum  = 0.0
