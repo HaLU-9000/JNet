@@ -6,14 +6,14 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import model.models as model
-from dataset.dataloader import Blur, CustomDataset
+from dataloader import Blur, CustomDataset
 from   train.train_loop import train_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-full_dataset = CustomDataset('dataset/dataset128_x2.pt')
+full_dataset = torch.load('dataset/dataset128_x2.pt', map_location='cpu')
 train_size           = int(len(full_dataset) * 0.8)
 val_size             = len(full_dataset) - train_size
 dataset, val_dataset = torch.utils.data.random_split(
