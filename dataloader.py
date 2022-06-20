@@ -69,7 +69,7 @@ class CustomDataset(Dataset):
         self.blurs  = self.cut(self.blur(true, model), blur_zsize, xsize, ysize)
     def blur(self, inp, model):
         blur = model(inp)
-        blur  = (blur - blur.min()) / (blur.max() - blur.min())
+        blur = (blur - blur.min()) / (blur.max() - blur.min())
         return blur
     
     def cut(self, inp, zsize, xsize, ysize):
