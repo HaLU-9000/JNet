@@ -14,7 +14,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-full_dataset = torch.load('dataset/dataset128_x2.pt', map_location='cpu')
+full_dataset = torch.load('dataset/dataset128_x2_1.pt')
 train_size           = int(len(full_dataset) * 0.8)
 val_size             = len(full_dataset) - train_size
 dataset, val_dataset = torch.utils.data.random_split(
@@ -24,14 +24,14 @@ dataset, val_dataset = torch.utils.data.random_split(
 g = torch.Generator(device = 'cpu')
 g.manual_seed(419)
 train_data  = DataLoader(dataset                                     ,
-                         batch_size  = 1                             ,  ###
+                         batch_size  = 1                             ,
                          shuffle     = True                          ,
                          generator   = g                             ,
                          pin_memory  = False                         ,
                          num_workers = 0                             ,
                          worker_init_fn = lambda x: seed(419)        ,)
 val_data    = DataLoader(val_dataset                                 ,
-                         batch_size  = 1                             ,  ###
+                         batch_size  = 1                             ,
                          shuffle     = False                         ,
                          pin_memory  = False                         ,)
 

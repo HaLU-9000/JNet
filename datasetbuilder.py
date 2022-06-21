@@ -1,7 +1,7 @@
 import numpy as np
 import time
 import torch
-from dataset.makedata   import make_data
+from makedata   import make_data
 torch.manual_seed(617)
 np.random.seed(617)
 
