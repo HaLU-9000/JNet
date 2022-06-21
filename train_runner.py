@@ -42,7 +42,7 @@ nblocks                 = 2
 activation              = nn.ReLU()
 dropout                 = 0.5
 torch.manual_seed(620)
-JNet = model.JNet(hidden_channels_list    = hidden_channels_list    ,
+JNet = model.JNet(hidden_channels_list     = hidden_channels_list    ,
                    nblocks                 = nblocks                 ,
                    activation              = activation              ,
                    dropout                 = dropout                 ,
