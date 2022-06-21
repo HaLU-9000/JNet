@@ -14,7 +14,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-full_dataset = torch.load('dataset/dataset128_x2_1.pt')
+full_dataset = torch.load('dataset/dataset128_x2.pt')
 train_size           = int(len(full_dataset) * 0.8)
 val_size             = len(full_dataset) - train_size
 dataset, val_dataset = torch.utils.data.random_split(
