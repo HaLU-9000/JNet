@@ -6,4 +6,3 @@ test.ipynb
 __pycache__/
 dataset_test/
 nohup.out
-*_test.py
