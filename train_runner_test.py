@@ -22,7 +22,7 @@ dataset, val_dataset = torch.utils.data.random_split(
     generator = torch.Generator(device='cpu').manual_seed(419), 
 )
 g = torch.Generator(device = 'cpu')
-g.manual_seed(419)
+g.manual_seed(621)
 train_data  = DataLoader(dataset                                     ,
                          batch_size  = 1                             ,
                          shuffle     = True                          ,
@@ -36,13 +36,13 @@ val_data    = DataLoader(val_dataset                                 ,
                          pin_memory  = False                         ,)
 
 model_name = 'JNet_38_for_trainlooptest'
-hidden_channels_list    = [1,1,1,1,1]#[16, 32, 64, 128, 256]
+hidden_channels_list    = [1]#[16, 32, 64, 128, 256]
 sr_hidden_channels_list = [1,1]#[64, 64]
 nblocks                 = 2
 activation              = nn.ReLU()
 dropout                 = 0.5
 torch.manual_seed(620)
-model = model.JNet(hidden_channels_list    = hidden_channels_list    ,
+JNet = model.JNet(hidden_channels_list    = hidden_channels_list    ,
                    nblocks                 = nblocks                 ,
                    activation              = activation              ,
                    dropout                 = dropout                 ,
@@ -54,17 +54,21 @@ model = model.JNet(hidden_channels_list    = hidden_channels_list    ,
                    sig_z                   = 0.2                     ,
                    bet_xy                  = 6.                      ,
                    bet_z                   = 35.                     ,)
-model = model.to(device = device)
-optimizer            = optim.Adam(model.parameters(), lr = 0.0005)
+JNet = JNet.to(device = device)
+optimizer            = optim.Adam(JNet.parameters(), lr = 0.0005)
 loss_fn              = nn.BCELoss()
 train_loop(
-    n_epochs     = 1         ,
+    n_epochs     = 2         ,
     optimizer    = optimizer ,
-    model        = model     ,
+    model        = JNet      ,
     loss_fn      = loss_fn   ,
     train_loader = train_data,
     val_loader   = val_data  ,
-    device       = device    ,)
+    device       = device    ,
+    path         = 'model'   ,
+    savefig_path = 'train'   ,
+    model_name   = model_name,
+    )
 
 #torch.save(model.to('cpu').state_dict(), f'model/{model_name}.pt')
 #dont need this because earlystopping have already saved the SoTA model
