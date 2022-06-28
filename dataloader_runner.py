@@ -17,6 +17,6 @@ for i in range(6):
     for _ in (1, 2, 4, 8, 12):
         dataset = CustomDataset(mini_inp, _, 128, 128, 128, 141, 7, 7, bet_xy=6, bet_z=35)
         print(f'CustomDataset(x{str(_)}) done!!')
-        torch.save(dataset,f'dataset/dataset128_x{str(_)}_{str(i+1)}.pt')
+        torch.save(dataset,f'dataset2/dataset128_x{str(_)}_{str(i+1)}.pt')
         del(dataset)
     del(mini_inp)

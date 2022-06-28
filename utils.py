@@ -37,3 +37,16 @@ class EarlyStopping():
             print(f'loss ({self.val_loss_min:.6f} --> {val_loss:.6f}). Saving models...')
         torch.save(model.state_dict(), f'{self.path}/{self.name}.pt')
         self.val_loss_min = val_loss
+
+class ModelSizeEstimator():
+    def __init__(self, model):
+        param_size = 0
+        for param in model.parameters():
+            param_size += param.nelement() * param.element_size()
+        buffer_size = 0
+        for buffer in model.buffers():
+            buffer_size += buffer.nelement() * buffer.element_size()
+        self.size_all_mb = (param_size + buffer_size) / 1024**2
+    def __call__(self):
+        print('model size: {:.3f} MB'.format(self.size_all_mb))
+

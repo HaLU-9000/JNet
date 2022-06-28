@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
-import model as model
+import model
 from dataloader import Blur, CustomDataset
 from   train_loop import train_loop
 
@@ -35,7 +35,7 @@ val_data    = DataLoader(val_dataset                                 ,
                          shuffle     = False                         ,
                          pin_memory  = False                         ,)
 
-model_name = 'JNet_40'
+model_name = 'JNet_41'
 hidden_channels_list    = [16, 32, 64, 128, 256]
 sr_hidden_channels_list = [64, 64]
 nblocks                 = 2
@@ -55,7 +55,7 @@ JNet = model.JNet(hidden_channels_list     = hidden_channels_list    ,
                    bet_xy                  = 6.                      ,
                    bet_z                   = 35.                     ,)
 JNet = JNet.to(device = device)
-optimizer            = optim.Adam(JNet.parameters(), lr = 1e-5)
+optimizer            = optim.Adam(JNet.parameters(), lr = 1e-4)
 loss_fn              = nn.BCELoss()
 train_loop(
     n_epochs     = 1000      ,

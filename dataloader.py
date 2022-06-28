@@ -65,7 +65,7 @@ class CustomDataset(Dataset):
                      sig_eps = 0.02   ,)
         blur_zsize  = zsize // scale
         true        = ori_data
-        self.trues  = self.cut(true                  , zsize     , xsize, ysize)
+        self.trues  = self.cut(true                  , zsize     , xsize, ysize).float()
         self.blurs  = self.cut(self.blur(true, model), blur_zsize, xsize, ysize)
     def blur(self, inp, model):
         blur = model(inp)
