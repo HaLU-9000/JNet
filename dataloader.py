@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as dist
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 
 class Blur(nn.Module):
