@@ -70,5 +70,3 @@ train_loop(
     model_name   = model_name,
     )
 
-#torch.save(model.to('cpu').state_dict(), f'model/{model_name}.pt')
-#dont need this because earlystopping have already saved the SoTA model

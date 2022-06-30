@@ -87,3 +87,11 @@ class CustomDataset(Dataset):
     
     def __len__(self):
         return self.blurs.shape[0]
+
+class PathDataset(Dataset):
+    def __init__(self, datapath):
+        1 + 1
+    def __getitem__(self, idx):
+        return 0
+    def __len__(self):
+        return 0
