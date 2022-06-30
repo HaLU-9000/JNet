@@ -2,12 +2,8 @@ import numpy as np
 import torch
 from dataloader import Blur
 from utils import save
-#torch.set_default_tensor_type(torch.cuda.FloatTensor)
 label = torch.load('/home/haruhiko/Documents/JNet/dataset/make_data_1e7.pt').float()
-#label = label.to('cuda')
-#print(label.shape)
 #save(label, 128, 128, 128, 'datasetpath', label=True)
-
 
 for scale in (2, 4, 8, 12):
     model = None
@@ -20,7 +16,6 @@ for scale in (2, 4, 8, 12):
                  bet_xy  = 6.    ,
                  bet_z   = 35.   ,
                  sig_eps = 0.02  ,)
-    #model.to('cuda')
     model.eval
     print(f'model load done (x{scale})')
     blur = model(label)
