@@ -50,10 +50,11 @@ class ModelSizeEstimator():
     def __call__(self):
         print('model size: {:.3f} MB'.format(self.size_all_mb))
 
-def save(data, zsize, xsize, ysize, path, name='', label=True, scale=1):
+def save(data, zsize, xsize, ysize, path, name='', label=True, scale=1, num=0):
     """
     input  : 4d pt.tensor
     output : 4d numpy.ndarray
+    * not working well in x12. modify when needed.
     """
     if name:
         label = False
@@ -61,16 +62,16 @@ def save(data, zsize, xsize, ysize, path, name='', label=True, scale=1):
         l = '_label'
     else:
         l = name    
+    zsize = zsize // scale
     z_r   = data.shape[1] // zsize
     x_r   = data.shape[2] // xsize
     y_r   = data.shape[3] // ysize
-    num   = 0
-    zsize = zsize // scale
     for k in range(z_r):
         for i in range(x_r):
             for j in range(y_r):
                 pt = data[0 : , k * zsize : (k + 1) * zsize ,
                                 i * xsize : (i + 1) * xsize ,
-                                j * ysize : (j + 1) * ysize ,]
+                                j * ysize : (j + 1) * ysize ,].clone()
                 np.save(f'{path}/{num}{l}', pt.detach().cpu().numpy())
                 num += 1
+    return num

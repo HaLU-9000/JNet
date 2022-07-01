@@ -8,3 +8,12 @@ __pycache__/
 dataset_test/
 nohup.out
 datasetpath/
+*_test.py
+
+pathlib_test.py
+utils_test.py
+utils_test2.py
+datasetpath_test.py
+gomi.py
+dataset_concatinator.py
+dataloader_runner.py

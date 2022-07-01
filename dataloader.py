@@ -1,3 +1,4 @@
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.distributions as dist
@@ -89,8 +90,8 @@ class CustomDataset(Dataset):
         return self.blurs.shape[0]
 
 class PathDataset(Dataset):
-    def __init__(self, datapath):
-        1 + 1
+    def __init__(self, folderpath):
+        Path('dataset')
     def __getitem__(self, idx):
         return 0
     def __len__(self):

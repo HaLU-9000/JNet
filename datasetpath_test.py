@@ -1,8 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-a = np.load('datasetpath/2_x2.npy')
-b = np.load('datasetpath/2_label.npy')
-print(a.shape, b.shape)
-plt.imsave('dataset_test/a.png', a[0, :, 4, :])
-plt.imsave('dataset_test/b.png', b[0, :, 4, :])
-# seems ok
+import torch
+label = torch.load('/home/haruhiko/Documents/JNet/dataset/make_data_1e7.pt').float()
+print(label.shape[1]*label.shape[2]*label.shape[3] // 128**3)
