@@ -6,7 +6,6 @@ import torch.optim as optim
 import model as model
 from dataset import PathDataset
 from   train_loop import train_loop
-print(os.cpu_count())
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -22,12 +21,12 @@ dataset, val_dataset = torch.utils.data.random_split(
     generator = torch.Generator(device='cpu').manual_seed(701) , 
 )
 train_data  = DataLoader(dataset                                     ,
-                         batch_size  = 25                            ,
+                         batch_size  = 20                            ,
                          shuffle     = True                          ,
                          pin_memory  = True                          ,
                          num_workers = os.cpu_count()                ,)
 val_data    = DataLoader(val_dataset                                 ,
-                         batch_size  = 25                            ,
+                         batch_size  = 20                            ,
                          shuffle     = False                         ,
                          pin_memory  = True                          ,
                          num_workers = os.cpu_count()                ,)
