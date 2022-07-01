@@ -8,6 +8,7 @@ __pycache__/
 dataset_test/
 nohup.out
 datasetpath/
+datasetpath_petit/
 *_test.py
 
 pathlib_test.py
