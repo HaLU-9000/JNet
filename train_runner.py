@@ -66,4 +66,3 @@ train_loop(
     savefig_path = 'train'   ,
     model_name   = model_name,
     )
-
