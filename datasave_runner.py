@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from dataloader import Blur
+from dataset import Blur
 from utils import save
 #torch.set_default_tensor_type(torch.cuda.FloatTensor)
 label = torch.load('/home/haruhiko/Documents/JNet/dataset/make_data_1e7.pt').float()
