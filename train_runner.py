@@ -32,7 +32,7 @@ val_data    = DataLoader(val_dataset                                 ,
                          pin_memory  = True                          ,
                          num_workers = os.cpu_count()                ,)
 
-model_name = 'JNet_43'
+model_name              = 'JNet_43'
 hidden_channels_list    = [16, 32, 64, 128, 256]
 sr_hidden_channels_list = [64, 64]
 nblocks                 = 2
