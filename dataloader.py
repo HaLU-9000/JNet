@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.distributions as dist
@@ -90,9 +91,12 @@ class CustomDataset(Dataset):
         return self.blurs.shape[0]
 
 class PathDataset(Dataset):
-    def __init__(self, folderpath):
-        Path('dataset')
+    def __init__(self, folderpath, imagename, labelname='_label'):
+        self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
+        self.images = list(sorted(Path(folderpath).glob(f'*{imagename}.npy')))
     def __getitem__(self, idx):
-        return 0
+        image = torch.from_numpy(np.load(self.images[idx]))
+        label = torch.from_numpy(np.load(self.labels[idx]))
+        return image, label
     def __len__(self):
-        return 0
+        return len(self.labels)

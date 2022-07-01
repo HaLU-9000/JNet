@@ -17,3 +17,4 @@ datasetpath_test.py
 gomi.py
 dataset_concatinator.py
 dataloader_runner.py
+filename_changer.py

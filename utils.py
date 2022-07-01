@@ -72,6 +72,6 @@ def save(data, zsize, xsize, ysize, path, name='', label=True, scale=1, num=0):
                 pt = data[0 : , k * zsize : (k + 1) * zsize ,
                                 i * xsize : (i + 1) * xsize ,
                                 j * ysize : (j + 1) * ysize ,].clone()
-                np.save(f'{path}/{num}{l}', pt.detach().cpu().numpy())
+                np.save(f'{path}/{str(num).zfill(4)}{l}', pt.detach().cpu().numpy())
                 num += 1
     return num

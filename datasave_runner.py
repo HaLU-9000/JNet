@@ -11,7 +11,7 @@ for i in range(6):
     minlab = label[:, :, i * 256 : (i + 1) * 256, :].clone()
     num    = minlab.shape[1] * minlab.shape[2] * minlab.shape[3] // 128 ** 3
     save(minlab, 128, 128, 128, 'datasetpath', label=True, num=i*num)
-for scale in (2, 4, 8, 12):
+for scale in (2, 4, 8):
     model = Blur(scale   = scale ,
                  z       = 141   ,
                  x       = 7     ,
@@ -31,4 +31,3 @@ for scale in (2, 4, 8, 12):
         print(f'blur done (x{scale})({5 - i} remains...)')
         save(blur, 128, 128, 128, 'datasetpath', name=f'_x{scale}', scale=scale, num=i*num)
     print(f'save done (x{scale})')
-
