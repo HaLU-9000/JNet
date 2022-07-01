@@ -21,12 +21,12 @@ dataset, val_dataset = torch.utils.data.random_split(
     generator = torch.Generator(device='cpu').manual_seed(701) , 
 )
 train_data  = DataLoader(dataset                                     ,
-                         batch_size  = 20                            ,
+                         batch_size  = 8                             ,
                          shuffle     = True                          ,
                          pin_memory  = True                          ,
                          num_workers = os.cpu_count()                ,)
 val_data    = DataLoader(val_dataset                                 ,
-                         batch_size  = 20                            ,
+                         batch_size  = 8                             ,
                          shuffle     = False                         ,
                          pin_memory  = True                          ,
                          num_workers = os.cpu_count()                ,)
