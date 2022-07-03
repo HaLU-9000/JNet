@@ -89,7 +89,9 @@ class JNetUnpooling(nn.Module):
         x = self.conv(x)
         x = self.relu(x)
         return x
-
+class JNetSuperResBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
 class JNetSuperResolution(nn.Module):
     def __init__(self, scale_factor, in_channels, sr_hidden_channels_list, out_channels):
         super().__init__()
