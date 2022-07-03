@@ -19,3 +19,4 @@ gomi.py
 dataset_concatinator.py
 dataloader_runner.py
 filename_changer.py
+model_test.py

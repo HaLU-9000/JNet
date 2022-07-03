@@ -89,37 +89,20 @@ class JNetUnpooling(nn.Module):
         x = self.conv(x)
         x = self.relu(x)
         return x
-class JNetSuperResBlock(nn.Module):
-    def __init__(self):
+
+class SuperResolutionBlock(nn.Module):
+    def __init__(self, scale_factor, in_channels, nblocks, dropout):
         super().__init__()
-class JNetSuperResolution(nn.Module):
-    def __init__(self, scale_factor, in_channels, sr_hidden_channels_list, out_channels):
-        super().__init__()
-        sr_hidden_channels = sr_hidden_channels_list
-        self.upsample = nn.Upsample(scale_factor = (scale_factor, 1, 1) ,
-                                    mode         = 'trilinear'          ,)
-        self.conv1    = nn.Conv3d(in_channels    = in_channels           ,
-                                  out_channels   = sr_hidden_channels[0] ,
-                                  kernel_size    = 9                     ,
-                                  padding        = 'same'                ,
-                                  padding_mode   = 'replicate'           ,)
-        self.conv2    = nn.Conv3d(in_channels    = sr_hidden_channels[0] ,
-                                  out_channels   = sr_hidden_channels[1] ,
-                                  kernel_size    = 1                     ,
-                                  padding        = 'same'                ,
-                                  padding_mode   = 'replicate'           ,)
-        self.conv3    = nn.Conv3d(in_channels    = sr_hidden_channels[1] ,
-                                  out_channels   = out_channels          ,
-                                  kernel_size    = 5                     ,
-                                  padding        = 'same'                ,
-                                  padding_mode   = 'replicate'           ,)
-        self.relu     = nn.ReLU()
+        self.upsample = nn.Upsample(scale_factor = scale_factor ,
+                                    mode         = 'trilinear'  ,)
+        self.post     = nn.ModuleList([JNetBlock(in_channels     = in_channels , 
+                                                 hidden_channels = in_channels ,
+                                                 dropout         = dropout     ,
+                                                 ) for _ in range(nblocks)])
     def forward(self, x):
         x = self.upsample(x)
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.relu(x)
+        for f in self.post:
+            x = f(x)
         return x
 
 class JNetBlur(nn.Module):
@@ -211,13 +194,24 @@ class JNetLayer(nn.Module):
         x = x + d
         return x
 
+class SuperResolutionLayer(nn.Module):
+    def __init__(self, in_channels, scale_list, nblocks, dropout):
+        super().__init__()
+        self.sr = nn.ModuleList([SuperResolutionBlock(scale_factor = scale_factor ,
+                                                      in_channels  = in_channels  ,
+                                                      nblocks      = nblocks      ,
+                                                      dropout      = dropout      ,
+                                                      )for scale_factor in scale_list])
+    def forward(self, x):
+        for f in self.sr:
+            x = f(x)
+        return x
+
 class JNet(nn.Module):
-    def __init__(self, hidden_channels_list, nblocks, activation, dropout,
-                 sr_hidden_channels_list, sr_out_channels, scale_factor, scale,
+    def __init__(self, hidden_channels_list, nblocks, activation, dropout, scale_list,
                  mu_z:float, sig_z:float, bet_xy:float, bet_z:float,):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
-        sr_hidden_channels_list = sr_hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
                                 out_channels = hidden_channels,)
@@ -234,13 +228,12 @@ class JNet(nn.Module):
                                               hidden_channels = hidden_channels,
                                               dropout         = dropout        ,
                                               ) for _ in range(nblocks)])
-
-        self.sr    = JNetSuperResolution(scale_factor    = scale_factor       ,
-                                         in_channels     = hidden_channels    ,
-                                         sr_hidden_channels_list = sr_hidden_channels_list,
-                                         out_channels    = sr_out_channels)
-        self.post0 = JNetBlockN(in_channels  = sr_out_channels,
-                                out_channels = 2              ,)
+        self.sr    = SuperResolutionLayer(in_channels   = hidden_channels ,
+                                          scale_list    = scale_list      ,
+                                          nblocks       = nblocks         ,
+                                          dropout       = dropout         ,)
+        self.post0 = JNetBlockN(in_channels  = hidden_channels ,
+                                out_channels = 2               ,)
         #self.blur  = JNetBlur(scale = scale                                ,
         #                      z       = 141                                ,
         #                      x       = 7                                  ,
@@ -249,9 +242,7 @@ class JNet(nn.Module):
         #                      sig_z   = nn.Parameter(torch.tensor(sig_z))  ,
         #                      bet_xy  = nn.Parameter(torch.tensor(bet_xy)) ,
         #                      bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
-
         self.activation = activation
-
     def forward(self, x):
         x = self.prev0(x)
         for f in self.prev:
