@@ -6,7 +6,7 @@ from utils import EarlyStopping
 import matplotlib.pyplot as plt
 
 def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, device,
-               path, savefig_path, model_name):
+               path, savefig_path, model_name, scheduler=None):
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = 10         ,
@@ -45,6 +45,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
                               epoch)
         if epoch == 1 or epoch % 5 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {val_list[-1]}')
+        if scheduler is not None:
+            scheduler.step()
         earlystopping((valloss_sum.item() / len(val_loader)), model)
         if earlystopping.early_stop:
             break
