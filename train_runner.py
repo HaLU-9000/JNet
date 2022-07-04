@@ -31,7 +31,7 @@ val_data    = DataLoader(val_dataset                                 ,
                          pin_memory  = True                         ,
                          num_workers = os.cpu_count()                ,)
 
-model_name              = 'JNet_50_x8' ################################
+model_name              = 'JNet_52_x8' ################################
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1), (2, 1, 1), (2, 1, 1)]
 nblocks              = 2
@@ -48,7 +48,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,)
 JNet = JNet.to(device = device)
-optimizer            = optim.Adam(JNet.parameters(), lr = 5e-4)
+optimizer            = optim.Adam(JNet.parameters(), lr = 5e-5)
 loss_fn              = nn.BCELoss()
 train_loop(
     n_epochs     = 500       , ######################################
