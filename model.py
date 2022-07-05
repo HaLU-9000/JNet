@@ -208,7 +208,7 @@ class SuperResolutionLayer(nn.Module):
         return x
 
 class JNet(nn.Module):
-    def __init__(self, hidden_channels_list, nblocks, activation, dropout, scale_list,
+    def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation, dropout, scale_list,
                  mu_z:float, sig_z:float, bet_xy:float, bet_z:float,):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
@@ -230,7 +230,7 @@ class JNet(nn.Module):
                                               ) for _ in range(nblocks)])
         self.sr    = SuperResolutionLayer(in_channels   = hidden_channels ,
                                           scale_list    = scale_list      ,
-                                          nblocks       = nblocks         ,
+                                          nblocks       = s_nblocks       ,
                                           dropout       = dropout         ,)
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
