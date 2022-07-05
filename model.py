@@ -255,7 +255,6 @@ class JNet(nn.Module):
         x = self.post0(x)
         x = F.softmax(input  = x,
                       dim    = 1,)[:, :1,]
-
         #x = F.gumbel_softmax(logits = x   ,
         #                     tau    = 1.  ,
         #                     hard   = True, 

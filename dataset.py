@@ -1,4 +1,6 @@
 from pathlib import Path
+import random
+from unittest.mock import NonCallableMagicMock
 import numpy as np
 import torch
 import torch.nn as nn
@@ -90,6 +92,19 @@ class CustomDataset(Dataset):
     def __len__(self):
         return self.blurs.shape[0]
 
+class Rotate:
+    def __init__(self, i=None, j=None):
+        if i is not None:
+            self.i = i
+        else:
+            self.i = random.choice([0,2])
+        if j is not None:
+            self.j = j
+        else:
+            self.j = random.choice([0,1,2,3])
+    def __call__(self, x):
+        return torch.rot90(torch.rot90(x, self.i, [1, 2]), self.j, [2, 3]), self.i, self.j
+
 class PathDataset(Dataset):
     def __init__(self, folderpath, imagename, labelname='_label'):
         self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
@@ -100,3 +115,35 @@ class PathDataset(Dataset):
         return image, label
     def __len__(self):
         return len(self.labels)
+
+class RotateDataset(Dataset):
+    def __init__(self, folderpath, imagename, labelname='_label'):
+        self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
+        self.images = list(sorted(Path(folderpath).glob(f'*{imagename}.npy')))
+    def __getitem__(self, idx):
+        image, i, j = Rotate(    )(torch.from_numpy(np.load(self.images[idx])))
+        label, _, _ = Rotate(i, j)(torch.from_numpy(np.load(self.labels[idx])))
+        return image, label
+    def __len__(self):
+        return len(self.labels)
+
+"""
+class RandomCutDataset(Dataset):
+    '''
+    input  : 4d numpy.ndarray(label) ,   4d numpy array(blurred image) 
+    output : 5d torch.tensor 
+             ([patches, channels, z_size, x_size, y_size]) 
+             of randomly cropped image and label
+    '''
+    def __init__(self, labels, images):
+        
+    def randomcut(self, image, zsize, xsize, ysize, i, j, k, scale=None):
+        
+        image[]
+    def __getitem__(self, idx):
+        label, i, j, k  = self.randomcut(label, zsize, xsize, ysize, scale=None)
+        image, _, _, _  = self.randomcut(image, zsize, xsize, ysize, i, j, k)
+        return image, label
+    def __len__(self):
+        return self.blurs.shape[0]
+"""

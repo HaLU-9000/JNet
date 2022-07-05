@@ -6,7 +6,7 @@ from utils import EarlyStopping
 import matplotlib.pyplot as plt
 
 def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, device,
-               path, savefig_path, model_name, scheduler=None):
+               path, savefig_path, model_name, partial=None,scheduler=None):
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = 10         ,
@@ -22,7 +22,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
             image    = image.to(device = device)
             label    = label.to(device = device)
             out, rec = model(image)
-            loss     = loss_fn(out, label)
+            if partial is not None:
+                loss = loss_fn(out[:,   :, partial[0]:partial[1]],
+                               label[:, :, partial[0]:partial[1]])
+            else:
+                loss = loss_fn(out, label)
             optimizer.zero_grad()
             loss.backward(retain_graph=True) ###
             optimizer.step()
@@ -37,7 +41,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
                 image       = image.to(device = device)
                 label       = label.to(device = device)
                 out, rec    = model(image) #, 0
-                val_loss    = loss_fn(out, label)
+                if partial is not None:
+                    val_loss = loss_fn(out[:,   :, partial[0]:partial[1]],
+                                       label[:, :, partial[0]:partial[1]])
+                else:
+                    val_loss = loss_fn(out, label)
                 valloss_sum += val_loss.detach()
             val_list.append(valloss_sum.item() / len(val_loader))
             writer.add_scalar('val loss',

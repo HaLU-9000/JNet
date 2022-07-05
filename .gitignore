@@ -9,6 +9,7 @@ dataset_test/
 nohup.out
 datasetpath/
 datasetpath_petit/
+dataaug_test/
 *_test.py
 
 pathlib_test.py
@@ -20,3 +21,4 @@ dataset_concatinator.py
 dataloader_runner.py
 filename_changer.py
 model_test.py
+dataaugmentation_test.py
