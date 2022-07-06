@@ -4,34 +4,47 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import model as model
-from dataset import PathDataset
+from dataset import RandomCutDataset
 from   train_loop import train_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
-PathDataset
-full_dataset = PathDataset(folderpath = 'datasetpath' ,
-                           imagename  = '_x8'         ,    ###########
-                           labelname  = '_label'      ,)
-train_size           = int(len(full_dataset) * 0.8)
-val_size             = len(full_dataset) - train_size
-dataset, val_dataset = torch.utils.data.random_split(
-    full_dataset, [train_size, val_size]                       ,
-    generator = torch.Generator(device='cpu').manual_seed(701) , 
-)
-train_data  = DataLoader(dataset                                     ,
-                         batch_size  = 2                             ,
-                         shuffle     = True                          ,
-                         pin_memory  = True                         ,
-                         num_workers = os.cpu_count()                ,)
-val_data    = DataLoader(val_dataset                                 ,
-                         batch_size  = 2                             ,
-                         shuffle     = False                         ,
-                         pin_memory  = True                         ,
-                         num_workers = os.cpu_count()                ,)
 
-model_name              = 'JNet_64' ################################
+train_dataset = RandomCutDataset(folderpath  =  'randomdata'     ,
+                                 imagename   =  '_x1'            ,
+                                 labelname   =  '_label'         ,
+                                 size        =  (768, 768, 768)  ,
+                                 cropsize    =  (128, 128, 128)  ,
+                                 I           =  10               ,
+                                 low         =   0               ,
+                                 high        =   8               ,
+                                 scale       =   1               ,
+                                )
+val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,
+                                 imagename   =  '_x1'            ,
+                                 labelname   =  '_label'         ,
+                                 size        =  (768, 768, 768)  ,
+                                 cropsize    =  (128, 128, 128)  ,
+                                 I           =  10               ,
+                                 low         =   8               ,
+                                 high        =  10               ,
+                                 scale       =   1               ,
+                                )
+train_data  = DataLoader(train_dataset                 ,
+                         batch_size  = 1               ,
+                         shuffle     = True            ,
+                         pin_memory  = True            ,
+                         num_workers = os.cpu_count()  ,
+                         )
+val_data    = DataLoader(val_dataset                   ,
+                         batch_size  = 1               ,
+                         shuffle     = False           ,
+                         pin_memory  = True            ,
+                         num_workers = os.cpu_count()  ,
+                         )
+
+model_name              = 'JNet_74_x1' ################################
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1), (2, 1, 1), (2, 1, 1)]
 nblocks              = 2

@@ -53,6 +53,7 @@ class Blur(nn.Module):
                            scale = self.sig_eps,)
         rec  = prec.sample()
         rec  = rec.squeeze(0)
+        rec  = (rec - rec.min()) / (rec.max() - rec.min())
         return rec
 
 class CustomDataset(Dataset):
@@ -150,20 +151,23 @@ class RandomCutDataset(Dataset):
         self.labels  = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
         self.images  = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
         self.csize   = cropsize
+        self.ssize   = [cropsize[0]//scale, cropsize[1], cropsize[2]]
 
-    def gen_indices(I, low, high):
+    def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
     
-    def gen_coords(self,I, size, cropsize, scale):
+    def gen_coords(self, I, size, cropsize, scale):
         zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
         xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
         ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
         return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+
     def __getitem__(self, idx):
-        image, i, j = Rotate(    )(Crop(self.coords[:, idx], self.csize
+        image, i, j = Rotate(    )(Crop(self.coords[1][:, idx], self.ssize
                                             )(torch.load(self.images[idx])))
-        label, _, _ = Rotate(i, j)(Crop(self.coords[:, idx], self.csize
-                                            )(torch.load(self.images[idx])))
+        label, _, _ = Rotate(i, j)(Crop(self.coords[0][:, idx], self.csize
+                                            )(torch.load(self.labels[idx])))
         return image, label
+
     def __len__(self):
         return self.I
