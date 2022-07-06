@@ -209,7 +209,7 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation, dropout, scale_list,
-                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,):
+                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,superres:bool):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
@@ -243,6 +243,7 @@ class JNet(nn.Module):
         #                      bet_xy  = nn.Parameter(torch.tensor(bet_xy)) ,
         #                      bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
         self.activation = activation
+        self.superres = superres
     def forward(self, x):
         x = self.prev0(x)
         for f in self.prev:
@@ -251,7 +252,8 @@ class JNet(nn.Module):
         for f in self.post:
             x = f(x)
         #print(x.shape)
-        x = self.sr(x)
+        if self.superres:
+            x = self.sr(x)
         x = self.post0(x)
         x = F.softmax(input  = x,
                       dim    = 1,)[:, :1,]
