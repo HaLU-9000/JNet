@@ -11,7 +11,8 @@ datasetpath/
 datasetpath_petit/
 dataaug_test/
 *_test.py
-
+randomdataset/
+randomdataset_petit/
 pathlib_test.py
 utils_test.py
 utils_test2.py
