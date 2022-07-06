@@ -146,8 +146,12 @@ class RandomCutDataset(Dataset):
     def __init__(self, folderpath:str, imagename:str, labelname:str, 
                  size:list, cropsize:list, I:int, low:int, high:int, scale:int):
         self.I       = I
-        self.indices = self.gen_indices(I, low, high)
-        self.coords  = self.gen_coords(I, size, cropsize, scale)
+        self.low     = low
+        self.high    = high
+        self.scale   = scale
+        self.size    = size
+        #self.indices = self.gen_indices(I, low, high)
+        #self.coords  = self.gen_coords( I, size, cropsize, scale)
         self.labels  = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
         self.images  = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
         self.csize   = cropsize
@@ -156,16 +160,18 @@ class RandomCutDataset(Dataset):
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
     
-    def gen_coords(self, I, size, cropsize, scale):
-        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
-        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
-        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
+    def gen_coords(self, size, cropsize, scale):
+        zcoord = np.random.randint(0, size[0]-cropsize[0], (1,)).item()
+        xcoord = np.random.randint(0, size[1]-cropsize[1], (1,)).item()
+        ycoord = np.random.randint(0, size[2]-cropsize[2], (1,)).item()
         return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
 
     def __getitem__(self, idx):
-        image, i, j = Rotate(    )(Crop(self.coords[1][:, idx], self.ssize
+        idx     = self.gen_indices(1, self.low, self.high).item()
+        coords  = self.gen_coords(self.size, self.csize, self.scale)
+        image, i, j = Rotate(    )(Crop(coords[1], self.ssize
                                             )(torch.load(self.images[idx])))
-        label, _, _ = Rotate(i, j)(Crop(self.coords[0][:, idx], self.csize
+        label, _, _ = Rotate(i, j)(Crop(coords[0], self.csize
                                             )(torch.load(self.labels[idx])))
         return image, label
 
