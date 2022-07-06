@@ -126,23 +126,44 @@ class RotateDataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
-"""
+class Crop:
+    def __init__(self, coord:list, cropsize:list):
+        self.coord = coord
+        self.csize = cropsize
+    def __call__(self,x:torch.Tensor):
+       return x[0 : , self.coord[0] : self.coord[0] + self.csize[0],
+                      self.coord[1] : self.coord[1] + self.csize[1],
+                      self.coord[2] : self.coord[2] + self.csize[2]].detach().clone()
+
 class RandomCutDataset(Dataset):
     '''
-    input  : 4d numpy.ndarray(label) ,   4d numpy array(blurred image) 
-    output : 5d torch.tensor 
-             ([patches, channels, z_size, x_size, y_size]) 
-             of randomly cropped image and label
+    input  : 4d torch,tensor
+    output : 4d torch.tensor 
+             ([channels, z_size, x_size, y_size]) 
+             of randomly cropped/rotated image and label
     '''
-    def __init__(self, labels, images):
-        
-    def randomcut(self, image, zsize, xsize, ysize, i, j, k, scale=None):
-        
-        image[]
+    def __init__(self, folderpath:str, imagename:str, labelname:str, 
+                 size:list, cropsize:list, I:int, low:int, high:int, scale:int):
+        self.I       = I
+        self.indices = self.gen_indices(I, low, high)
+        self.coords  = self.gen_coords(I, size, cropsize, scale)
+        self.labels  = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
+        self.images  = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
+        self.csize   = cropsize
+
+    def gen_indices(I, low, high):
+        return np.random.randint(low, high, (I,))
+    
+    def gen_coords(self,I, size, cropsize, scale):
+        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
+        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
+        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
+        return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
     def __getitem__(self, idx):
-        label, i, j, k  = self.randomcut(label, zsize, xsize, ysize, scale=None)
-        image, _, _, _  = self.randomcut(image, zsize, xsize, ysize, i, j, k)
+        image, i, j = Rotate(    )(Crop(self.coords[:, idx], self.csize
+                                            )(torch.load(self.images[idx])))
+        label, _, _ = Rotate(i, j)(Crop(self.coords[:, idx], self.csize
+                                            )(torch.load(self.images[idx])))
         return image, label
     def __len__(self):
-        return self.blurs.shape[0]
-"""
+        return self.I

@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from pathlib import Path
 class EarlyStopping():
     """
     path[str]: path you want to save your model
@@ -75,3 +76,16 @@ def save(data, zsize, xsize, ysize, path, name='', label=True, scale=1, num=0):
                 np.save(f'{path}/{str(num).zfill(4)}{l}', pt.detach().cpu().numpy())
                 num += 1
     return num
+
+def path_blur():
+    return 0
+
+def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale):
+    for i, label in enumerate(list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))):
+        label = torch.from_numpy(np.load(label))
+        if not Path(f'{outfolderpath}/{str(i).zfill(4)}{outlabelname}.pt').is_file():
+            torch.save(label,  f'{outfolderpath}/{str(i).zfill(4)}{outlabelname}.pt')
+        blur = model(label)
+        blur = blur.detach().to('cpu').numpy()
+        blur = torch.from_numpy(blur)
+        torch.save(blur, f'{outfolderpath}/{str(i).zfill(4)}_x{scale}.pt')

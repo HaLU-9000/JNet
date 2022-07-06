@@ -13,6 +13,8 @@ dataaug_test/
 *_test.py
 randomdataset/
 randomdataset_petit/
+randomdata/
+
 pathlib_test.py
 utils_test.py
 utils_test2.py
@@ -23,3 +25,4 @@ dataloader_runner.py
 filename_changer.py
 model_test.py
 dataaugmentation_test.py
+dataset_test.py
