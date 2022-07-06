@@ -1,6 +1,5 @@
 from pathlib import Path
 import random
-from unittest.mock import NonCallableMagicMock
 import numpy as np
 import torch
 import torch.nn as nn
