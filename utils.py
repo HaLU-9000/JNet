@@ -80,12 +80,13 @@ def save(data, zsize, xsize, ysize, path, name='', label=True, scale=1, num=0):
 def path_blur():
     return 0
 
-def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale):
-    for i, label in enumerate(list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))):
+def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, I=0):
+    flist = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
+    for i, label in enumerate(flist[I:]):
         label = torch.from_numpy(np.load(label))
-        if not Path(f'{outfolderpath}/{str(i).zfill(4)}{outlabelname}.pt').is_file():
-            torch.save(label.float(),  f'{outfolderpath}/{str(i).zfill(4)}{outlabelname}.pt')
+        if not Path(f'{outfolderpath}/{str(i+I).zfill(4)}{outlabelname}.pt').is_file():
+            torch.save(label.float(),  f'{outfolderpath}/{str(i+I).zfill(4)}{outlabelname}.pt')
         blur = model(label)
         blur = blur.detach().to('cpu').numpy()
         blur = torch.from_numpy(blur)
-        torch.save(blur, f'{outfolderpath}/{str(i).zfill(4)}_x{scale}.pt')
+        torch.save(blur, f'{outfolderpath}/{str(i+I).zfill(4)}_x{scale}.pt')

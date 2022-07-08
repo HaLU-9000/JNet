@@ -9,7 +9,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-for i in range(10):
+for i in range(10, 20):
     t1 = time.time()
     inp     = make_data(132710, (768, 768, 768))
     t2 = time.time()

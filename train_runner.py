@@ -15,20 +15,20 @@ train_dataset = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
-                                 cropsize    =  (128, 128, 128)  ,
+                                 cropsize    =  (256,  64,  64)  ,
                                  I           =  200              ,
                                  low         =    0               ,
-                                 high        =    8               ,
+                                 high        =   16               ,
                                  scale       =    1               ,
                                 )
 val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
-                                 cropsize    =  (128, 128, 128)  ,
+                                 cropsize    =  (256,  64,  64)  ,
                                  I           =  200               ,
-                                 low         =    8               ,
-                                 high        =   10               ,
+                                 low         =   16               ,
+                                 high        =   20               ,
                                  scale       =    1               ,
                                 )
 train_data  = DataLoader(train_dataset                 ,
@@ -44,7 +44,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_77_x1'
+model_name           = 'JNet_80_x1_256'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -81,5 +81,5 @@ train_loop(
     model_name   = model_name,
     partial      = partial   ,
     scheduler    = scheduler ,
-    es_patience  = 20        ,
+    es_patience  = 40        ,
     )

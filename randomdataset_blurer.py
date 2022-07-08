@@ -26,4 +26,4 @@ for scale in (1, 2, 8):
     outfolderpath = 'randomdata'
     labelname     = '_label'
     outlabelname  = '_label'
-    save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale)
+    save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, 10)
