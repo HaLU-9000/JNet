@@ -29,14 +29,14 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  scale       =    1               ,
                                 )
 
-model_name           = 'JNet_81_x1_256'
+model_name           = 'JNet_83_x1_partial'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU()
 dropout              = 0.5
-partial              = None ########################
+partial              = (64, 192) ########################
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
@@ -50,8 +50,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = False                ,
                   )
 JNet = JNet.to(device = device)
-j = 60
-i = 60
+j = 30
+i = 30
 scale = 1
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
@@ -73,16 +73,31 @@ for n in range(0,5):
     ax5.set_axis_off()
     ax6.set_axis_off()
     plt.subplots_adjust(hspace=-0.0)
-    ax1.imshow(image[0, j, :, :].to(device='cpu'),
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    ax2.imshow(output[0, 0, j, :, :],
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    ax3.imshow(label[0, j, :, :].to(device='cpu'),
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    ax4.imshow(image[0, :, i, :].to(device='cpu'),
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-    ax5.imshow(output[0, 0, :, i, :],
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    ax6.imshow(label[0, :, i, :].to(device='cpu'),
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+    if partial is not None:
+        ax1.imshow(image[0, partial[0]+j, :, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax2.imshow(output[0, 0, partial[0]+j, :, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax3.imshow(label[0, partial[0]+j, :, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax4.imshow(image[0, partial[0]:partial[1], i, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+        ax5.imshow(output[0, 0, partial[0]:partial[1], i, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax6.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+    else:
+        ax1.imshow(image[0, j, :, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax2.imshow(output[0, 0, j, :, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax3.imshow(label[0, j, :, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax4.imshow(image[0, :, i, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+        ax5.imshow(output[0, 0, partial[0]:partial[1], i, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax6.imshow(label[0, :, i, :].to(device='cpu'),
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
     plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
+    
