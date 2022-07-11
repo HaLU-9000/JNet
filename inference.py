@@ -50,7 +50,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = False                ,
                   )
 JNet = JNet.to(device = device)
-j = 30
+j = 60
 i = 30
 scale = 1
 
@@ -80,7 +80,7 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax3.imshow(label[0, partial[0]+j, :, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax4.imshow(image[0, partial[0]:partial[1], i, :].to(device='cpu'),
+        ax4.imshow(image[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
         ax5.imshow(output[0, 0, partial[0]:partial[1], i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
@@ -92,7 +92,7 @@ for n in range(0,5):
         ax2.imshow(output[0, 0, j, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax3.imshow(label[0, j, :, :].to(device='cpu'),
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1, )
         ax4.imshow(image[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
         ax5.imshow(output[0, 0, partial[0]:partial[1], i, :],
