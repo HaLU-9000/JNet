@@ -90,3 +90,14 @@ def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scal
         blur = blur.detach().to('cpu').numpy()
         blur = torch.from_numpy(blur)
         torch.save(blur, f'{outfolderpath}/{str(i+I).zfill(4)}_x{scale}.pt')
+
+def create_mask(h, w, center=None, radius=None):
+    if center is None:
+        center = (int(w/2), int(h/2))
+    if radius is None:
+        radius = min(center[0], center[1], w - center[0], h - center[1])
+    y, x = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((x - center[0]) ** 2 + (y - center[1]) ** 2)
+    mask = dist_from_center <= radius
+    mask = mask * 1.0
+    return mask

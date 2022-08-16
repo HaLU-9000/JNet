@@ -15,6 +15,7 @@ randomdataset/
 randomdataset_petit/
 randomdata/
 data_vis/
+metrics_test/
 
 pathlib_test.py
 utils_test.py
@@ -27,3 +28,4 @@ filename_changer.py
 model_test.py
 dataaugmentation_test.py
 dataset_test.py
+metrics_test.py
