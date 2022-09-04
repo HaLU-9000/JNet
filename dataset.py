@@ -158,19 +158,22 @@ class RandomCutDataset(Dataset):
     scale: scale (should be same as [imagename]'s int part.)
     '''
     def __init__(self, folderpath:str, imagename:str, labelname:str, 
-                 size:list, cropsize:list, I:int, low:int, high:int, scale:int):
+                 size:list, cropsize:list, I:int, low:int, high:int, scale:int,
+                 train=True, seed=904):
         self.I       = I
         self.low     = low
         self.high    = high
         self.scale   = scale
         self.size    = size
-        #self.indices = self.gen_indices(I, low, high)
-        #self.coords  = self.gen_coords( I, size, cropsize, scale)
         self.labels  = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
         self.images  = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
         self.csize   = cropsize
         self.ssize   = [cropsize[0]//scale, cropsize[1], cropsize[2]]
-
+        self.train   = train
+        if train == False:
+            np.random.seed(seed)
+            self.indices = self.gen_indices(I, low, high)
+            self.coords  = self.gen_coords( I, size, cropsize, scale)
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
     
@@ -181,12 +184,18 @@ class RandomCutDataset(Dataset):
         return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
 
     def __getitem__(self, idx):
-        idx     = self.gen_indices(1, self.low, self.high).item()
-        coords  = self.gen_coords(self.size, self.csize, self.scale)
-        image, i, j = Rotate(    )(Crop(coords[1], self.ssize
-                                            )(torch.load(self.images[idx])))
-        label, _, _ = Rotate(i, j)(Crop(coords[0], self.csize
-                                            )(torch.load(self.labels[idx])))
+        if self.train:
+            idx     = self.gen_indices(1, self.low, self.high).item()
+            coords  = self.gen_coords(self.size, self.csize, self.scale)
+            image, i, j = Rotate(    )(Crop(coords[1], self.ssize
+                                                )(torch.load(self.images[idx])))
+            label, _, _ = Rotate(i, j)(Crop(coords[0], self.csize
+                                                )(torch.load(self.labels[idx])))
+        else:
+            idx    = self.indices
+            coords = self.coords
+            image  = Crop(coords[1], self.ssize)(torch.load(self.images[idx]))
+            label  = Crop(coords[0], self.csize)(torch.load(self.labels[idx]))
         return image, label
 
     def __len__(self):

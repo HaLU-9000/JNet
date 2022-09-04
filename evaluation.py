@@ -7,7 +7,6 @@ from metrics import jiffs
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
-print(f"Training on device {device}.")
 
 model_name           = 'JNet_77_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
@@ -31,14 +30,20 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 scale = 1
-
-JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
-JNet.eval()
-
 val_dataset   = PathDataset(folderpath  =  'croppeddata'    ,  ###
                             imagename   =  '_x1'            ,
                             labelname   =  '_label'         ,
                             low         = 0                 ,
                             high        = 100               ,
                             )
-val_dataset[0]
+
+JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
+JNet.eval()
+
+jis = []
+for i in range(val_dataset):
+    image, label = val_dataset[i]
+    image   = image.to(device=device).unsqueeze(0)
+    pred, _ = JNet(image)
+    pred    = pred.to(device='cpu').squeeze(0)
+    jis.append(jiffs(pred, label))
