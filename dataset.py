@@ -106,15 +106,23 @@ class Rotate:
         return torch.rot90(torch.rot90(x, self.i, [1, 2]), self.j, [2, 3]), self.i, self.j
 
 class PathDataset(Dataset):
-    def __init__(self, folderpath, imagename, labelname='_label'):
+    """
+    Dataset for evaluation that uses already cropped data.
+    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
+    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
+    low, high : use [low]th ~ [high]th files in folderpath as data.
+    """
+    def __init__(self, folderpath, imagename, labelname='_label', low=0, high=100):
         self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
         self.images = list(sorted(Path(folderpath).glob(f'*{imagename}.npy')))
+        self.low    = low
+        self.high   = high
     def __getitem__(self, idx):
-        image = torch.from_numpy(np.load(self.images[idx]))
-        label = torch.from_numpy(np.load(self.labels[idx]))
+        image = torch.from_numpy(np.load(self.images[idx + self.low ]))
+        label = torch.from_numpy(np.load(self.labels[idx + self.low]))
         return image, label
     def __len__(self):
-        return len(self.labels)
+        return self.high - self.low
 
 class RotateDataset(Dataset):
     def __init__(self, folderpath, imagename, labelname='_label'):

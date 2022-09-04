@@ -35,7 +35,10 @@ scale = 1
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
 JNet.eval()
 
-val_dataset   = PathDataset(folderpath  =  'datasetpath'     ,  ###
+val_dataset   = PathDataset(folderpath  =  'croppeddata'    ,  ###
                             imagename   =  '_x1'            ,
                             labelname   =  '_label'         ,
+                            low         = 0                 ,
+                            high        = 100               ,
                             )
+val_dataset[0]

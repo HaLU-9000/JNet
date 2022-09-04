@@ -8,6 +8,7 @@ __pycache__/
 dataset_test/
 nohup.out
 datasetpath/
+croppeddata/
 datasetpath_petit/
 dataaug_test/
 *_test.py
