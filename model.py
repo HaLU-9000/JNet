@@ -251,7 +251,6 @@ class JNet(nn.Module):
         x = self.mid(x)
         for f in self.post:
             x = f(x)
-        #print(x.shape)
         if self.superres:
             x = self.sr(x)
         x = self.post0(x)
@@ -261,8 +260,6 @@ class JNet(nn.Module):
         #                     tau    = 1.  ,
         #                     hard   = True, 
         #                     dim    = 1   ,)[:, :1,]
-        #print('sr done', x.shape)
         #r = self.blur(x)
         r = 0
-        #print('blur done',r.shape)
         return x, r

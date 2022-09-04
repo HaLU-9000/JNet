@@ -138,10 +138,16 @@ class Crop:
 
 class RandomCutDataset(Dataset):
     '''
-    input  : 4d torch,tensor
-    output : 4d torch.tensor 
+    input  : 4d torch.tensor (large (like 768**3) size)
+    output : 4d torch.tensor (small (like 128**3) size)
              ([channels, z_size, x_size, y_size]) 
              of randomly cropped/rotated image and label
+    folderpath : large data path ("randomdata" in this repo)
+    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
+    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
+    I : sample size. Returns I samples. (e.g. 200)
+    low, high : use [low]th ~ [high]th files in folderpath as data.
+    scale: scale (should be same as [imagename]'s int part.)
     '''
     def __init__(self, folderpath:str, imagename:str, labelname:str, 
                  size:list, cropsize:list, I:int, low:int, high:int, scale:int):
