@@ -41,7 +41,8 @@ def kagglejiffs(image1, image2, smooth=1e-8):
     intersection = (image1 * image2).sum()
     total = torch.sum(image1 + image2)
     union = total - intersection
-    return (intersection + smooth) / (union + smooth)
+    kji   =  (intersection + smooth) / (union + smooth)
+    return kji.detach().cpu().numpy()
 
 if __name__ == '__main__':
     from utils import create_mask

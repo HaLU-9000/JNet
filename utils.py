@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 from pathlib import Path
+
+from metrics import jiffs
+
 class EarlyStopping():
     """
     path[str]: path you want to save your model
@@ -101,3 +104,15 @@ def create_mask(h, w, center=None, radius=None):
     mask = dist_from_center <= radius
     mask = mask * 1.0
     return mask
+
+def gen_jilist(model, model_name, val_dataset, device):
+    model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+    model.eval()
+    jis = []
+    for i in range(len(val_dataset)):
+        image, label = val_dataset[i]
+        image   = image.to(device=device).unsqueeze(0)
+        pred, _ = model(image)
+        pred    = pred.to(device='cpu').squeeze(0)
+        jis.append(jiffs(pred, label))
+    return jis
