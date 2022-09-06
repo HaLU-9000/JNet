@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 from pathlib import Path
 
 from metrics import jiffs
@@ -120,3 +121,39 @@ def gen_jilist(model, model_name, val_dataset, device, partial=None):
             pred = pred[:, partial[0]:partial[1], :, :].detach()
         jis.append(jiffs(pred, label))
     return jis
+
+def gen_bcelist(model, model_name, val_dataset, device, partial=None):
+    model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+    model.eval()
+    bce = nn.BCELoss()
+    bces = []
+    for i in range(len(val_dataset)):
+        image, label = val_dataset[i]
+        if partial is not None:
+            label = label[:, partial[0]:partial[1], :, :].detach()
+        image   = image.to(device=device).unsqueeze(0)
+        pred, _ = model(image)
+        pred    = pred.to(device='cpu').squeeze(0)
+        if partial is not None:
+            pred = pred[:, partial[0]:partial[1], :, :].detach()
+        bces.append(bce(pred, label).to('cpu').item())
+    return bces
+
+def gen_bcecontrol(val_dataset, partial=None):
+    bce = nn.BCELoss()
+    bces = []
+    for i in range(len(val_dataset)):
+        _, label = val_dataset[i]
+        if partial is not None:
+            label = label[:, partial[0]:partial[1], :, :].detach() * 1.0
+        bces.append(bce(label, torch.ones_like(label) * torch.mean(label)).item())
+    return bces
+
+def bcelosswithlog2(inp, target):
+    bcelg2 = -torch.mean(target * torch.log2(inp) + (1.0 - target) * torch.log2(1.0 - inp)).to('cpu')
+    if bcelg2.isnan():
+        return -100
+    if bcelg2.isinf():
+        return 100
+    else:
+        return bcelg2.item()
