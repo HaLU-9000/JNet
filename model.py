@@ -19,7 +19,7 @@ class JNetBlock(nn.Module):
     def __init__(self, in_channels, hidden_channels, dropout):
         super().__init__()
         self.bn1      = nn.BatchNorm3d(num_features = in_channels)
-        self.relu1    = nn.ReLU()
+        self.relu1    = nn.ReLU(inplace=True)
         self.conv1    = nn.Conv3d(in_channels  = in_channels    ,
                                   out_channels = hidden_channels,
                                   kernel_size  = 3              ,
@@ -27,7 +27,7 @@ class JNetBlock(nn.Module):
                                   padding_mode = 'replicate'    ,)
         
         self.bn2      = nn.BatchNorm3d(num_features = hidden_channels)
-        self.relu2    = nn.ReLU()
+        self.relu2    = nn.ReLU(inplace=True)
         self.dropout1 = nn.Dropout(p = dropout)
         self.conv2    = nn.Conv3d(in_channels  = hidden_channels,
                                   out_channels = in_channels    ,
@@ -66,7 +66,7 @@ class JNetPooling(nn.Module):
                                  kernel_size  = 1              ,
                                  padding      = 'same'         ,
                                  padding_mode = 'replicate'    ,)
-        self.relu    = nn.ReLU()
+        self.relu    = nn.ReLU(inplace=True)
     def forward(self, x):
         x = self.maxpool(x)
         x = self.conv(x)
@@ -83,7 +83,7 @@ class JNetUnpooling(nn.Module):
                                   kernel_size    = 1            ,
                                   padding        = 'same'       ,
                                   padding_mode   = 'replicate'  ,)
-        self.relu     = nn.ReLU()
+        self.relu     = nn.ReLU(inplace=True)
     def forward(self, x):
         x = self.upsample(x)
         x = self.conv(x)
@@ -263,3 +263,26 @@ class JNet(nn.Module):
         #r = self.blur(x)
         r = 0
         return x, r
+
+if __name__ == '__main__':
+    import torchinfo
+    hidden_channels_list = [16, 32, 64, 128, 256]
+    scale_list           = [(2, 1, 1)]
+    nblocks              = 2
+    s_nblocks            = 2
+    activation           = nn.ReLU(inplace=True)
+    dropout              = 0.5
+    model =  JNet(hidden_channels_list  = hidden_channels_list ,
+                  nblocks               = nblocks              ,
+                  s_nblocks             = s_nblocks            ,
+                  activation            = activation           ,
+                  dropout               = dropout              ,
+                  scale_list            = scale_list           ,
+                  mu_z                  = 0.2                  ,
+                  sig_z                 = 0.2                  ,
+                  bet_xy                = 6.                   ,
+                  bet_z                 = 35.                  ,
+                  superres              = False                ,
+                  )
+    input_size = (1, 1, 128, 128, 128)
+    torchinfo.summary(model, input_size)
