@@ -21,12 +21,12 @@ class EarlyStopping():
         self.val_loss_min = np.Inf
         self.path         = path
         self.name         = name
-    def __call__(self, val_loss, model):
+    def __call__(self, val_loss, model, condition=False):
         score = -val_loss
-        if self.best_score is None:
+        if self.best_score is None: # 1st time
             self.best_score = score
             self.checkpoint(val_loss, model)
-        elif score < self.best_score:
+        elif score < self.best_score and condition: # earlystop (only if condition is True)
             self.counter += 1
             if self.verbose:
                 print(f'EarlyStopping counter:{self.counter} out of {self.patience}')

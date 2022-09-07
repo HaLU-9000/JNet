@@ -244,6 +244,8 @@ class JNet(nn.Module):
         #                      bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
         self.activation = activation
         self.superres = superres
+    def set_tau(self, tau=0.1):
+        self.tau = tau
     def forward(self, x):
         x = self.prev0(x)
         for f in self.prev:
@@ -254,12 +256,12 @@ class JNet(nn.Module):
         if self.superres:
             x = self.sr(x)
         x = self.post0(x)
-        x = F.softmax(input  = x,
-                      dim    = 1,)[:, :1,]
-        #x = F.gumbel_softmax(logits = x   ,
-        #                     tau    = 1.  ,
-        #                     hard   = True, 
-        #                     dim    = 1   ,)[:, :1,]
+        #x = F.softmax(input  = x,
+        #              dim    = 1,)[:, :1,]
+        x = F.gumbel_softmax(logits = x         ,
+                             tau    = self.tau  ,
+                             hard   = True      , 
+                             dim    = 1         ,)[:, :1,]
         #r = self.blur(x)
         r = 0
         return x, r
@@ -272,6 +274,7 @@ if __name__ == '__main__':
     s_nblocks            = 2
     activation           = nn.ReLU(inplace=True)
     dropout              = 0.5
+    tau                  = 1.
     model =  JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
@@ -284,5 +287,7 @@ if __name__ == '__main__':
                   bet_z                 = 35.                  ,
                   superres              = False                ,
                   )
+    model.set_tau(tau)
     input_size = (1, 1, 128, 128, 128)
+    model(torch.abs(torch.randn(*input_size)))
     torchinfo.summary(model, input_size)

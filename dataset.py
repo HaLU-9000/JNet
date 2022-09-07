@@ -185,11 +185,12 @@ class RandomCutDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.train:
-            idx     = self.gen_indices(1, self.low, self.high).item()
-            coords  = self.gen_coords(1, self.size, self.csize, self.scale)
-            image, i, j = Rotate(    )(Crop(coords[1], self.ssize
+            idx              = self.gen_indices(1, self.low, self.high).item()
+            lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
+            lcoords, icoords = lcoords[:, 0], icoords[:, 0]
+            image, i, j      = Rotate(    )(Crop(icoords, self.ssize
                                                 )(torch.load(self.images[idx])))
-            label, _, _ = Rotate(i, j)(Crop(coords[0], self.csize
+            label, _, _      = Rotate(i, j)(Crop(lcoords, self.csize
                                                 )(torch.load(self.labels[idx])))
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
