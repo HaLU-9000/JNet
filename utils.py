@@ -157,3 +157,56 @@ def bcelosswithlog2(inp, target):
         return 100
     else:
         return bcelg2.item()
+
+def gen_bcelg2list(model, model_name, val_dataset, device, partial=None):
+    model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+    model.eval()
+    bces = []
+    for i in range(len(val_dataset)):
+        image, label = val_dataset[i]
+        if partial is not None:
+            label = label[:, partial[0]:partial[1], :, :].detach()
+        image   = image.to(device=device).unsqueeze(0)
+        pred, _ = model(image)
+        pred    = pred.to(device='cpu').squeeze(0)
+        if partial is not None:
+            pred = pred[:, partial[0]:partial[1], :, :].detach()
+        bces.append(bcelosswithlog2(pred, label).to('cpu').item())
+    return bces
+
+def gen_bcelg2control(val_dataset, partial=None):
+    bces = []
+    for i in range(len(val_dataset)):
+        _, label = val_dataset[i]
+        if partial is not None:
+            label = label[:, partial[0]:partial[1], :, :].detach() * 1.0
+        bces.append(bcelosswithlog2(torch.ones_like(label) * torch.mean(label), label).item())
+    return bces
+
+def gen_bcelg2lists_ctrls(model, model_names, val_datasets, device, partials=[]):
+    """
+    returns bcess (0:control, 1~:model evals)
+    """
+    bcess = []
+    ctrls = []
+    for model_name, val_dataset, partial in zip(model_names, val_datasets, partials):
+        model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+        model.eval()
+        bces = []
+        ctrl = []
+        for i in range(len(val_dataset)):
+            image, label = val_dataset[i]
+            if partial is not None:
+                label = label[:, partial[0]:partial[1], :, :].detach()
+            image   = image.to(device=device).unsqueeze(0)
+            pred, _ = model(image)
+            pred    = pred.to(device='cpu').squeeze(0)
+            if partial is not None:
+                pred = pred[:, partial[0]:partial[1], :, :].detach()
+            bces.append(bcelosswithlog2(pred, label))
+            ctrl.append(bcelosswithlog2(torch.ones_like(label) * torch.mean(label), label))
+        bcess.append(bces)
+        ctrls.append(ctrl)
+    ctrl = [item for ctrl in ctrls for item in ctrl] # flatten control list
+    bcess.insert(0, ctrl)
+    return bcess
