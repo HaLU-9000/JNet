@@ -37,7 +37,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
             loss.backward(retain_graph=True) ###
             optimizer.step()
             loss_sum += loss.detach()
-        tau = max(tau_lb, tau * tau_sche) # JNet_96_x1~
+            tau = max(tau_lb, tau * tau_sche)
         loss_list.append(loss_sum.item() / len(train_loader))
         writer.add_scalar('train loss', 
                           loss_sum.item() / len(train_loader),
@@ -62,7 +62,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
                               epoch)
         if epoch == 1 or epoch % 100 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {val_list[-1]}')
-        if scheduler is not None and tau == tau_lb:
+        if scheduler is not None:
             scheduler.step(valloss_sum.item() / len(val_loader))
         earlystopping((valloss_sum.item() / len(val_loader)), model, tau == tau_lb)
         if earlystopping.early_stop:
