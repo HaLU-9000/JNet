@@ -17,6 +17,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
     val_list  = []
     tau = tau_init
     for epoch in range(1, n_epochs + 1):
+        writer.add_scalar('tau', 
+                    tau,
+                    epoch,)
         loss_sum     = 0.0
         valloss_sum  = 0.0
         model.train()
@@ -34,14 +37,12 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
             loss.backward(retain_graph=True) ###
             optimizer.step()
             loss_sum += loss.detach()
-            tau = max(tau_lb, tau * tau_sche)
+        tau = max(tau_lb, tau * tau_sche) # JNet_96_x1~
         loss_list.append(loss_sum.item() / len(train_loader))
         writer.add_scalar('train loss', 
                           loss_sum.item() / len(train_loader),
                           epoch,)
-        writer.add_scalar('tau', 
-                          tau,
-                          epoch,)
+
         model.eval()
         model.set_tau(tau_lb)
         with torch.no_grad():
@@ -59,7 +60,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader, de
             writer.add_scalar('val loss',
                               valloss_sum.item() / len(val_loader),
                               epoch)
-        if epoch == 1 or epoch % 5 == 0:
+        if epoch == 1 or epoch % 100 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {val_list[-1]}')
         if scheduler is not None and tau == tau_lb:
             scheduler.step(valloss_sum.item() / len(val_loader))
