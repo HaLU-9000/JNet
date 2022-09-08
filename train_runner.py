@@ -16,7 +16,7 @@ train_dataset = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
                                  cropsize    =  (128, 128, 128)  ,
-                                 I           =  1000             ,
+                                 I           =   10              ,
                                  low         =    0              ,
                                  high        =   16              ,
                                  scale       =    1              ,
@@ -26,7 +26,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
                                  cropsize    =  (128, 128, 128)  ,
-                                 I           =  200              ,
+                                 I           =   10              ,
                                  low         =   16              ,
                                  high        =   20              ,
                                  scale       =    1              ,
@@ -46,7 +46,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_94_x1'
+model_name           = 'JNet_101_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -67,7 +67,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = False                ,
                   )
 JNet = JNet.to(device = device)
-optimizer            = optim.Adam(JNet.parameters(), lr = 1e-5)
+optimizer            = optim.Adam(JNet.parameters(), lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.BCELoss()
 train_loop(
@@ -83,8 +83,8 @@ train_loop(
     model_name   = model_name,
     partial      = partial   ,
     scheduler    = scheduler ,
-    es_patience  = 5        ,
+    es_patience  = 5         ,
     tau_init     = 1.        ,
-    tau_lb       = 0.1       ,
-    tau_sche     = 0.99998    ,
+    tau_lb       = 0.1       , 
+    tau_sche     = 0.999     ,
     )
