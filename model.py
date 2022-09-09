@@ -244,7 +244,7 @@ class JNet(nn.Module):
         #                      bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
         self.activation = activation
         self.superres = superres
-        self.relu = nn.ReLU(inplace=True)
+        self.sigmoid  = nn.Sigmoid()
     def set_tau(self, tau=0.1):
         self.tau = tau
     def forward(self, x):
@@ -259,7 +259,7 @@ class JNet(nn.Module):
         x = self.post0(x)
         #x = F.softmax(input  = x,
         #              dim    = 1,)[:, :1,]
-        x = self.relu(x)
+        x = self.sigmoid(x)                        # JNet_105_x1 ~
         x = F.gumbel_softmax(logits = x         ,
                              tau    = self.tau  ,
                              hard   = False     ,  # JNet_91_x1, JNet_92_x1, 
