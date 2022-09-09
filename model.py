@@ -209,7 +209,7 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation, dropout, scale_list,
-                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,superres:bool):
+                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,superres:bool, use_gumbelsoftmax:bool=True):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
@@ -244,6 +244,7 @@ class JNet(nn.Module):
         #                      bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
         self.activation = activation
         self.superres = superres
+        self.use_gumbelsoftmax = use_gumbelsoftmax
     def set_tau(self, tau=0.1):
         self.tau = tau
     def forward(self, x):
@@ -256,12 +257,14 @@ class JNet(nn.Module):
         if self.superres:
             x = self.sr(x)
         x = self.post0(x)
-        #x = F.softmax(input  = x,
-        #              dim    = 1,)[:, :1,]
-        x = F.gumbel_softmax(logits = x         ,
-                             tau    = self.tau  ,
-                             hard   = False     ,  # JNet_91_x1, JNet_92_x1 ~
-                             dim    = 1         ,)[:, :1,]
+        if self.use_gumbelsoftmax:
+            x = F.gumbel_softmax(logits = x         ,
+                                tau    = self.tau  ,
+                                hard   = True      , 
+                                dim    = 1         ,)[:, :1,]
+        else:
+            x = F.softmax(input  = x,
+                          dim    = 1,)[:, :1,]
         #r = self.blur(x)
         r = 0
         return x, r
