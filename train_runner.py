@@ -16,7 +16,7 @@ train_dataset = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
                                  cropsize    =  (256,  64,  64)  ,
-                                 I           =  100              ,
+                                 I           =  200              ,
                                  low         =    0              ,
                                  high        =   16              ,
                                  scale       =    1              ,
@@ -26,7 +26,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
                                  cropsize    =  (256,  64,  64)  ,
-                                 I           =   10              ,
+                                 I           =   20              ,
                                  low         =   16              ,
                                  high        =   20              ,
                                  scale       =    1              ,
@@ -34,19 +34,19 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  seed        = 907               ,
                                 )
 train_data  = DataLoader(train_dataset                 ,
-                         batch_size  = 1               ,
+                         batch_size  = 2               ,
                          shuffle     = True            ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 val_data    = DataLoader(val_dataset                   ,
-                         batch_size  = 1               ,
+                         batch_size  = 2               ,
                          shuffle     = False           ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_106_x1'
+model_name           = 'JNet_107_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -68,7 +68,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 optimizer            = optim.Adam(JNet.parameters(), lr = 1e-4)
-scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
+scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, verbose=True)
 loss_fn              = nn.BCELoss()
 train_loop(
     n_epochs     = 5000      , ####
@@ -83,7 +83,7 @@ train_loop(
     model_name   = model_name,
     partial      = partial   ,
     scheduler    = scheduler ,
-    es_patience  = 5         ,
+    es_patience  = 25        ,
     tau_init     = 1.        ,
     tau_lb       = 0.1       , 
     tau_sche     = 0.9999    ,
