@@ -12,31 +12,32 @@ train_dataset = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
-                                 cropsize    =  (256,  64,  64)  ,
+                                 cropsize    =  (128, 128, 128)  ,
                                  I           =  200              ,
-                                 low         =    0               ,
-                                 high        =   16               ,
-                                 scale       =    1               ,
+                                 low         =    0              ,
+                                 high        =   16              ,
+                                 scale       =    1              ,
                                 )
 val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
-                                 cropsize    =  (256,  64,  64)  ,
-                                 I           =  200               ,
-                                 low         =   16               ,
-                                 high        =   20               ,
-                                 scale       =    1               ,
+                                 cropsize    =  (128, 128, 128)  ,
+                                 I           =  200              ,
+                                 low         =   16              ,
+                                 high        =   20              ,
+                                 scale       =    1              ,
+                                 train       = False             ,
+                                 seed        = 907               ,
                                 )
-
-model_name           = 'JNet_83_x1_partial'
+model_name           = 'JNet_90_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
 s_nblocks            = 2
-activation           = nn.ReLU()
+activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
-partial              = (64, 192) ########################
+partial              = None
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
@@ -50,6 +51,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = False                ,
                   )
 JNet = JNet.to(device = device)
+JNet.set_tau(0.1)
 j = 60
 i = 30
 scale = 1
@@ -95,7 +97,7 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1, )
         ax4.imshow(image[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        ax5.imshow(output[0, 0, partial[0]:partial[1], i, :],
+        ax5.imshow(output[0, 0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
