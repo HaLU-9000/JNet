@@ -260,7 +260,7 @@ class JNet(nn.Module):
         #              dim    = 1,)[:, :1,]
         x = F.gumbel_softmax(logits = x         ,
                              tau    = self.tau  ,
-                             hard   = False     ,  # JNet_91_x1, JNet_92_x1, 
+                             hard   = False     ,  # JNet_91_x1, JNet_92_x1 ~
                              dim    = 1         ,)[:, :1,]
         #r = self.blur(x)
         r = 0
