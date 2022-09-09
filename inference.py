@@ -12,8 +12,8 @@ train_dataset = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
-                                 cropsize    =  (128, 128, 128)  ,
-                                 I           =  200              ,
+                                 cropsize    =  (256,  64,  64)  ,
+                                 I           =  100              ,
                                  low         =    0              ,
                                  high        =   16              ,
                                  scale       =    1              ,
@@ -22,22 +22,22 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
-                                 cropsize    =  (128, 128, 128)  ,
-                                 I           =  200              ,
+                                 cropsize    =  (256,  64,  64)  ,
+                                 I           =   10              ,
                                  low         =   16              ,
                                  high        =   20              ,
                                  scale       =    1              ,
                                  train       = False             ,
                                  seed        = 907               ,
                                 )
-model_name           = 'JNet_90_x1'
+model_name           = 'JNet_104_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
-partial              = None
+partial              = (64, 192)
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
