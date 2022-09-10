@@ -234,14 +234,14 @@ class JNet(nn.Module):
                                           dropout       = dropout         ,)
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
-        #self.blur  = JNetBlur(scale = scale                                ,
-        #                      z       = 141                                ,
-        #                      x       = 7                                  ,
-        #                      y       = 7                                  ,
-        #                      mu_z    = nn.Parameter(torch.tensor(mu_z))   ,
-        #                      sig_z   = nn.Parameter(torch.tensor(sig_z))  ,
-        #                      bet_xy  = nn.Parameter(torch.tensor(bet_xy)) ,
-        #                      bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
+        self.blur  = JNetBlur(scale   = 1,##########                       ,
+                              z       = 141                                ,
+                              x       = 7                                  ,
+                              y       = 7                                  ,
+                              mu_z    = nn.Parameter(torch.tensor(mu_z))   ,
+                              sig_z   = nn.Parameter(torch.tensor(sig_z))  ,
+                              bet_xy  = nn.Parameter(torch.tensor(bet_xy)) ,
+                              bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
         self.activation = activation
         self.superres = superres
         self.use_gumbelsoftmax = use_gumbelsoftmax
@@ -265,8 +265,7 @@ class JNet(nn.Module):
         else:
             x = F.softmax(input  = x,
                           dim    = 1,)[:, :1,]
-        #r = self.blur(x)
-        r = 0
+        r = self.blur(x)
         return x, r
 
 if __name__ == '__main__':
