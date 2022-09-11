@@ -119,6 +119,18 @@ def train_loop(n_epochs,
                 writer.add_scalar('val middle loss',
                                   valmid_sum.item() / len(val_loader),
                                   epoch)
+            writer.add_scalar('mu_z',
+                            model.state_dict()['blur.mu_z'].item(),
+                            epoch)
+            writer.add_scalar('sig_z',
+                            model.state_dict()['blur.sig_z'].item(),
+                            epoch)
+            writer.add_scalar('bet_xy',
+                            model.state_dict()['blur.bet_xy'].item(),
+                            epoch)
+            writer.add_scalar('bet_z',
+                            model.state_dict()['blur.bet_z'].item(),
+                            epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {val_list[-1]}')
         if scheduler is not None:
