@@ -61,7 +61,7 @@ JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
 JNet.eval()
 for n in range(0,5):
     image, label= val_dataset[n]
-    output = JNet(image.to("cuda").unsqueeze(0))[0].detach().cpu().numpy()
+    output, reconst= JNet(image.to("cuda").unsqueeze(0)).detach().cpu().numpy()
     fig = plt.figure(figsize=(20, 15))
     ax1 = fig.add_subplot(231)
     ax2 = fig.add_subplot(232)

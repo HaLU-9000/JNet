@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-#import torch.distributions as dist
+import torch.distributions as dist
 
 class JNetBlock0(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -106,7 +106,7 @@ class SuperResolutionBlock(nn.Module):
         return x
 
 class JNetBlur(nn.Module):
-    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z,):
+    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, device):
         super().__init__()
         self.scale   = scale
         self.z       = z
@@ -116,8 +116,8 @@ class JNetBlur(nn.Module):
         self.sig_z   = sig_z
         self.bet_xy  = bet_xy
         self.bet_z   = bet_z
-        self.zd, self.xd, self.yd   = self.distance(z, x, y)
-        self.alf     = self.gen_alf(self.zd, self.xd, self.yd, bet_xy, bet_z)
+        zd, xd, yd   = self.distance(z, x, y)
+        self.alf     = self.gen_alf(zd, xd, yd, bet_xy, bet_z).to(device=device)
         
     def distance(self, z, x, y):
         [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
@@ -130,8 +130,9 @@ class JNetBlur(nn.Module):
         return zd, xd, yd
 
     def gen_alf(self, zd, xd, yd, bet_z, bet_xy):
-        d_2 = self.zd / self.bet_z ** 2 + (self.xd + self.yd) / self.bet_xy ** 2
-        return torch.exp(-d_2 / 2) / (torch.pi * 2) ** 0.5
+        d_2 = zd / bet_z ** 2 + (xd + yd) / bet_xy ** 2
+        alf = torch.exp(-d_2 / 2) / (torch.pi * 2) ** 0.5
+        return alf
 
     def forward(self, inp):
         if inp.ndim == 4:
@@ -209,7 +210,8 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation, dropout, scale_list,
-                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,superres:bool, use_gumbelsoftmax:bool=True):
+                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,superres:bool, use_gumbelsoftmax:bool=True,
+                 device='cuda'):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
@@ -241,7 +243,8 @@ class JNet(nn.Module):
                               mu_z    = nn.Parameter(torch.tensor(mu_z))   ,
                               sig_z   = nn.Parameter(torch.tensor(sig_z))  ,
                               bet_xy  = nn.Parameter(torch.tensor(bet_xy)) ,
-                              bet_z   = nn.Parameter(torch.tensor(bet_z))  ,)
+                              bet_z   = nn.Parameter(torch.tensor(bet_z))  ,
+                              device  = device                             ,)
         self.activation = activation
         self.superres = superres
         self.use_gumbelsoftmax = use_gumbelsoftmax
