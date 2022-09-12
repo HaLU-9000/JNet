@@ -1,3 +1,4 @@
+from pickle import TRUE
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -112,15 +113,17 @@ class JNetBlur(nn.Module):
         self.z       = z
         self.x       = x
         self.y       = y
-        self.mu_z    = mu_z
-        self.sig_z   = sig_z
-        self.bet_xy  = bet_xy
-        self.bet_z   = bet_z
-        zd, xd, yd   = self.distance(z, x, y)
-        self.alf     = self.gen_alf(zd, xd, yd, bet_xy, bet_z).to(device=device)
-        
-    def distance(self, z, x, y):
-        [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
+        self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=True))
+        self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
+        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
+        self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
+        self.zd, self.xd, self.yd   = self.distance(z, x, y, device)
+        #self.alf     = self.gen_alf(zd, xd, yd, bet_xy, bet_z).to(device=device)
+        self.device  = device
+        #self.pz0     = dist.LogNormal(loc   = mu_z ,
+        #                              scale = sig_z,)
+    def distance(self, z, x, y, device):
+        [zd, xd, yd] = [torch.zeros(1, 1, z, x, y, device=device) for _ in range(3)]
         for k in range(-z // 2, z // 2 + 1):
             zd[:, :, k + z // 2, :, :,] = k ** 2
         for i in range(-x // 2, x // 2 + 1):
@@ -137,12 +140,13 @@ class JNetBlur(nn.Module):
     def forward(self, inp):
         if inp.ndim == 4:
             inp  = inp.unsqueeze(0)
-
-        z0   = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2)
-        z0   = z0 * torch.ones_like(inp)
+        #z0 = self.pz0.rsample(inp.shape)
+        z0   = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2) # E[z0|mu_z, sig_z]
+        z0   = z0 * torch.ones_like(inp, requires_grad=True)
         rec  = inp * z0
+        alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z)
         rec  = F.conv3d(input   = rec                            ,
-                        weight  = self.alf                       ,
+                        weight  = alf                       ,
                         stride  = (self.scale, 1, 1)             ,
                         padding = ((self.z - self.scale + 1) // 2, 
                                    (self.x) // 2                 , 
@@ -236,15 +240,15 @@ class JNet(nn.Module):
                                           dropout       = dropout         ,)
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
-        self.blur  = JNetBlur(scale   = 1,##########                       ,
-                              z       = 141                                ,
-                              x       = 7                                  ,
-                              y       = 7                                  ,
-                              mu_z    = nn.Parameter(torch.tensor(mu_z))   ,
-                              sig_z   = nn.Parameter(torch.tensor(sig_z))  ,
-                              bet_xy  = nn.Parameter(torch.tensor(bet_xy)) ,
-                              bet_z   = nn.Parameter(torch.tensor(bet_z))  ,
-                              device  = device                             ,)
+        self.blur  = JNetBlur(scale   = 1      ,
+                              z       = 141    ,
+                              x       = 7      ,
+                              y       = 7      ,
+                              mu_z    = mu_z   ,
+                              sig_z   = sig_z  ,
+                              bet_xy  = bet_xy ,
+                              bet_z   = bet_z  ,
+                              device  = device ,)
         self.activation = activation
         self.superres = superres
         self.use_gumbelsoftmax = use_gumbelsoftmax
@@ -280,6 +284,7 @@ if __name__ == '__main__':
     activation           = nn.ReLU(inplace=True)
     dropout              = 0.5
     tau                  = 1.
+    
     model =  JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
@@ -295,6 +300,6 @@ if __name__ == '__main__':
     model.set_tau(tau)
     input_size = (1, 1, 128, 128, 128)
     model.to(device='cuda')
-    print(model.state_dict()['blur.mu_z'].item())
-    #model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
-    #torchinfo.summary(model, input_size)
+    model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
+    print('done')
+    torchinfo.summary(model, input_size)

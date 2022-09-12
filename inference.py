@@ -22,7 +22,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
-                                 cropsize    =  (128, 128, 128)  ,
+                                 cropsize    =  (256,  64,  64)  ,
                                  I           =   20              ,
                                  low         =   16              ,
                                  high        =   20              ,
@@ -30,14 +30,14 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  train       = False             ,
                                  seed        = 907               ,
                                 )
-model_name           = 'JNet_111_x1_rcnst'
+model_name           = 'JNet_112_x1_partial'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
-partial              = None
+partial              = (96, 192)
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
@@ -99,7 +99,7 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax4.imshow(label[0, partial[0]+j, :, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax5.imshow(reconst[0, :, i, :],
+        ax5.imshow(reconst[0, partial[0]:partial[1], i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
         ax6.imshow(image[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
