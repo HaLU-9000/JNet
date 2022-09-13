@@ -71,6 +71,9 @@ def train_loop(n_epochs,
                 midloss_sum += midloss
             loss_sum += loss.detach()
             tau = max(tau_lb, tau * tau_sche)
+            optimizer.zero_grad()
+            loss.backward(retain_graph=True) ###
+            optimizer.step()
         loss_list.append(loss_sum.item() / len(train_loader))
         writer.add_scalar('train loss', 
                           loss_sum.item() / len(train_loader),

@@ -302,4 +302,5 @@ if __name__ == '__main__':
     model.to(device='cuda')
     model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
     print('done')
+    print(model.state_dict()['blur.mu_z'].item())
     torchinfo.summary(model, input_size)
