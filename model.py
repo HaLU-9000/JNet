@@ -254,6 +254,8 @@ class JNet(nn.Module):
         self.use_gumbelsoftmax = use_gumbelsoftmax
     def set_tau(self, tau=0.1):
         self.tau = tau
+    def set_hard(self, hard=False):
+        self.hard = hard
     def forward(self, x):
         x = self.prev0(x)
         for f in self.prev:
@@ -265,9 +267,9 @@ class JNet(nn.Module):
             x = self.sr(x)
         x = self.post0(x)
         if self.use_gumbelsoftmax:
-            x = F.gumbel_softmax(logits = x         ,
+            x = F.gumbel_softmax(logits = x        ,
                                 tau    = self.tau  ,
-                                hard   = True      , 
+                                hard   = self.hard , #####
                                 dim    = 1         ,)[:, :1,]
         else:
             x = F.softmax(input  = x,
