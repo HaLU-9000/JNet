@@ -146,7 +146,7 @@ def train_loop(n_epochs,
     plt.plot(loss_list, label='train loss')
     plt.plot(val_list , label='validation loss')
     if check_middle:
-        plt.plot(loss_list, label='train loss (middle)')
-        plt.plot(val_list , label='validation loss (middle)')
+        plt.plot(midloss_list, label='train loss (middle)')
+        plt.plot(valmid_list , label='validation loss (middle)')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
