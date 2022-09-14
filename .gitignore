@@ -17,6 +17,7 @@ randomdataset_petit/
 randomdata/
 data_vis/
 metrics_test/
+blur_test/
 
 pathlib_test.py
 utils_test.py
@@ -30,3 +31,4 @@ model_test.py
 dataaugmentation_test.py
 dataset_test.py
 metrics_test.py
+blur_test.py
