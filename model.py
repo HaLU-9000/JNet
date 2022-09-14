@@ -132,7 +132,7 @@ class JNetBlur(nn.Module):
             yd[:, :, :, :, j + y // 2,] = j ** 2
         return zd, xd, yd
 
-    def gen_alf(self, zd, xd, yd, bet_z, bet_xy):
+    def gen_alf(self, zd, xd, yd, bet_xy, bet_z):
         d_2 = zd / bet_z ** 2 + (xd + yd) / bet_xy ** 2
         alf = torch.exp(-d_2 / 2) / (torch.pi * 2) ** 0.5
         return alf
