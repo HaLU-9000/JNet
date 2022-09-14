@@ -32,3 +32,4 @@ dataaugmentation_test.py
 dataset_test.py
 metrics_test.py
 blur_test.py
+inference_former.py

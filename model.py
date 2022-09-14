@@ -202,20 +202,23 @@ class JNetLayer(nn.Module):
 class SuperResolutionLayer(nn.Module):
     def __init__(self, in_channels, scale_list, nblocks, dropout):
         super().__init__()
-        self.sr = nn.ModuleList([SuperResolutionBlock(scale_factor = scale_factor ,
-                                                      in_channels  = in_channels  ,
-                                                      nblocks      = nblocks      ,
-                                                      dropout      = dropout      ,
-                                                      )for scale_factor in scale_list])
+        self.sr = nn.ModuleList([
+                SuperResolutionBlock(scale_factor = scale_factor ,
+                                    in_channels  = in_channels  ,
+                                    nblocks      = nblocks      ,
+                                    dropout      = dropout      ,
+                                    )
+                                 for scale_factor in scale_list])
     def forward(self, x):
         for f in self.sr:
             x = f(x)
         return x
 
 class JNet(nn.Module):
-    def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation, dropout, scale_list,
-                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,superres:bool, use_gumbelsoftmax:bool=True,
-                 device='cuda'):
+    def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation,
+                 dropout, scale_list,
+                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,
+                 superres:bool, use_gumbelsoftmax:bool=True, device='cuda'):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)

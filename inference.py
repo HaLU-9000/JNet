@@ -53,6 +53,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
+JNet.set_hard(True)
 j = 60
 i = 30
 scale = 1
