@@ -111,7 +111,7 @@ def train_loop(n_epochs,
                                                  label[:, :, partial[0]:partial[1]]).detach()
                     else:
                         midval_loss = midloss_fn(out, label).detach()
-                        valmid_sum  += midval_loss
+                    valmid_sum  += midval_loss
                 valloss_sum += val_loss.detach()
             val_list.append(valloss_sum.item() / len(val_loader))
             writer.add_scalar('val loss',
