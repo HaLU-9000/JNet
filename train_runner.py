@@ -46,7 +46,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_115_x1'
+model_name           = 'JNet_116_x1_lr1e-6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -68,7 +68,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
-optimizer            = optim.Adam(JNet.parameters(), lr = 1e-4)
+optimizer            = optim.Adam(JNet.parameters(), lr = 1e-6)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
