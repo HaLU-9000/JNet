@@ -8,16 +8,6 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-train_dataset = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
-                                 imagename   =  '_x1'            ,
-                                 labelname   =  '_label'         ,
-                                 size        =  (768, 768, 768)  ,
-                                 cropsize    =  (128, 128, 128)  ,
-                                 I           =  200              ,
-                                 low         =    0              ,
-                                 high        =   16              ,
-                                 scale       =    1              ,
-                                )
 val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  imagename   =  '_x1'            ,
                                  labelname   =  '_label'         ,
@@ -30,7 +20,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  train       = False             ,
                                  seed        = 907               ,
                                 )
-model_name           = 'JNet_114_x1_partial'
+model_name           = 'JNet_115_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -125,5 +115,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_result{n+5}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
     
