@@ -20,7 +20,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  train       = False             ,
                                  seed        = 907               ,
                                 )
-model_name           = 'JNet_115_x1'
+model_name           = 'JNet_116_x1_lr1e-6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
