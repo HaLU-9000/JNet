@@ -120,7 +120,7 @@ def train_loop(n_epochs,
                               valloss_sum.item() / len(val_loader),
                               epoch)
             if check_middle:
-                valmid_list.append(valmid_sum / len(val_loader))
+                valmid_list.append(valmid_sum.item() / len(val_loader))
                 writer.add_scalar('val middle loss',
                                   valmid_sum / len(val_loader),
                                   epoch)
