@@ -107,16 +107,16 @@ class SuperResolutionBlock(nn.Module):
 
 class JNetBlur(nn.Module):
     def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, 
-                 device, learnable=True):
+                 device,):
         super().__init__()
         self.scale   = scale
         self.z       = z
         self.x       = x
         self.y       = y
-        self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=learnable))
-        self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=learnable))
-        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=learnable))
-        self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=learnable))
+        self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=True))
+        self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
+        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
+        self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
 
         self.zd, self.xd, self.yd   = self.distance(z, x, y, device)
         #self.alf     = self.gen_alf(zd, xd, yd, bet_xy, bet_z).to(device=device)
@@ -219,8 +219,7 @@ class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation,
                  dropout, scale_list,
                  mu_z:float, sig_z:float, bet_xy:float, bet_z:float,
-                 superres:bool, use_gumbelsoftmax:bool=True, 
-                 blur_learnable:bool=True, device='cuda'):
+                 superres:bool, use_gumbelsoftmax:bool=True, device='cuda'):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
@@ -253,8 +252,7 @@ class JNet(nn.Module):
                               sig_z     = sig_z  ,
                               bet_xy    = bet_xy ,
                               bet_z     = bet_z  ,
-                              device    = device ,
-                              learnable = blur_learnable,)
+                              device    = device ,)
         self.activation = activation
         self.superres = superres
         self.use_gumbelsoftmax = use_gumbelsoftmax
@@ -273,10 +271,10 @@ class JNet(nn.Module):
             x = self.sr(x)
         x = self.post0(x)
         if self.use_gumbelsoftmax:
-            x = F.gumbel_softmax(logits = x        ,
-                                tau    = self.tau  ,
-                                hard   = self.hard , #####
-                                dim    = 1         ,)[:, :1,]
+            x = F.gumbel_softmax(logits = x         ,
+                                 tau    = self.tau  ,
+                                 hard   = self.hard , #####
+                                 dim    = 1         ,)[:, :1,]
         else:
             x = F.softmax(input  = x,
                           dim    = 1,)[:, :1,]
@@ -285,6 +283,7 @@ class JNet(nn.Module):
 
 if __name__ == '__main__':
     import torchinfo
+    import torch.optim as optim
     hidden_channels_list = [16, 32, 64, 128, 256]
     scale_list           = [(2, 1, 1)]
     nblocks              = 2
@@ -304,12 +303,14 @@ if __name__ == '__main__':
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
-                  blur_learnable        = False                ,
                   )
     model.set_tau(tau)
     model.set_hard(True)
     input_size = (1, 1, 128, 128, 128)
     model.to(device='cuda')
+    model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
     model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
-    print('done')
-    torchinfo.summary(model, input_size)
+    optimizer            = optim.Adam(model.parameters(), lr = 1e-4)
+
+    print([i for name, i in model.parameters()][-4:])
+#    torchinfo.summary(model, input_size)
