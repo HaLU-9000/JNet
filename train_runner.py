@@ -65,6 +65,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
+                  blur_learnable        = False                ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)

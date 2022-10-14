@@ -119,10 +119,10 @@ class JNetBlur(nn.Module):
             self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
             self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
         else:
-            self.mu_z    = mu_z
-            self.sig_z   = sig_z
-            self.bet_xy  = bet_xy
-            self.bet_z   = bet_z
+            self.mu_z    = torch.tensor(mu_z   , requires_grad=True)
+            self.sig_z   = torch.tensor(sig_z  , requires_grad=True)
+            self.bet_xy  = torch.tensor(bet_xy , requires_grad=True)
+            self.bet_z   = torch.tensor(bet_z  , requires_grad=True)
 
         self.zd, self.xd, self.yd   = self.distance(z, x, y, device)
         #self.alf     = self.gen_alf(zd, xd, yd, bet_xy, bet_z).to(device=device)
@@ -310,6 +310,7 @@ if __name__ == '__main__':
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
+                  blur_learnable        = False                ,
                   )
     model.set_tau(tau)
     model.set_hard(True)
