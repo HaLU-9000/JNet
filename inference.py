@@ -39,7 +39,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
-                  use_gumbelsoftmax     = True                 ,
+                  use_gumbelsoftmax     = False                ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
@@ -115,5 +115,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_result{n}_softmax.png', format='png', dpi=250)
     
