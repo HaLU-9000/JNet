@@ -113,16 +113,10 @@ class JNetBlur(nn.Module):
         self.z       = z
         self.x       = x
         self.y       = y
-        if learnable:
-            self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=True))
-            self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
-            self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
-            self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
-        else:
-            self.mu_z    = torch.tensor(mu_z   , requires_grad=True)
-            self.sig_z   = torch.tensor(sig_z  , requires_grad=True)
-            self.bet_xy  = torch.tensor(bet_xy , requires_grad=True)
-            self.bet_z   = torch.tensor(bet_z  , requires_grad=True)
+        self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=learnable))
+        self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=learnable))
+        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=learnable))
+        self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=learnable))
 
         self.zd, self.xd, self.yd   = self.distance(z, x, y, device)
         #self.alf     = self.gen_alf(zd, xd, yd, bet_xy, bet_z).to(device=device)
