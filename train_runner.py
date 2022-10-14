@@ -46,7 +46,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_117_x1_blur_nolearn'
+model_name           = 'JNet_118_x1_blur_nolearn_sethard_true'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -72,6 +72,7 @@ optimizer            = optim.Adam(JNet.parameters(), lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
+print(f"============= model {model_name} train started =============")
 train_loop(
     n_epochs     = 5000      , ####
     optimizer    = optimizer ,
