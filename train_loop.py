@@ -45,7 +45,7 @@ def train_loop(n_epochs,
         valloss_sum  = 0.0
         valmid_sum   = 0.0
         model.train()
-        model.set_hard(True) ######
+        model.set_hard(False) ######
         for image, label in train_loader:
             model.set_tau(tau)
             image    = image.to(device = device)
