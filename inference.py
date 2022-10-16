@@ -39,11 +39,11 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
-                  use_gumbelsoftmax     = False                ,
+                  use_gumbelsoftmax     = False                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
-JNet.set_hard(True)
+JNet.set_hard(False)
 j = 60
 i = 30
 scale = 1

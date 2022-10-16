@@ -45,7 +45,7 @@ def train_loop(n_epochs,
         valloss_sum  = 0.0
         valmid_sum   = 0.0
         model.train()
-        model.set_hard(False) ######
+        model.set_hard(True) ######
         for image, label in train_loader:
             model.set_tau(tau)
             image    = image.to(device = device)
@@ -138,6 +138,7 @@ def train_loop(n_epochs,
                             epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {val_list[-1]}')
+            torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
             scheduler.step(valloss_sum.item() / len(val_loader))
         earlystopping((valloss_sum.item() / len(val_loader)), model, tau == tau_lb)
