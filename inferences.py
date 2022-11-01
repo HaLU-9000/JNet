@@ -39,7 +39,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
-                  use_gumbelsoftmax     = False                 ,
+                  use_gumbelsoftmax     = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
@@ -57,6 +57,8 @@ for k in range(1, 21):
     output  = output.detach().cpu().numpy()
     reconst = reconst.squeeze(0).detach().cpu().numpy()
     fig = plt.figure(figsize=(25, 15))
+    plt.title(f"Epoch {k}0", fontsize=40)
+    plt.axis("off")
     ax1 = fig.add_subplot(241)
     ax2 = fig.add_subplot(242)
     ax3 = fig.add_subplot(243)
@@ -116,5 +118,6 @@ for k in range(1, 21):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result_tracking/{model_name}.png', format='png', dpi=250)
+    l = f"{k}" if k >= 10 else f"0{k}"
+    plt.savefig(f'result_tracking/e{l}0_g.png', format='png', dpi=250)
     
