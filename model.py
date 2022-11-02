@@ -281,6 +281,84 @@ class JNet(nn.Module):
         r = self.blur(x)
         return x, r
 
+class DiscriminatorBlock(nn.Module):
+    """ based on 3D GAN https://github.com/black0017/3D-GAN-pytorch """
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv      = nn.Conv3d(in_channels    = in_channels  ,
+                                   out_channels   = out_channels ,
+                                   kernel_size    = 4            ,
+                                   stride         = 2            ,
+                                   padding        = 1            ,
+                                   padding_mode   = 'zeros'      ,)
+        self.batchnorm = nn.BatchNorm3d(out_channels)
+        self.leakyrelu = nn.LeakyReLU()
+    
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.batchnorm(x)
+        x = self.leakyrelu(x)
+        return x
+
+class DiscriminatorOut(nn.Module):
+    """ based on 3D GAN https://github.com/black0017/3D-GAN-pytorch """
+    def __init__(self              ,
+                 out_conv_channels ,
+                 z_out_dim         ,
+                 x_out_dim         ,
+                 y_out_dim         ,):
+        super().__init__()
+        self.in_features = out_conv_channels * z_out_dim * x_out_dim * y_out_dim
+        self.linear  = nn.Linear(in_features  = self.in_features,
+                                 out_features = 1               ,)
+        self.sigmoid = nn.Sigmoid()
+    def forward(self, x):
+        x = x.view(-1, self.in_features)
+        x = self.linear(x)
+        x = self.sigmoid(x)
+        return x
+
+class Discriminator(nn.Module):
+    def __init__(self                    ,
+                 in_channels       =  1  ,
+                 z_in_dim          = 128 ,
+                 x_in_dim          = 128 , 
+                 y_in_dim          = 128 ,
+                 out_conv_channels = 512 ,
+                 ):
+        super().__init__()
+        block1_channels = int(out_conv_channels / 8)
+        block2_channels = int(out_conv_channels / 4)
+        block3_channels = int(out_conv_channels / 2)
+        z_out_dim       = int(z_in_dim / 16)
+        x_out_dim       = int(x_in_dim / 16)
+        y_out_dim       = int(y_in_dim / 16)
+
+        self.block1 = DiscriminatorBlock(in_channels  = in_channels       ,
+                                         out_channels = block1_channels   ,
+                                         )
+        self.block2 = DiscriminatorBlock(in_channels  = block1_channels   ,
+                                         out_channels = block2_channels   ,
+                                         )
+        self.block3 = DiscriminatorBlock(in_channels  = block2_channels   ,
+                                         out_channels = block3_channels   ,
+                                         )
+        self.block4 = DiscriminatorBlock(in_channels  = block3_channels   ,
+                                         out_channels = out_conv_channels ,
+                                         )
+        self.out    = DiscriminatorOut(out_conv_channels = out_conv_channels,
+                                       z_out_dim         = z_out_dim        ,
+                                       x_out_dim         = x_out_dim        ,
+                                       y_out_dim         = y_out_dim        ,
+                                       )
+    def forward(self, x):
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        x = self.block4(x)
+        x = self.out(x)
+        return x
+
 if __name__ == '__main__':
     import torchinfo
     import torch.optim as optim
@@ -292,25 +370,27 @@ if __name__ == '__main__':
     dropout              = 0.5
     tau                  = 1.
     
-    model =  JNet(hidden_channels_list  = hidden_channels_list ,
-                  nblocks               = nblocks              ,
-                  s_nblocks             = s_nblocks            ,
-                  activation            = activation           ,
-                  dropout               = dropout              ,
-                  scale_list            = scale_list           ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  ,
-                  bet_xy                = 6.                   ,
-                  bet_z                 = 35.                  ,
-                  superres              = False                ,
-                  )
-    model.set_tau(tau)
-    model.set_hard(True)
+    # model =  JNet(hidden_channels_list  = hidden_channels_list ,
+    #               nblocks               = nblocks              ,
+    #               s_nblocks             = s_nblocks            ,
+    #               activation            = activation           ,
+    #               dropout               = dropout              ,
+    #               scale_list            = scale_list           ,
+    #               mu_z                  = 0.2                  ,
+    #               sig_z                 = 0.2                  ,
+    #               bet_xy                = 6.                   ,
+    #               bet_z                 = 35.                  ,
+    #               superres              = False                ,
+    #               )
+    # model.set_tau(tau)
+    # model.set_hard(True)
     input_size = (1, 1, 128, 128, 128)
-    model.to(device='cuda')
-    model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
-    model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
-    optimizer            = optim.Adam(model.parameters(), lr = 1e-4)
-
-    print([i for name, i in model.parameters()][-4:])
-#    torchinfo.summary(model, input_size)
+    # model.to(device='cuda')
+    # model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
+    # model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
+    # optimizer            = optim.Adam(model.parameters(), lr = 1e-4)
+    
+    # print([i for name, i in model.parameters()][-4:])
+    # torchinfo.summary(model, input_size)
+    discriminator = Discriminator()
+    torchinfo.summary(discriminator, input_size)
