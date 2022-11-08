@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 def train_loop(n_epochs,
                optimizer,
                model,
+               discriminator,
                loss_fn,
                train_loader,
                val_loader,
@@ -23,8 +24,7 @@ def train_loop(n_epochs,
                tau_lb=0.1,
                tau_sche=0.9999,
                reconstruct=False,
-               check_middle=False,
-               midloss_fn=None):
+               dloss_fn=None):
 
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
@@ -32,7 +32,7 @@ def train_loop(n_epochs,
                                   verbose  = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')
     loss_list    = []
-    midloss_list = []
+    dloss_list = []
     val_list     = []
     valmid_list  = []
     tau = tau_init
@@ -41,7 +41,7 @@ def train_loop(n_epochs,
                     tau,
                     epoch,)
         loss_sum     = 0.0
-        midloss_sum  = 0.0
+        dloss_sum  = 0.0
         valloss_sum  = 0.0
         valmid_sum   = 0.0
         model.train()
@@ -53,37 +53,37 @@ def train_loop(n_epochs,
             out, rec = model(image)
             if reconstruct:
                 if partial is not None:
-                    loss = loss_fn(rec[  :, :, partial[0]:partial[1]],
+                    rloss = loss_fn(rec[  :, :, partial[0]:partial[1]],
                                    image[:, :, partial[0]:partial[1]])
                 else:
-                    loss = loss_fn(rec, image)
+                    rloss = loss_fn(rec, image)
             else:
                 if partial is not None:
-                    loss = loss_fn(out[  :, :, partial[0]:partial[1]],
+                    rloss = loss_fn(out[  :, :, partial[0]:partial[1]],
                                    label[:, :, partial[0]:partial[1]])
                 else:
-                    loss = loss_fn(out, label)
-            if check_middle:
-                if partial is not None:
-                    midloss = midloss_fn(out[  :, :, partial[0]:partial[1]],
-                                         label[:, :, partial[0]:partial[1]]).detach()
-                else:
-                    midloss = midloss_fn(out, label).detach()
-                midloss_sum += midloss
-            loss_sum += loss.detach()
+                    rloss = loss_fn(out, label)
+
+            if partial is not None:
+                dloss = discriminator(out[  :, :, partial[0]:partial[1]],
+                                        label[:, :, partial[0]:partial[1]])
+            else:
+                dloss = discriminator(out, label)
+
+            dloss_sum += dloss.detach()
+            loss_sum += rloss.detach()
             tau = max(tau_lb, tau * tau_sche)
             optimizer.zero_grad()
-            loss.backward(retain_graph=True) ###
+            rloss.backward(retain_graph=True) ###
             optimizer.step()
         loss_list.append(loss_sum.item() / len(train_loader))
         writer.add_scalar('train loss', 
                           loss_sum.item() / len(train_loader),
                           epoch,)
-        if check_middle:
-            midloss_list.append(midloss_sum.item() / len(train_loader))
-            writer.add_scalar('train middle loss', 
-                            midloss_sum.item() / len(train_loader),
-                            epoch,)
+        dloss_list.append(dloss_sum.item() / len(train_loader))
+        writer.add_scalar('train middle loss', 
+                        dloss_sum.item() / len(train_loader),
+                        epoch,)
                           
         model.eval()
         model.set_hard(True)
@@ -95,35 +95,31 @@ def train_loop(n_epochs,
                 out, rec    = model(image)
                 if reconstruct:
                     if partial is not None:
-                        val_loss = loss_fn(rec[  :, :, partial[0]:partial[1]],
-                                           image[:, :, partial[0]:partial[1]])
+                        rval_loss = loss_fn(rec[  :, :, partial[0]:partial[1]],
+                                            image[:, :, partial[0]:partial[1]])
                     else:
-                        val_loss = loss_fn(rec, image)
+                        rval_loss = loss_fn(rec, image)
 
                 else:
                     if partial is not None:
-                        val_loss = loss_fn(out[  :, :, partial[0]:partial[1]],
+                        rval_loss = loss_fn(out[  :, :, partial[0]:partial[1]],
                                            label[:, :, partial[0]:partial[1]])
                     else:
-                        val_loss = loss_fn(out, label)
+                        rval_loss = loss_fn(out, label)
                 
-                if check_middle:
-                    if partial is not None:
-                        midval_loss = midloss_fn(out[  :, :, partial[0]:partial[1]],
-                                                 label[:, :, partial[0]:partial[1]]).detach()
-                    else:
-                        midval_loss = midloss_fn(out, label).detach()
-                    valmid_sum  += midval_loss
-                valloss_sum += val_loss.detach()
+                dval_loss = discriminator(out[  :, :, partial[0]:partial[1]],
+                                          label[:, :, partial[0]:partial[1]]).detach()
+                dval_loss = discriminator(out, label).detach()
+                dval_loss_sum  += dval_loss
+                rval_loss_sum += rval_loss.detach()
             val_list.append(valloss_sum.item() / len(val_loader))
             writer.add_scalar('val loss',
                               valloss_sum.item() / len(val_loader),
                               epoch)
-            if check_middle:
-                valmid_list.append(valmid_sum.item() / len(val_loader))
-                writer.add_scalar('val middle loss',
-                                  valmid_sum / len(val_loader),
-                                  epoch)
+            valmid_list.append(valmid_sum.item() / len(val_loader))
+            writer.add_scalar('val middle loss',
+                                valmid_sum / len(val_loader),
+                                epoch)
             writer.add_scalar('mu_z',
                             model.state_dict()['blur.mu_z'].item(),
                             epoch)
@@ -146,8 +142,7 @@ def train_loop(n_epochs,
             break
     plt.plot(loss_list, label='train loss')
     plt.plot(val_list , label='validation loss')
-    if check_middle:
-        plt.plot(midloss_list, label='train loss (middle)')
-        plt.plot(valmid_list , label='validation loss (middle)')
+    plt.plot(dloss_list, label='train disc loss')
+    plt.plot(valmid_list , label='validation disc loss')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)

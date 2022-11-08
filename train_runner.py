@@ -66,6 +66,12 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
                   )
+discriminator = model.Discriminator(z_in_dim          = 128,
+                                    x_in_dim          = 128,
+                                    y_in_dim          = 128,
+                                    out_conv_channels = 512,
+                                    )
+
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
 params = [i for i in JNet.parameters()][:-4]
