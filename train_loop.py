@@ -45,7 +45,6 @@ def train_loop(n_epochs,
         valloss_sum  = 0.0
         valmid_sum   = 0.0
         model.train()
-        model.set_hard(True) ######
         for image, label in train_loader:
             model.set_tau(tau)
             image    = image.to(device = device)
@@ -86,7 +85,6 @@ def train_loop(n_epochs,
                             epoch,)
                           
         model.eval()
-        model.set_hard(True)
         model.set_tau(tau_lb)
         with torch.no_grad():
             for image, label in val_loader:

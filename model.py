@@ -255,11 +255,8 @@ class JNet(nn.Module):
                               device    = device ,)
         self.activation = activation
         self.superres = superres
-        self.use_gumbelsoftmax = use_gumbelsoftmax
     def set_tau(self, tau=0.1):
         self.tau = tau
-    def set_hard(self, hard=False):
-        self.hard = hard
     def forward(self, x):
         x = self.prev0(x)
         for f in self.prev:
@@ -270,14 +267,9 @@ class JNet(nn.Module):
         if self.superres:
             x = self.sr(x)
         x = self.post0(x)
-        if self.use_gumbelsoftmax:
-            x = F.gumbel_softmax(logits = x         ,
-                                 tau    = self.tau  ,
-                                 hard   = self.hard , #####
-                                 dim    = 1         ,)[:, :1,]
-        else:
-            x = F.softmax(input  = x,
-                          dim    = 1,)[:, :1,]
+
+        x = F.softmax(input  = x / self.tau ,
+                      dim    = 1            ,)[:, :1,] # softmax with temperature
         r = self.blur(x)
         return x, r
 
@@ -305,12 +297,11 @@ if __name__ == '__main__':
                   superres              = False                ,
                   )
     model.set_tau(tau)
-    model.set_hard(True)
     input_size = (1, 1, 128, 128, 128)
     model.to(device='cuda')
     model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
     model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
     optimizer            = optim.Adam(model.parameters(), lr = 1e-4)
 
-    print([i for name, i in model.parameters()][-4:])
-#    torchinfo.summary(model, input_size)
+    print([i for i in model.parameters()][-4:])
+    torchinfo.summary(model, input_size)
