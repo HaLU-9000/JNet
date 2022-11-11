@@ -20,7 +20,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  train       = False             ,
                                  seed        = 907               ,
                                 )
-model_name           = 'JNet_122_x1_blur_nolearn_hard_true'
+model_name           = 'JNet_123_x1_blur_nolearn_hard_true_1e-5'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -39,11 +39,11 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
-                  use_gumbelsoftmax     = False                 ,
+                  use_gumbelsoftmax     = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
-JNet.set_hard(False)
+JNet.set_hard(True)
 j = 60
 i = 30
 scale = 1
@@ -115,5 +115,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_result{n}_softmax.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
     
