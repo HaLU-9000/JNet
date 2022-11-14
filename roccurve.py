@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
+import numpy as np
 from dataset import RandomCutDataset
 import model
 
@@ -42,15 +42,26 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
-j = 60
-i = 30
 scale = 1
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
 JNet.eval()
 
-for n in range(0,1):
-    image, label= val_dataset[n]
-    output, _ = JNet(image.to(device).unsqueeze(0))
-    output    = output.detach().cpu().numpy()
-    
+roc_list = []
+n = 0
+image, label = val_dataset[n]
+output, _ = JNet(image.to(device).unsqueeze(0))
+output    = output.detach().cpu().numpy()
+if partial is not None:
+    output = output[0, 0, partial[0]:partial[1]]
+    label  = label[0, partial[0]:partial[1]]
+
+for threshold in np.linspace(0, 1, 10):
+    clipped_output    =  torch.tensor(output >= threshold)
+    total     =  clipped_output.view(-1).shape[0]
+    truepositive_rate   = torch.sum(clipped_output * label).item() / total
+    falsepositive_rate  = torch.sum(clipped_output * (1 - label)).item() / total
+    roc_list.append([falsepositive_rate, truepositive_rate])
+
+roc_array = np.array(roc_list)
+np.save(f'./roc_test/{model_name}_{n}.npy', roc_array)
