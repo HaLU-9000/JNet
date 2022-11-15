@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from dataset import RandomCutDataset
 import model
+from sklearn.metrics import roc_curve
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -51,17 +52,22 @@ roc_list = []
 n = 0
 image, label = val_dataset[n]
 output, _ = JNet(image.to(device).unsqueeze(0))
-output    = output.detach().cpu().numpy()
 if partial is not None:
     output = output[0, 0, partial[0]:partial[1]]
     label  = label[0, partial[0]:partial[1]]
 
-for threshold in np.linspace(0, 1, 10):
-    clipped_output    =  torch.tensor(output >= threshold)
-    total     =  clipped_output.view(-1).shape[0]
-    truepositive_rate   = torch.sum(clipped_output * label).item() / total
-    falsepositive_rate  = torch.sum(clipped_output * (1 - label)).item() / total
-    roc_list.append([falsepositive_rate, truepositive_rate])
+# for threshold in np.linspace(0, 1, 101):
+#     clipped_output      =  torch.tensor(output >= threshold)
+#     truepositive_rate   = torch.sum(clipped_output * label).item() \
+#                         / torch.sum(label).item()
+#     falsepositive_rate  = torch.sum(clipped_output * (1 - label)).item() \
+#                         / torch.sum(1 - label).item()
+#     roc_list.append([falsepositive_rate, truepositive_rate])
+flattened_output = output.view(-1)
+flattened_label  = label.view(-1)
+flattened_output = flattened_output.detach().cpu().numpy()
+flattened_label  = flattened_label.detach().cpu().numpy()
+roc_list = roc_curve(flattened_label, flattened_output,)
 
 roc_array = np.array(roc_list)
 np.save(f'./roc_test/{model_name}_{n}.npy', roc_array)
