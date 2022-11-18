@@ -28,7 +28,7 @@ nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
-partial              = (96, 192)
+partial              = (64, 192)
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
@@ -45,7 +45,7 @@ JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
 scale = 1
 
-JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
+JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
 roc_list = []

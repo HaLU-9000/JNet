@@ -27,7 +27,7 @@ nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
-partial              = (96, 192)
+partial              = (64, 192)
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,
