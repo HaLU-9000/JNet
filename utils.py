@@ -149,14 +149,12 @@ def gen_bcecontrol(val_dataset, partial=None):
         bces.append(bce(label, torch.ones_like(label) * torch.mean(label)).item())
     return bces
 
+def torch_log2(x):
+    return torch.clip(torch.log2(x), min=-100, max=100)
+
 def bcelosswithlog2(inp, target):
-    bcelg2 = -torch.mean(target * torch.log2(inp) + (1.0 - target) * torch.log2(1.0 - inp)).to('cpu')
-    if bcelg2.isnan():
-        return -100
-    if bcelg2.isinf():
-        return 100
-    else:
-        return bcelg2.item()
+    bcelg2 = -torch.mean(target * torch_log2(inp) + (1.0 - target) * torch_log2(1.0 - inp)).to('cpu')
+    return bcelg2.item()
 
 def gen_bcelg2list(model, model_name, val_dataset, device, partial=None):
     model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)

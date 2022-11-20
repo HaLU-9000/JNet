@@ -22,6 +22,7 @@ result_tracking/
 model/
 roc_test/
 roc/
+runs/
 
 pathlib_test.py
 utils_test.py
