@@ -123,7 +123,7 @@ def gen_jilist(model, model_name, val_dataset, device, partial=None):
     return jis
 
 def gen_bcelist(model, model_name, val_dataset, device, partial=None):
-    model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+    model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
     model.eval()
     bce = nn.BCELoss()
     bces = []
@@ -159,7 +159,7 @@ def bcelosswithlog2(inp, target):
         return bcelg2.item()
 
 def gen_bcelg2list(model, model_name, val_dataset, device, partial=None):
-    model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+    model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
     model.eval()
     bces = []
     for i in range(len(val_dataset)):
@@ -183,15 +183,16 @@ def gen_bcelg2control(val_dataset, partial=None):
         bces.append(bcelosswithlog2(torch.ones_like(label) * torch.mean(label), label).item())
     return bces
 
-def gen_bcelg2lists_ctrls(model, model_names, val_datasets, device, partials=[]):
+def gen_bcelg2lists_ctrls(model, model_names, val_datasets, device, taus, partials=[]):
     """
     returns bcess (0:control, 1~:model evals)
     """
     bcess = []
     ctrls = []
-    for model_name, val_dataset, partial in zip(model_names, val_datasets, partials):
-        model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+    for model_name, val_dataset, partial, tau in zip(model_names, val_datasets, partials, taus):
+        model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
         model.eval()
+        model.set_tau(tau)
         bces = []
         ctrl = []
         for i in range(len(val_dataset)):

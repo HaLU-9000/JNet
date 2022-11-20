@@ -38,4 +38,6 @@ metrics_test.py
 blur_test.py
 inference_former.py
 animation.py
+evaluations_BCE.ipynb
+evaluations_IoU.ipynb
 roc_test.ipynb
