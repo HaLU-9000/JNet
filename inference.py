@@ -20,7 +20,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  train       = False             ,
                                  seed        = 907               ,
                                 )
-model_name           = 'JNet_125_x1_softmax_temp_1e-6'
+model_name           = 'JNet_123_x1_blur_nolearn_hard_true_1e-5'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -39,9 +39,11 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
                   superres              = False                ,
+                  use_gumbelsoftmax     = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(0.1)
+JNet.set_hard(True)
 j = 60
 i = 30
 scale = 1

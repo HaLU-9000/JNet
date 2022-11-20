@@ -20,9 +20,6 @@ metrics_test/
 blur_test/
 result_tracking/
 model/
-roc_test/
-roc/
-runs/
 
 pathlib_test.py
 utils_test.py
