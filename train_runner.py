@@ -46,14 +46,14 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_125_x1_softmax_temp_1e-6'
+model_name           = 'JNet_126_x1_softmax_temp_1e-6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
-partial              = (96, 192)
+partial              = (64, 192)
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   s_nblocks             = s_nblocks            ,

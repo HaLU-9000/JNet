@@ -20,7 +20,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  train       = False             ,
                                  seed        = 907               ,
                                 )
-model_name           = 'JNet_123_x1_blur_nolearn_hard_true_1e-5'
+model_name           = 'JNet_83_x1_partial'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
@@ -42,13 +42,12 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   use_gumbelsoftmax     = True                 ,
                   )
 JNet = JNet.to(device = device)
-JNet.set_tau(0.1)
-JNet.set_hard(True)
+JNet.set_tau(1)
 j = 60
 i = 30
 scale = 1
 
-JNet.load_state_dict(torch.load(f'model/{model_name}.pt'))
+JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 for n in range(0,5):
     image, label= val_dataset[n]

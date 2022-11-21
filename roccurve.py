@@ -21,7 +21,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  seed        = 907               ,
                                 )
 
-model_name           = 'JNet_125_x1_softmax_temp_1e-6'
+model_name           = 'JNet_126_x1_softmax_temp_1e-6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_list           = [(2, 1, 1)]
 nblocks              = 2
