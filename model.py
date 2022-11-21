@@ -90,6 +90,15 @@ class JNetUnpooling(nn.Module):
         x = self.relu(x)
         return x
 
+class JNetUpsample(nn.Module):
+    def __init__(self, scale_factor):
+        super().__init__()
+        self.upsample = nn.Upsample(scale_factor = scale_factor ,
+                                    mode         = 'trilinear'  ,)
+        
+    def forward(self, x):
+        return self.upsample(x)
+
 class SuperResolutionBlock(nn.Module):
     def __init__(self, scale_factor, in_channels, nblocks, dropout):
         super().__init__()
@@ -205,8 +214,8 @@ class SuperResolutionLayer(nn.Module):
         super().__init__()
         self.sr = nn.ModuleList([
                 SuperResolutionBlock(scale_factor = scale_factor ,
-                                    in_channels  = in_channels  ,
-                                    nblocks      = nblocks      ,
+                                     in_channels  = in_channels  ,
+                                     nblocks      = nblocks      ,
                                     dropout      = dropout      ,
                                     )
                                  for scale_factor in scale_list])
@@ -216,10 +225,10 @@ class SuperResolutionLayer(nn.Module):
         return x
 
 class JNet(nn.Module):
-    def __init__(self, hidden_channels_list, nblocks, s_nblocks, activation,
-                 dropout, scale_list,
+    def __init__(self, hidden_channels_list, nblocks, activation,
+                 dropout, scale_factor,
                  mu_z:float, sig_z:float, bet_xy:float, bet_z:float,
-                 superres:bool, use_gumbelsoftmax:bool=True, device='cuda'):
+                 superres:bool, device='cuda'):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
@@ -238,10 +247,10 @@ class JNet(nn.Module):
                                               hidden_channels = hidden_channels,
                                               dropout         = dropout        ,
                                               ) for _ in range(nblocks)])
-        self.sr    = SuperResolutionLayer(in_channels   = hidden_channels ,
-                                          scale_list    = scale_list      ,
-                                          nblocks       = s_nblocks       ,
-                                          dropout       = dropout         ,)
+        # self.sr    = SuperResolutionLayer(in_channels   = hidden_channels ,
+        #                                   scale_list    = scale_list      ,
+        #                                   nblocks       = s_nblocks       ,
+        #                                   dropout       = dropout         ,)
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
         self.blur  = JNetBlur(scale     = 1      ,
@@ -253,21 +262,23 @@ class JNet(nn.Module):
                               bet_xy    = bet_xy ,
                               bet_z     = bet_z  ,
                               device    = device ,)
+        self.upsample   = JNetUpsample(scale_factor = scale_factor)
         self.activation = activation
         self.superres = superres
     def set_tau(self, tau=0.1):
         self.tau = tau
     def forward(self, x):
+        if self.superres:
+            x = self.upsample(x)
         x = self.prev0(x)
         for f in self.prev:
             x = f(x)
         x = self.mid(x)
         for f in self.post:
             x = f(x)
-        if self.superres:
-            x = self.sr(x)
+        # if self.superres:
+        #     x = self.sr(x)
         x = self.post0(x)
-
         x = F.softmax(input  = x / self.tau ,
                       dim    = 1            ,)[:, :1,] # softmax with temperature
         r = self.blur(x)
@@ -277,27 +288,25 @@ if __name__ == '__main__':
     import torchinfo
     import torch.optim as optim
     hidden_channels_list = [16, 32, 64, 128, 256]
-    scale_list           = [(2, 1, 1)]
+    scale_factor         = (8, 1, 1)
     nblocks              = 2
-    s_nblocks            = 2
     activation           = nn.ReLU(inplace=True)
     dropout              = 0.5
     tau                  = 1.
     
     model =  JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
-                  s_nblocks             = s_nblocks            ,
                   activation            = activation           ,
                   dropout               = dropout              ,
-                  scale_list            = scale_list           ,
+                  scale_factor          = scale_factor         ,
                   mu_z                  = 0.2                  ,
                   sig_z                 = 0.2                  ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
-                  superres              = False                ,
+                  superres              = True                 ,
                   )
     model.set_tau(tau)
-    input_size = (1, 1, 128, 128, 128)
+    input_size = (1, 1, 16, 128, 128)
     model.to(device='cuda')
     model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
     model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
