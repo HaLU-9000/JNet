@@ -1,10 +1,11 @@
-from subprocess import check_output
 import sys
 sys.path.append('/home/haruhiko/Documents/JNet')
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
+
+
 
 def train_loop(n_epochs,
                optimizer,
