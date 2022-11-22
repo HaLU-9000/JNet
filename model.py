@@ -115,10 +115,11 @@ class SuperResolutionBlock(nn.Module):
         return x
 
 class JNetBlur(nn.Module):
-    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, 
+    def __init__(self, scale_factor, z, x, y, mu_z, sig_z, bet_xy, bet_z, 
                  device,):
         super().__init__()
-        self.scale   = scale
+        self.scale_factor = scale_factor
+        self.zscale  = scale_factor[0]
         self.z       = z
         self.x       = x
         self.y       = y
@@ -155,12 +156,12 @@ class JNetBlur(nn.Module):
         z0   = z0 * torch.ones_like(inp, requires_grad=True)
         rec  = inp * z0
         alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z)
-        rec  = F.conv3d(input   = rec                            ,
-                        weight  = alf                       ,
-                        stride  = (self.scale, 1, 1)             ,
-                        padding = ((self.z - self.scale + 1) // 2, 
-                                   (self.x) // 2                 , 
-                                   (self.y) // 2                 ,))
+        rec  = F.conv3d(input   = rec                               ,
+                        weight  = alf                               ,
+                        stride  = self.scale_factor                 ,
+                        padding = ((self.z - self.zscale + 1) // 2, 
+                                   (self.x) // 2                  , 
+                                   (self.y) // 2                  ,),)
         rec  = (rec - rec.min()) / (rec.max() - rec.min())
         #prec = dist.Normal(loc   = rec         ,
         #                   scale = self.sig_eps,)
@@ -253,15 +254,15 @@ class JNet(nn.Module):
         #                                   dropout       = dropout         ,)
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
-        self.blur  = JNetBlur(scale     = 1      ,
-                              z         = 141    ,
-                              x         = 7      ,
-                              y         = 7      ,
-                              mu_z      = mu_z   ,
-                              sig_z     = sig_z  ,
-                              bet_xy    = bet_xy ,
-                              bet_z     = bet_z  ,
-                              device    = device ,)
+        self.blur  = JNetBlur(scale_factor = scale_factor ,
+                              z            = 141          ,
+                              x            = 7            ,
+                              y            = 7            ,
+                              mu_z         = mu_z         ,
+                              sig_z        = sig_z        ,
+                              bet_xy       = bet_xy       ,
+                              bet_z        = bet_z        ,
+                              device       = device       ,)
         self.upsample   = JNetUpsample(scale_factor = scale_factor)
         self.activation = activation
         self.superres = superres
@@ -288,7 +289,7 @@ if __name__ == '__main__':
     import torchinfo
     import torch.optim as optim
     hidden_channels_list = [16, 32, 64, 128, 256]
-    scale_factor         = (8, 1, 1)
+    scale_factor         = (12, 1, 1)
     nblocks              = 2
     activation           = nn.ReLU(inplace=True)
     dropout              = 0.5
@@ -306,11 +307,12 @@ if __name__ == '__main__':
                   superres              = True                 ,
                   )
     model.set_tau(tau)
-    input_size = (1, 1, 16, 128, 128)
+    input_size = (1, 1, 20, 112, 112)
     model.to(device='cuda')
     model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
     model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
     optimizer            = optim.Adam(model.parameters(), lr = 1e-4)
 
-    print([i for i in model.parameters()][-4:])
+    a, b, c, d = [i for i in model.parameters()][-4:]
+    print(a.item())
     torchinfo.summary(model, input_size)
