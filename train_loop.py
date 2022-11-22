@@ -5,7 +5,10 @@ from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
 
-
+def parse(x, partial):
+    if partial is not None:
+        x = x[:, :, partial[0]:partial[1]]
+    return x
 
 def train_loop(n_epochs,
                optimizer,
@@ -52,11 +55,8 @@ def train_loop(n_epochs,
             label    = label.to(device = device)
             out, rec = model(image)
             if reconstruct:
-                if partial is not None:
-                    loss = loss_fn(rec[  :, :, partial[0]:partial[1]],
-                                   image[:, :, partial[0]:partial[1]])
-                else:
-                    loss = loss_fn(rec, image)
+                loss = loss_fn(parse(rec   , partial),
+                               parse(image , partial),)
             else:
                 if partial is not None:
                     loss = loss_fn(out[  :, :, partial[0]:partial[1]],
