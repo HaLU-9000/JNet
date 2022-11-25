@@ -33,7 +33,7 @@ class Blur(nn.Module):
             yd[:, :, :, :, j + y // 2,] = j ** 2
         return zd, xd, yd
 
-    def gen_alf(self, zd, xd, yd, bet_z, bet_xy):
+    def gen_alf(self):
         d_2 = self.zd / self.bet_z ** 2 + (self.xd + self.yd) / self.bet_xy ** 2
         return torch.exp(-d_2 / 2) / (torch.pi * 2) ** 0.5
 

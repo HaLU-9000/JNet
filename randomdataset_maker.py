@@ -9,9 +9,9 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-for i in range(10, 20):
+for i in range(0, 20):
     t1 = time.time()
-    inp     = make_data(132710, (768, 768, 768))
+    inp     = make_data(8640, (768, 768, 768))
     t2 = time.time()
     print(f'{t2 - t1} s')
-    np.save(f'randomdataset/{i}_label.npy', inp)
+    np.save(f'randomdataset/{str(i).zfill(4)}_label.npy', inp)
