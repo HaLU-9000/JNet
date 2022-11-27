@@ -7,6 +7,8 @@ import torch.distributions as dist
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 
+from utils import _mask
+
 
 class Blur(nn.Module):
     def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, sig_eps,):
@@ -159,7 +161,9 @@ class RandomCutDataset(Dataset):
     '''
     def __init__(self, folderpath:str, imagename:str, labelname:str, 
                  size:list, cropsize:list, I:int, low:int, high:int, scale:int,
-                 train=True, seed=904):
+                 train=True, reconstruct=False, 
+                 mask=False, mask_size=[10, 10, 10], mask_num=1,
+                 seed=904):
         self.I       = I
         self.low     = low
         self.high    = high
@@ -174,6 +178,11 @@ class RandomCutDataset(Dataset):
             np.random.seed(seed)
             self.indiceslist = self.gen_indices(I, low, high)
             self.coordslist  = self.gen_coords(I, size, cropsize, scale)
+        self.reconstruct = reconstruct
+        self.mask = mask
+        if mask:
+            self.mask_size = mask_size
+            self.mask_num  = mask_num
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
     
@@ -182,6 +191,20 @@ class RandomCutDataset(Dataset):
         xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
         ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
         return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+    
+    def branch(self, mask, reconstruct, image, _image, label):
+        if mask:
+            _image  = _mask(image, self.mask_size, self.mask_num)
+        if reconstruct:
+            if mask:
+                return _image, image
+            else:
+                return image, image
+        else:
+            if mask:
+                return _image, label
+            else:
+                return image, label
 
     def __getitem__(self, idx):
         if self.train:
@@ -198,7 +221,8 @@ class RandomCutDataset(Dataset):
             lcoords = self.coordslist[0][:, idx]
             image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx]))
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
-        return image, label
+        
+        return self.branch(self.reconstruct, self.mask, image, label)
 
     def __len__(self):
         return self.I

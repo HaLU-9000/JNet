@@ -14,4 +14,4 @@ for i in range(0, 20):
     inp     = make_data(8640, (768, 768, 768))
     t2 = time.time()
     print(f'{t2 - t1} s')
-    np.save(f'randomdataset/{str(i).zfill(4)}_label.npy', inp)
+    np.save(f'microglialikedataset/{str(i).zfill(4)}_label.npy', inp)

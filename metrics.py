@@ -45,9 +45,9 @@ def kagglejiffs(image1, image2, smooth=1e-8):
     return kji.detach().cpu().numpy()
 
 if __name__ == '__main__':
-    from utils import create_mask
-    mask1 = create_mask(10, 10, center = (3, 5), radius = 3)
-    mask2 = create_mask(10, 10, center = (6, 5), radius = 3)
+    from utils import create_mask_
+    mask1 = create_mask_(10, 10, center = (3, 5), radius = 3)
+    mask2 = create_mask_(10, 10, center = (6, 5), radius = 3)
     mask1_4d = torch.tensor(mask1).unsqueeze(0).unsqueeze(0)
     mask2_4d = torch.tensor(mask2).unsqueeze(0).unsqueeze(0)
     ji = jiffs(mask1_4d, mask2_4d)

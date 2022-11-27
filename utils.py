@@ -95,7 +95,7 @@ def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scal
         blur = torch.from_numpy(blur)
         torch.save(blur, f'{outfolderpath}/{str(i+I).zfill(4)}_x{scale}.pt')
 
-def create_mask(h, w, center=None, radius=None):
+def create_mask_(h, w, center=None, radius=None):
     if center is None:
         center = (int(w/2), int(h/2))
     if radius is None:
@@ -209,3 +209,24 @@ def gen_bcelg2lists_ctrls(model, model_names, val_datasets, device, taus, partia
     ctrl = [item for ctrl in ctrls for item in ctrl] # flatten control list
     bcess.insert(0, ctrl)
     return bcess
+
+def _mask(image, mask_size, mask_num=1):
+    """
+    image     : 4d tensor
+    mask_size : list with 3 elements (z, x, y)
+    mask_num  : number of masks (default=1)
+    out       : 4d tensor (randomly masked)
+    """
+    for i in range(mask_num):
+        _c, _z, _x, _y = image.shape
+        mask = torch.zeros((_c, *mask_size))
+        _, mz, mx, my = mask.shape
+        z = np.random.randint(0, _z)
+        x = np.random.randint(0, _x)
+        y = np.random.randint(0, _y)
+        z_max = min(z + mz, _z)
+        x_max = min(x + mx, _x)
+        y_max = min(y + my, _y)
+        image[:, z : z + mz, x : x + mx, y : y + my] \
+        = mask[:, 0 : z_max - z, 0 : x_max - x, 0 : y_max - y]
+    return image
