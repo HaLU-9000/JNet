@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.distributions as dist
 import torch.nn.functional as F
 from torch.utils.data import Dataset
+from utils import mask_, surround_mask_
 
 class Blur(nn.Module):
     def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, sig_eps,):
@@ -158,17 +159,26 @@ class RandomCutDataset(Dataset):
     '''
     def __init__(self, folderpath:str, imagename:str, labelname:str, 
                  size:list, cropsize:list, I:int, low:int, high:int, scale:int,
-                 train=True, pretrain=True, seed=904):
-        self.I       = I
-        self.low     = low
-        self.high    = high
-        self.scale   = scale
-        self.size    = size
-        self.labels  = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
-        self.images  = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
-        self.csize   = cropsize
-        self.ssize   = [cropsize[0]//scale, cropsize[1], cropsize[2]]
-        self.train   = train
+                 train=True, pretrain=True, mask=True,
+                 mask_size=[10, 10, 10], mask_num=1,
+                 surround=True, surround_size=[64, 8, 8],
+                 seed=904):
+        self.I             = I
+        self.low           = low
+        self.high          = high
+        self.scale         = scale
+        self.size          = size
+        self.labels        = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
+        self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
+        self.csize         = cropsize
+        self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
+        self.train         = train
+        self.mask          = mask
+        self.mask_size     = mask_size
+        self.mask_num      = mask_num
+        self.surround      = surround
+        self.surround_size = surround_size
+
         if train == False:
             np.random.seed(seed)
             self.indiceslist = self.gen_indices(I, low, high)
@@ -183,6 +193,16 @@ class RandomCutDataset(Dataset):
         ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
         return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
 
+    def apply_mask(self, mask, image, mask_size, mask_num):
+        if mask:
+            image = mask_(image, mask_size, mask_num)
+        return image
+
+    def apply_surround_mask(self, surround, image, surround_size):
+        if surround:
+            image = surround_mask_(image, surround_size)
+        return image
+
     def __getitem__(self, idx):
         if self.train:
             idx              = self.gen_indices(1, self.low, self.high).item()
@@ -192,12 +212,17 @@ class RandomCutDataset(Dataset):
                                                 )(torch.load(self.images[idx])))
             label, _, _      = Rotate(i, j)(Crop(lcoords, self.csize
                                                 )(torch.load(self.labels[idx])))
+            
+            image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
+            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+            print(image.shape)
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             icoords = self.coordslist[1][:, idx]
             lcoords = self.coordslist[0][:, idx]
             image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx]))
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
+            image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image, label
 
     def __len__(self):

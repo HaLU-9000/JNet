@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from pathlib import Path
 
 from metrics import jiffs
@@ -210,7 +211,7 @@ def gen_bcelg2lists_ctrls(model, model_names, val_datasets, device, taus, partia
     bcess.insert(0, ctrl)
     return bcess
 
-def mask_(image, mask_size, mask_num, device):
+def mask_(image, mask_size, mask_num):
     """
     image     : 4d tensor
     mask_size : list with 3 elements (z, x, y)
@@ -218,15 +219,26 @@ def mask_(image, mask_size, mask_num, device):
     out       : 4d tensor (randomly masked)
     """
     for i in range(mask_num):
-        _b, _c, _z, _x, _y = image.shape
-        mask = torch.zeros((_b, _c, *mask_size), device=device)
-        _, _, mz, mx, my = mask.shape
+        _c, _z, _x, _y = image.shape
+        mask = torch.zeros((_c, *mask_size))
+        _, mz, mx, my = mask.shape
         z = np.random.randint(0, _z)
         x = np.random.randint(0, _x)
         y = np.random.randint(0, _y)
         z_max = min(z + mz, _z)
         x_max = min(x + mx, _x)
         y_max = min(y + my, _y)
-        image[:, :, z : z + mz, x : x + mx, y : y + my] \
-        = mask[:, :, 0 : z_max - z, 0 : x_max - x, 0 : y_max - y]
+        image[:, z : z + mz, x : x + mx, y : y + my] \
+        = mask[:, 0 : z_max - z, 0 : x_max - x, 0 : y_max - y]
+    return image
+
+def surround_mask_(image, surround_size):
+    """
+    image     : 4d tensor
+    mask_size : list with 3 elements (z, x, y > 0)
+    out       : 4d tensor (surround masked)
+    """
+    z, x, y = surround_size
+    image = image[:, z : -z, x : -x, y : -y]
+    image = F.pad(image, (y, y, x, x, z, z)) # see https://pytorch.org/docs/stable/generated/torch.nn.functional.pad.html
     return image

@@ -5,8 +5,6 @@ from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
 
-from utils import mask_
-
 def divide(x, partial):
     if partial is not None:
         x = x[:, :, partial[0]:partial[1]]
@@ -29,23 +27,11 @@ def branch_calc_loss(out, rec, image, label, loss_function, midloss_function,
         midloss = torch.tensor(0)
     return loss, midloss
 
-def apply_mask(mask, _image, mask_size, mask_num, device):
-    if mask:
-        image = mask_(_image, mask_size, mask_num, device)
-    else:
-        image = _image
-    return image
-
-def padding():
-    pass
-
 def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                device, path, savefig_path, model_name, partial=None,
                scheduler=None, es_patience=10,
                tau_init=1.0, tau_lb=0.1, tau_sche=0.9999,
-               reconstruct=False, mask=False,
-               mask_size=[10, 10, 10], mask_num=1,
-               check_middle=False, midloss_fn=None):
+               reconstruct=False, check_middle=False, midloss_fn=None):
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = es_patience,
@@ -58,11 +44,10 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
         model.train()
         for image, label in train_loader:
             model.set_tau(tau)
-            _image   = image.to(device = device)
+            image   = image.to(device = device)
             label    = label.to(device = device)
-            image    = apply_mask(mask, _image, mask_size, mask_num, device)
             out, rec = model(image)
-            loss, midloss = branch_calc_loss(out, rec, _image, label,
+            loss, midloss = branch_calc_loss(out, rec, image, label,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
             optimizer.zero_grad()
