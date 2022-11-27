@@ -23,7 +23,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'microglialikedata'     ,  ###
 
 model_name           = 'JNet_133_x12'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (12, 1, 1)
+scale_factor         = (1, 1, 1)
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
@@ -44,7 +44,7 @@ JNet = JNet.to(device = device)
 JNet.set_tau(1)
 j = 5
 i = 30
-scale = 12
+scale = scale_factor[0]
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
