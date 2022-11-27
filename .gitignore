@@ -21,6 +21,9 @@ blur_test/
 result_tracking/
 microglialikedataset/
 microglialikedata/
+beadslikedataset/
+beadslikedata/
+
 
 pathlib_test.py
 utils_test.py
