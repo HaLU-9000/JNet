@@ -8,7 +8,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  'microglialikedata'     ,  ###
                                  imagename   =  '_x12'            ,
                                  labelname   =  '_label'         ,
                                  size        =  (768, 768, 768)  ,
@@ -21,7 +21,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'randomdata'     ,  ###
                                  seed        = 907               ,
                                 )
 
-model_name           = 'JNet_132_x12'
+model_name           = 'JNet_133_x12'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (12, 1, 1)
 nblocks              = 2

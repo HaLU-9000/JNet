@@ -21,7 +21,7 @@ class Blur(nn.Module):
         self.bet_z   = bet_z
         self.sig_eps = sig_eps
         self.zd, self.xd, self.yd   = self.distance(z, x, y)
-        self.alf     = self.gen_alf(self.zd, self.xd, self.yd, bet_xy, bet_z)
+        self.alf     = self.gen_alf()
         
     def distance(self, z, x, y):
         [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
