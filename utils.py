@@ -210,7 +210,7 @@ def gen_bcelg2lists_ctrls(model, model_names, val_datasets, device, taus, partia
     bcess.insert(0, ctrl)
     return bcess
 
-def _mask(image, mask_size, mask_num=1):
+def mask_(image, mask_size, mask_num, device):
     """
     image     : 4d tensor
     mask_size : list with 3 elements (z, x, y)
@@ -218,15 +218,15 @@ def _mask(image, mask_size, mask_num=1):
     out       : 4d tensor (randomly masked)
     """
     for i in range(mask_num):
-        _c, _z, _x, _y = image.shape
-        mask = torch.zeros((_c, *mask_size))
-        _, mz, mx, my = mask.shape
+        _b, _c, _z, _x, _y = image.shape
+        mask = torch.zeros((_b, _c, *mask_size), device=device)
+        _, _, mz, mx, my = mask.shape
         z = np.random.randint(0, _z)
         x = np.random.randint(0, _x)
         y = np.random.randint(0, _y)
         z_max = min(z + mz, _z)
         x_max = min(x + mx, _x)
         y_max = min(y + my, _y)
-        image[:, z : z + mz, x : x + mx, y : y + my] \
-        = mask[:, 0 : z_max - z, 0 : x_max - x, 0 : y_max - y]
+        image[:, :, z : z + mz, x : x + mx, y : y + my] \
+        = mask[:, :, 0 : z_max - z, 0 : x_max - x, 0 : y_max - y]
     return image
