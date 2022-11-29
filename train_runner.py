@@ -11,28 +11,37 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-train_dataset = RandomCutDataset(folderpath  =  'microglialikedata'     ,  ###
-                                 imagename   =  '_x12'           ,
-                                 labelname   =  '_label'         ,
-                                 size        =  (768, 768, 768)  ,
-                                 cropsize    =  (240, 112, 112)  ,
-                                 I           =  200              ,
-                                 low         =    0              ,
-                                 high        =   16              ,
-                                 scale       =   12              ,
+train_dataset = RandomCutDataset(folderpath    =  'beadslikedata'  ,
+                                 imagename     =  '_x1'            ,
+                                 labelname     =  '_label'         ,
+                                 size          =  (1200, 500, 500) ,
+                                 cropsize      =  ( 240, 112, 112) , 
+                                 I             = 200               ,
+                                 low           =   0               ,
+                                 high          =  16               ,
+                                 scale         =   1               ,
+                                 mask          =  True             ,
+                                 mask_size     =  [10, 10, 10]     ,
+                                 mask_num      =  1                ,
+                                 surround      =  True             ,
+                                 surround_size =  [64, 8, 8]       ,
+                                 )
+val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata'  , 
+                                 imagename     =  '_x1'            ,
+                                 labelname     =  '_label'         ,
+                                 size          =  (1200, 500, 500) ,
+                                 cropsize      =  ( 240, 112, 112) ,
+                                 I             =  10               ,
+                                 low           =  16               ,
+                                 high          =  20               ,
+                                 scale         =   1               ,
+                                 train         =  False            ,
+                                 mask          =  False            ,
+                                 surround      =  True             ,
+                                 surround_size =  [64, 8, 8]       ,
+                                 seed          =  907              ,
                                 )
-val_dataset   = RandomCutDataset(folderpath  =  'microglialikedata'     ,  ###
-                                 imagename   =  '_x12'           ,
-                                 labelname   =  '_label'         ,
-                                 size        =  (768, 768, 768)  ,
-                                 cropsize    =  (240, 112, 112)  ,
-                                 I           =   20              ,
-                                 low         =   16              ,
-                                 high        =   20              ,
-                                 scale       =   12              ,
-                                 train       = False             ,
-                                 seed        = 907               ,
-                                )
+
 train_data  = DataLoader(train_dataset                 ,
                          batch_size  = 1               ,
                          shuffle     = True            ,
@@ -46,9 +55,9 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_133_x12'
+model_name           = 'JNet_137_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (12, 1, 1)
+scale_factor         = (1, 1, 1)
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
