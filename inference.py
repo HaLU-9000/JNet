@@ -8,20 +8,23 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-val_dataset   = RandomCutDataset(folderpath  =  'microglialikedata'     ,  ###
-                                 imagename   =  '_x12'            ,
-                                 labelname   =  '_label'         ,
-                                 size        =  (768, 768, 768)  ,
-                                 cropsize    =  (240, 112, 112)  ,
-                                 I           =   20              ,
-                                 low         =   16              ,
-                                 high        =   20              ,
-                                 scale       =   12              ,
-                                 train       = False             ,
-                                 seed        = 907               ,
+val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata'  , 
+                                 imagename     =  '_x1'            ,
+                                 labelname     =  '_label'         ,
+                                 size          =  (1200, 500, 500) ,
+                                 cropsize      =  ( 240, 112, 112) ,
+                                 I             =  10               ,
+                                 low           =  16               ,
+                                 high          =  20               ,
+                                 scale         =   1               ,
+                                 train         =  False            ,
+                                 mask          =  False            ,
+                                 surround      =  True             ,
+                                 surround_size =  [64, 8, 8]       ,
+                                 seed          =  907              ,
                                 )
 
-model_name           = 'JNet_133_x12'
+model_name           = 'JNet_137_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (1, 1, 1)
 nblocks              = 2
@@ -42,14 +45,14 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(1)
-j = 5
-i = 30
+j = 120
+i = 60
 scale = scale_factor[0]
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 for n in range(0,5):
-    image, label= val_dataset[n]
+    image, label= val_dataset[n+5]
     output, reconst= JNet(image.to("cuda").unsqueeze(0))
     output  = output.detach().cpu().numpy()
     reconst = reconst.squeeze(0).detach().cpu().numpy()
