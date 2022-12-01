@@ -96,6 +96,12 @@ def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scal
         blur = torch.from_numpy(blur)
         torch.save(blur, f'{outfolderpath}/{str(i+I).zfill(4)}_x{scale}.pt')
 
+def save_label(folderpath, outfolderpath, labelname, outlabelname, I=0):
+    flist = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
+    for i, label in enumerate(flist[I:]):
+        label = torch.from_numpy(np.load(label))
+        torch.save(label.float(),  f'{outfolderpath}/{str(i+I).zfill(4)}{outlabelname}.pt')
+        
 def create_mask_(h, w, center=None, radius=None):
     if center is None:
         center = (int(w/2), int(h/2))

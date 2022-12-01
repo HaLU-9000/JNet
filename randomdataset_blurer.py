@@ -1,7 +1,7 @@
 from pathlib import Path
 import numpy as np
 import torch
-from utils import save_dataset
+from utils import save_dataset, save_label
 
 from dataset import Blur
 """
@@ -13,7 +13,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
 print(f"Training on device {device}.")
 
 for scale in (1, 2, 10):
-    model = Blur(scale   = scale ,
+    model = Blur(scale  = scale ,
                 z       = 141   ,
                 x       = 7     ,
                 y       = 7     ,

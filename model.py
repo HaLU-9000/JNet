@@ -289,7 +289,7 @@ if __name__ == '__main__':
     import torchinfo
     import torch.optim as optim
     hidden_channels_list = [16, 32, 64, 128, 256]
-    scale_factor         = (12, 1, 1)
+    scale_factor         = (10, 1, 1)
     nblocks              = 2
     activation           = nn.ReLU(inplace=True)
     dropout              = 0.5
@@ -307,7 +307,7 @@ if __name__ == '__main__':
                   superres              = True                 ,
                   )
     model.set_tau(tau)
-    input_size = (1, 1, 20, 112, 112)
+    input_size = (1, 1, 24, 112, 112)
     model.to(device='cuda')
     model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
     model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
