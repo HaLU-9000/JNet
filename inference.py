@@ -20,11 +20,11 @@ val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata'  ,
                                  train         =  False            ,
                                  mask          =  False            ,
                                  surround      =  True             ,
-                                 surround_size =  [64, 8, 8]       ,
+                                 surround_size =  [32, 8, 8]       ,
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_138_x1'
+model_name           = 'JNet_139_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (1, 1, 1)
 nblocks              = 2
@@ -45,8 +45,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(1)
-j = 12
-i = 0
+j = 60
+i = 60
 scale = scale_factor[0]
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -116,5 +116,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_x10_result{n}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
     

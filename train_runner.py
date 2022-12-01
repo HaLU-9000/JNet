@@ -78,7 +78,7 @@ JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
-optimizer            = optim.Adam(params, lr = 1e-4)
+optimizer            = optim.Adam(params, lr = 1e-3)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, verbose=True)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
