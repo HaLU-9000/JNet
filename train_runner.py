@@ -24,7 +24,7 @@ train_dataset = RandomCutDataset(folderpath    =  'beadslikedata'  ,
                                  mask_size     =  [10, 10, 10]     ,
                                  mask_num      =  1                ,
                                  surround      =  True             ,
-                                 surround_size =  [64, 8, 8]       ,
+                                 surround_size =  [32, 8, 8]       ,
                                  )
 val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata'  , 
                                  imagename     =  '_x1'            ,
