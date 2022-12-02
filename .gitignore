@@ -23,7 +23,8 @@ microglialikedataset/
 microglialikedata/
 beadslikedataset/
 beadslikedata/
-
+beadslikedataset2/
+beadslikedata2/
 
 pathlib_test.py
 utils_test.py

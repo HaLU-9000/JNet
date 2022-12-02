@@ -12,7 +12,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-for scale in (1, 2, 10):
+for scale in (1, 10):
     model = Blur(scale  = scale ,
                 z       = 141   ,
                 x       = 7     ,
@@ -23,8 +23,8 @@ for scale in (1, 2, 10):
                 bet_z   = 17.5  ,
                 sig_eps = 0.02  ,)
     model.eval
-    folderpath    = 'beadslikedataset'
-    outfolderpath = 'beadslikedata'
+    folderpath    = 'beadslikedataset2'
+    outfolderpath = 'beadslikedata2'
     labelname     = '_label'
     outlabelname  = '_label'
     save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, 0)

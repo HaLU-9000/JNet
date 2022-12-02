@@ -44,7 +44,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
         model.train()
         for image, label in train_loader:
             model.set_tau(tau)
-            image   = image.to(device = device)
+            image    = image.to(device = device)
             label    = label.to(device = device)
             out, rec = model(image)
             loss, midloss = branch_calc_loss(out, rec, image, label,

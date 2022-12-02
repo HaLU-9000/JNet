@@ -43,10 +43,10 @@ def make_beads_data(num, datasize = (128, 128, 128)):
     z_l  = [randint(0, datasize[0])                for _ in range(num)]
     x_l  = [randint(0, datasize[1])                for _ in range(num)]
     y_l  = [randint(0, datasize[2])                for _ in range(num)]
-    d_l  = [randn(3, 10, 10, 10)                      for _ in range(num)]
+    d_l  = [randn(3, 5, 5, 5)                      for _ in range(num)]
     for r, s, z, x, y, d in zip(r_l, s_l, z_l, x_l, y_l, d_l):
         form  = getattr(skimage.morphology, s)(r).astype(np.float32)
-        form  = deform.deform_grid(X=form, displacement=d,)
+        form  = deform.deform_grid(X=form, displacement=d*3,)
         form  = form > 0.5
         z_max = min(z + form.shape[0], datasize[0])
         x_max = min(x + form.shape[1], datasize[1])
