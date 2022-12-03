@@ -11,34 +11,38 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
+scale    = 1
+surround = True
+surround_size = [32, 4, 4]
+
 train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
-                                 imagename   =  '_x1'            ,     ## scale
+                                 imagename   =  f'_x{scale}'     , 
                                  labelname   =  '_label'         ,
                                  size        =  (1200, 500, 500) ,
-                                 cropsize    =  ( 240, 112, 112) ,    ## scale
+                                 cropsize    =  ( 240/scale, 112, 112) , 
                                  I             = 200             ,
                                  low           =   0             ,
                                  high          =  16             ,
-                                 scale         =   1             ,  ## scale
+                                 scale         =  scale          ,  ## scale
                                  mask          =  True           ,
                                  mask_size     =  [10, 10, 10]   ,
                                  mask_num      =  10             ,
-                                 surround      =  True           ,
-                                 surround_size =  [32, 4, 4]     ,
+                                 surround      =  surround       ,
+                                 surround_size =  surround_size  ,
                                  )
-val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
-                                 imagename   =  '_x1'            ,     ## scale
-                                 labelname   =  '_label'         ,
-                                 size        =  (1200, 500, 500)  ,
-                                 cropsize    =  ( 240, 112, 112)  ,
+val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'   ,  ###
+                                 imagename   =  f'_x{scale}'       ,     ## scale
+                                 labelname   =  '_label'           ,
+                                 size        =  (1200, 500, 500)   ,
+                                 cropsize    =  ( 240/scale, 112, 112)  ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
-                                 scale         =   1               ,   ## scale
+                                 scale         =  scale            ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 surround      =  True             ,
-                                 surround_size =  [32, 4, 4]       ,
+                                 surround      =  surround       ,
+                                 surround_size =  surround_size  ,
                                  seed          =  907              ,
                                 )
 
@@ -57,12 +61,13 @@ val_data    = DataLoader(val_dataset                   ,
 
 model_name           = 'JNet_148_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (1, 1, 1)                             ## scale
+scale_factor         = (scale, 1, 1)
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
+superres = True if scale > 1 else False
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
@@ -71,9 +76,9 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   mu_z                  = 0.2                  ,
                   sig_z                 = 0.2                  ,
                   bet_xy                = 3.                   ,
-                  bet_z                 = 17.5                  ,
-                  superres              = False                 , ## scale
-                  reconstruct           = False                 ,
+                  bet_z                 = 17.5                 ,
+                  superres              = superres             ,
+                  reconstruct           = False                ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
