@@ -11,8 +11,8 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-scale    = 1
-surround = True
+scale    = 10
+surround = False
 surround_size = [32, 4, 4]
 
 train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
@@ -59,7 +59,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_148_x1'
+model_name           = 'JNet_149_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2

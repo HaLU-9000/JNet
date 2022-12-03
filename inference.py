@@ -20,11 +20,11 @@ val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata2' ,
                                  train         =  False            ,
                                  mask          =  False            ,
                                  surround      =  True             ,
-                                 surround_size =  [16, 4, 4]       ,
+                                 surround_size =  [32, 4, 4]       ,
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_147_x1'
+model_name           = 'JNet_148_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (1, 1, 1)
 nblocks              = 2
