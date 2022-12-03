@@ -24,7 +24,7 @@ train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  mask_size     =  [10, 10, 10]   ,
                                  mask_num      =  10             ,
                                  surround      =  True           ,
-                                 surround_size =  [16, 4, 4]     ,
+                                 surround_size =  [32, 4, 4]     ,
                                  )
 val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  imagename   =  '_x1'            ,     ## scale
@@ -37,8 +37,8 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  scale         =   1               ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 surround      =  True            ,
-                                 surround_size =  [16, 4, 4]       ,
+                                 surround      =  True             ,
+                                 surround_size =  [32, 4, 4]       ,
                                  seed          =  907              ,
                                 )
 
@@ -55,7 +55,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_147_x1'
+model_name           = 'JNet_148_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (1, 1, 1)                             ## scale
 nblocks              = 2
@@ -97,7 +97,7 @@ train_loop(
     model_name   = model_name ,
     partial      = partial    ,
     scheduler    = scheduler  ,
-    es_patience  = 7          ,
+    es_patience  = 15         ,
     tau_init     = 1.         ,
     tau_lb       = 1          , 
     tau_sche     = 1          ,
