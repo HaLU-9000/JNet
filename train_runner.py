@@ -19,7 +19,7 @@ train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  imagename   =  f'_x{scale}'     , 
                                  labelname   =  '_label'         ,
                                  size        =  (1200, 500, 500) ,
-                                 cropsize    =  ( 240/scale, 112, 112) , 
+                                 cropsize    =  ( 240//scale, 112, 112) , 
                                  I             = 200             ,
                                  low           =   0             ,
                                  high          =  16             ,
@@ -34,7 +34,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'   ,  ###
                                  imagename   =  f'_x{scale}'       ,     ## scale
                                  labelname   =  '_label'           ,
                                  size        =  (1200, 500, 500)   ,
-                                 cropsize    =  ( 240/scale, 112, 112)  ,
+                                 cropsize    =  ( 240//scale, 112, 112)  ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
