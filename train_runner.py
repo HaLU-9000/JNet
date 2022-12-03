@@ -14,17 +14,17 @@ print(f"Training on device {device}.")
 train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  imagename   =  '_x1'            ,     ## scale
                                  labelname   =  '_label'         ,
-                                 size        =  (1200, 500, 500)  ,
-                                 cropsize    =  ( 240, 112, 112)  ,    ## scale
-                                 I             = 200               ,
-                                 low           =   0               ,
-                                 high          =  16               ,
-                                 scale         =   1               ,  ## scale
-                                 mask          =  True             ,
-                                 mask_size     =  [10, 10, 10]     ,
-                                 mask_num      =  1                ,
-                                 surround      =  False            ,
-                                 surround_size =  [32, 8, 8]       ,
+                                 size        =  (1200, 500, 500) ,
+                                 cropsize    =  ( 240, 112, 112) ,    ## scale
+                                 I             = 200             ,
+                                 low           =   0             ,
+                                 high          =  16             ,
+                                 scale         =   1             ,  ## scale
+                                 mask          =  True           ,
+                                 mask_size     =  [10, 10, 10]   ,
+                                 mask_num      =  10             ,
+                                 surround      =  True           ,
+                                 surround_size =  [16, 4, 4]     ,
                                  )
 val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  imagename   =  '_x1'            ,     ## scale
@@ -37,8 +37,8 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  scale         =   1               ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 surround      =  False            ,
-                                 surround_size =  [32, 8, 8]       ,
+                                 surround      =  True            ,
+                                 surround_size =  [16, 4, 4]       ,
                                  seed          =  907              ,
                                 )
 
@@ -55,9 +55,9 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_145_x1'
+model_name           = 'JNet_147_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (10, 1, 1)                             ## scale
+scale_factor         = (1, 1, 1)                             ## scale
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)

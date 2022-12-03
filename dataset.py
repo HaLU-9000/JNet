@@ -245,7 +245,7 @@ class RealSparseDataset(Dataset):
     2. normalize score to [0, 1]
     (__getitem__)
     3. r ~ uniform(0,1)
-    4. accept if r < score
+    4. accept if r > score
        reject ;else
     '''
     def __init__(self, folderpath:str, imagename:str,
@@ -277,7 +277,7 @@ class RealSparseDataset(Dataset):
             scores[i] = score
         scores = (scores - torch.min(scores))           \
                / (torch.max(scores) - torch.min(scores))
-
+        self.scores = scores
 
         if train == False:
             np.random.seed(seed)
@@ -307,12 +307,13 @@ class RealSparseDataset(Dataset):
         if self.train:
             r = 1
             s = 0
-            while r >= s:
+            while not r < s:
                 idx        = self.gen_indices(1, self.low, self.high).item()
                 _, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
                 icoords    = icoords[:, 0]
+                z, x, y    = icoords
                 r = np.random.uniform(0, 1)
-                self.score
+                s = self.scores[idx, z, x, y]
 
             image, _, _      = Rotate(    )(Crop(icoords, self.ssize
                                                 )(torch.load(self.images[idx])))
