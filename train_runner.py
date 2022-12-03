@@ -11,33 +11,33 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-train_dataset = RandomCutDataset(folderpath    =  'beadslikedata2'  ,
-                                 imagename     =  '_x1'            ,
-                                 labelname     =  '_label'         ,
-                                 size          =  (1200, 500, 500) ,
-                                 cropsize      =  ( 240, 112, 112) , 
+train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
+                                 imagename   =  '_x1'            ,
+                                 labelname   =  '_label'         ,
+                                 size        =  (1200, 500, 500)  ,
+                                 cropsize    =  ( 240, 112, 112)  ,
                                  I             = 200               ,
                                  low           =   0               ,
                                  high          =  16               ,
                                  scale         =   1               ,
-                                 mask          =  True             ,
+                                 mask          =  False             ,
                                  mask_size     =  [10, 10, 10]     ,
                                  mask_num      =  1                ,
-                                 surround      =  True             ,
+                                 surround      =  False             ,
                                  surround_size =  [32, 8, 8]       ,
                                  )
-val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata2'  , 
-                                 imagename     =  '_x1'            ,
-                                 labelname     =  '_label'         ,
-                                 size          =  (1200, 500, 500) ,
-                                 cropsize      =  ( 240, 112, 112) ,
+val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
+                                 imagename   =  '_x1'            ,
+                                 labelname   =  '_label'         ,
+                                 size        =  (1200, 500, 500)  ,
+                                 cropsize    =  ( 240, 112, 112)  ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
                                  scale         =   1               ,
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 surround      =  True             ,
+                                 surround      =  False            ,
                                  surround_size =  [32, 8, 8]       ,
                                  seed          =  907              ,
                                 )
@@ -55,7 +55,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_142_x1'
+model_name           = 'JNet_144_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (1, 1, 1)
 nblocks              = 2
@@ -70,15 +70,15 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   scale_factor          = scale_factor         ,
                   mu_z                  = 0.2                  ,
                   sig_z                 = 0.2                  ,
-                  bet_xy                = 6.                   ,
-                  bet_z                 = 35.                  ,
-                  superres              = True                 ,
+                  bet_xy                = 3.                   ,
+                  bet_z                 = 17.5                  ,
+                  superres              = False                 ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
-optimizer            = optim.Adam(params, lr = 1e-3)
+optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, verbose=True)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
