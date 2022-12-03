@@ -8,7 +8,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata'  , 
+val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata2' , 
                                  imagename     =  '_x1'            ,
                                  labelname     =  '_label'         ,
                                  size          =  (1200, 500, 500) ,
@@ -16,7 +16,7 @@ val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata'  ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
-                                 scale         =  1               ,
+                                 scale         =  1                ,
                                  train         =  False            ,
                                  mask          =  False            ,
                                  surround      =  True             ,
@@ -24,7 +24,7 @@ val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata'  ,
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_141_x1'
+model_name           = 'JNet_142_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (1, 1, 1)
 nblocks              = 2
@@ -52,7 +52,7 @@ scale = scale_factor[0]
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 for n in range(0,5):
-    image, label= val_dataset[n+5]
+    image, label= val_dataset[n]
     output, reconst= JNet(image.to("cuda").unsqueeze(0))
     output  = output.detach().cpu().numpy()
     reconst = reconst.squeeze(0).detach().cpu().numpy()

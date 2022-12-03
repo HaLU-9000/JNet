@@ -245,6 +245,6 @@ def surround_mask_(image, surround_size):
     out       : 4d tensor (surround masked)
     """
     z, x, y = surround_size
-    image = image[:, z : -z, x : -x, y : -y].clone()
+    image = image[:, z : -z, x : -x, y : -y]
     image = F.pad(image, (y, y, x, x, z, z)) # see https://pytorch.org/docs/stable/generated/torch.nn.functional.pad.html
     return image

@@ -88,7 +88,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
         writer.add_scalar('bet_z' , bet_z.item() , epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
-            torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
+            #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
             scheduler.step(vloss_sum / vnum)
         earlystopping((vloss_sum / vnum), model, tau == tau_lb)
