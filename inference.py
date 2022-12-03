@@ -8,30 +8,35 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata2' , 
-                                 imagename     =  '_x1'            ,
-                                 labelname     =  '_label'         ,
-                                 size          =  (1200, 500, 500) ,
-                                 cropsize      =  ( 240, 112, 112) ,
+scale    = 10
+surround = False
+surround_size = [32, 4, 4]
+
+val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'   ,  ###
+                                 imagename   =  f'_x{scale}'       ,     ## scale
+                                 labelname   =  '_label'           ,
+                                 size        =  (1200, 500, 500)   ,
+                                 cropsize    =  ( 240, 112, 112)  ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
-                                 scale         =  1                ,
+                                 scale         =  scale            ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 surround      =  True             ,
-                                 surround_size =  [32, 4, 4]       ,
+                                 surround      =  surround         ,
+                                 surround_size =  surround_size    ,
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_148_x1'
+model_name           = 'JNet_149_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (1, 1, 1)
+scale_factor         = (scale, 1, 1)
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
+superres = True if scale > 1 else False
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
@@ -39,16 +44,15 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   scale_factor          = scale_factor         ,
                   mu_z                  = 0.2                  ,
                   sig_z                 = 0.2                  ,
-                  bet_xy                = 6.                   ,
-                  bet_z                 = 35.                  ,
-                  superres              = False                ,
+                  bet_xy                = 3.                   ,
+                  bet_z                 = 17.5                 ,
+                  superres              = superres             ,
                   reconstruct           = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(1)
-j = 60
+j = 60 // scale
 i = 60
-scale = scale_factor[0]
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
