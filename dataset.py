@@ -226,3 +226,104 @@ class RandomCutDataset(Dataset):
 
     def __len__(self):
         return self.I
+
+class RealSparseDataset(Dataset):
+    '''
+    input  : 4d torch.tensor (large (like 768**3) size)
+    output : 4d torch.tensor (small (like 128**3) size)
+             ([channels, z_size, x_size, y_size]) 
+             of randomly cropped/rotated image
+    folderpath : large data path ("randomdata" in this repo)
+    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
+    I : sample size. Returns I samples. (e.g. 200)
+    low, high : use [low]th ~ [high]th files in folderpath as data.
+    scale: scale (should be same as [imagename]'s int part.)
+
+    algorithm
+    (init)
+    1. calculate score by conv filter
+    2. normalize score to [0, 1]
+    (__getitem__)
+    3. r ~ uniform(0,1)
+    4. accept if r < score
+       reject ;else
+    '''
+    def __init__(self, folderpath:str, imagename:str,
+                 size:list, cropsize:list, I:int, low:int, high:int, scale:int,
+                 train=True, pretrain=True, mask=True,
+                 mask_size=[10, 10, 10], mask_num=1,
+                 surround=True, surround_size=[64, 8, 8],
+                 seed=904):
+        self.I             = I
+        self.low           = low
+        self.high          = high
+        self.scale         = scale
+        self.size          = size
+        self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
+        self.csize         = cropsize
+        self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
+        self.train         = train
+        self.mask          = mask
+        self.mask_size     = mask_size
+        self.mask_num      = mask_num
+        self.surround      = surround
+        self.surround_size = surround_size
+        scores             = torch.zeros((len(self.images), 1, *size))
+        for i in self.images:
+            score = F.conv3d(input   = torch.load(i)        ,
+                             weight  = torch.ones(cropsize) ,
+                             stride  = 1                    ,
+                             padding = 1                    ,)
+            scores[i] = score
+        scores = (scores - torch.min(scores))           \
+               / (torch.max(scores) - torch.min(scores))
+
+
+        if train == False:
+            np.random.seed(seed)
+            self.indiceslist = self.gen_indices(I, low, high)
+            self.coordslist  = self.gen_coords(I, size, cropsize, scale)
+
+    def gen_indices(self, I, low, high):
+        return np.random.randint(low, high, (I,))
+    
+    def gen_coords(self, I, size, cropsize, scale):
+        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
+        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
+        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
+        return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+
+    def apply_mask(self, mask, image, mask_size, mask_num):
+        if mask:
+            image = mask_(image, mask_size, mask_num)
+        return image
+
+    def apply_surround_mask(self, surround, image, surround_size):
+        if surround:
+            image = surround_mask_(image, surround_size)
+        return image
+
+    def __getitem__(self, idx):
+        if self.train:
+            r = 1
+            s = 0
+            while r >= s:
+                idx        = self.gen_indices(1, self.low, self.high).item()
+                _, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
+                icoords    = icoords[:, 0]
+                r = np.random.uniform(0, 1)
+                self.score
+
+            image, _, _      = Rotate(    )(Crop(icoords, self.ssize
+                                                )(torch.load(self.images[idx])))
+            image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
+            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+        else:
+            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
+            icoords = self.coordslist[1][:, idx]
+            image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx]))
+            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+        return image
+
+    def __len__(self):
+        return self.I
