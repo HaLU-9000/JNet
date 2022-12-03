@@ -12,29 +12,29 @@ device = (torch.device('cuda') if torch.cuda.is_available()
 print(f"Training on device {device}.")
 
 train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
-                                 imagename   =  '_x1'            ,
+                                 imagename   =  '_x1'            ,     ## scale
                                  labelname   =  '_label'         ,
                                  size        =  (1200, 500, 500)  ,
-                                 cropsize    =  ( 240, 112, 112)  ,
+                                 cropsize    =  ( 240, 112, 112)  ,    ## scale
                                  I             = 200               ,
                                  low           =   0               ,
                                  high          =  16               ,
-                                 scale         =   1               ,
-                                 mask          =  False             ,
+                                 scale         =   1               ,  ## scale
+                                 mask          =  True             ,
                                  mask_size     =  [10, 10, 10]     ,
                                  mask_num      =  1                ,
                                  surround      =  False             ,
                                  surround_size =  [32, 8, 8]       ,
                                  )
 val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
-                                 imagename   =  '_x1'            ,
+                                 imagename   =  '_x1'            ,     ## scale
                                  labelname   =  '_label'         ,
                                  size        =  (1200, 500, 500)  ,
                                  cropsize    =  ( 240, 112, 112)  ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
-                                 scale         =   1               ,
+                                 scale         =   1               ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
                                  surround      =  False            ,
@@ -55,9 +55,9 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_144_x1'
+model_name           = 'JNet_145_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (1, 1, 1)
+scale_factor         = (10, 1, 1)                             ## scale
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
@@ -72,14 +72,14 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   sig_z                 = 0.2                  ,
                   bet_xy                = 3.                   ,
                   bet_z                 = 17.5                  ,
-                  superres              = False                 ,
+                  superres              = False                 , ## scale
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
 optimizer            = optim.Adam(params, lr = 1e-4)
-scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=20, verbose=True)
+scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 print(f"============= model {model_name} train started =============")
@@ -96,7 +96,7 @@ train_loop(
     model_name   = model_name ,
     partial      = partial    ,
     scheduler    = scheduler  ,
-    es_patience  = 25         ,
+    es_patience  = 7          ,
     tau_init     = 1.         ,
     tau_lb       = 1          , 
     tau_sche     = 1          ,
