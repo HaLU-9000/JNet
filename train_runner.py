@@ -23,7 +23,7 @@ train_dataset = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
                                  mask          =  True             ,
                                  mask_size     =  [10, 10, 10]     ,
                                  mask_num      =  1                ,
-                                 surround      =  False             ,
+                                 surround      =  False            ,
                                  surround_size =  [32, 8, 8]       ,
                                  )
 val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'     ,  ###
@@ -73,6 +73,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   bet_xy                = 3.                   ,
                   bet_z                 = 17.5                  ,
                   superres              = False                 , ## scale
+                  reconstruct           = False                 ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)

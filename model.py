@@ -229,7 +229,7 @@ class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
                  dropout, scale_factor,
                  mu_z:float, sig_z:float, bet_xy:float, bet_z:float,
-                 superres:bool, device='cuda'):
+                 superres:bool, reconstruct=False,device='cuda'):
         super().__init__()
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
@@ -263,9 +263,10 @@ class JNet(nn.Module):
                               bet_xy       = bet_xy       ,
                               bet_z        = bet_z        ,
                               device       = device       ,)
-        self.upsample   = JNetUpsample(scale_factor = scale_factor)
-        self.activation = activation
-        self.superres = superres
+        self.upsample    = JNetUpsample(scale_factor = scale_factor)
+        self.activation  = activation
+        self.superres    = superres
+        self.reconstruct = reconstruct
     def set_tau(self, tau=0.1):
         self.tau = tau
     def forward(self, x):
@@ -282,7 +283,10 @@ class JNet(nn.Module):
         x = self.post0(x)
         x = F.softmax(input  = x / self.tau ,
                       dim    = 1            ,)[:, :1,] # softmax with temperature
-        r = self.blur(x)
+        if self.reconstruct:
+            r = self.blur(x)
+        else:
+            r = x
         return x, r
 
 if __name__ == '__main__':

@@ -24,7 +24,7 @@ val_dataset   = RandomCutDataset(folderpath    =  'beadslikedata2' ,
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_144_x1'
+model_name           = 'JNet_145_x1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (1, 1, 1)
 nblocks              = 2
@@ -41,7 +41,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   sig_z                 = 0.2                  ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
-                  superres              = True                 ,
+                  superres              = False                ,
+                  reconstruct           = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(1)
