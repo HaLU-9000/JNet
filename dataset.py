@@ -248,7 +248,7 @@ class RealDensityDataset(Dataset):
     4. accept | if r > score
        reject | else
     '''
-    def __init__(self, folderpath:str, scorefolderpath:str,
+    def __init__(self, folderpath:str, scorefolderpath:str, imagename:str,
                  size:list, cropsize:list, I:int, low:int, high:int, scale:int,
                  train=True, mask=True, score=None, score_saving=True,
                  mask_size=[10, 10, 10], mask_num=1,
@@ -260,16 +260,17 @@ class RealDensityDataset(Dataset):
         self.scale         = scale
         self.size          = size
         self.ssize         = [size[0]//scale, size[1], size[2]]
-        self.images        = list(sorted(Path(folderpath).glob('*.pt')))
+        self.imagename     = imagename
+        self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
         self.csize         = cropsize
         self.scsize        = [cropsize[0]//scale, cropsize[1], cropsize[2]]
         self.train         = train
         self.mask          = mask
-        self.mask_size     = mask_size
         self.mask_num      = mask_num
+        self.mask_size     = mask_size
         self.surround      = surround
         self.surround_size = surround_size
-        self.icoords_size       = [self.ssize[0] - self.scsize[0] + 1,
+        self.icoords_size  = [self.ssize[0] - self.scsize[0] + 1,
                               self.ssize[1] - self.scsize[1] + 1,
                               self.ssize[2] - self.scsize[2] + 1,]
         
@@ -287,7 +288,7 @@ class RealDensityDataset(Dataset):
     def gen_scores(self, images, icoords_size, scsize):
         for n, i in enumerate(images):
                 scores = torch.zeros((len(images), 1, *icoords_size))
-                print(f'(init) calcurating the score...({n+1}/{len(images)})')
+                print(f'(dataset init) calculating the score...({n+1}/{len(images)})')
                 score = F.conv3d(input   = torch.load(i)          ,
                                  weight  = torch.ones(1,1,*scsize),
                                  stride  = 1                      ,
@@ -299,7 +300,7 @@ class RealDensityDataset(Dataset):
         return scores
 
     def save_scores(self, scores, scorefolderpath):
-        torch.save(scores, scorefolderpath+'/score.pt')
+        torch.save(scores, scorefolderpath+f'/{self.imagename}_score.pt')
 
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
@@ -324,19 +325,19 @@ class RealDensityDataset(Dataset):
         if self.train:
             r, s = 1, 0
             while not r < s:
-                idx        = self.gen_indices(1, self.low, self.high).item()
+                idx     = self.gen_indices(1, self.low, self.high).item()
                 icoords = self.gen_coords( 1 , self.icoords_size)
-                icoords    = icoords[:, 0]
-                z, x, y    = icoords
+                icoords = icoords[:, 0]
+                z, x, y = icoords
                 r = np.random.uniform(0, 1)
-                s = self.scores[idx, z, x, y]
+                s = self.scores[idx, 0, z, x, y]
             image, _, _      = Rotate(    )(Crop(icoords, self.scsize
                                                 )(torch.load(self.images[idx])))
             image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
-            icoords = self.coordslist[1][:, idx]
+            icoords = self.coordslist[:, idx]
             image   = Crop(icoords, self.scsize)(torch.load(self.images[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image, 0
