@@ -25,6 +25,7 @@ beadslikedataset/
 beadslikedata/
 beadslikedataset2/
 beadslikedata2/
+beadsdata/
 
 pathlib_test.py
 utils_test.py
@@ -45,3 +46,4 @@ evaluations_BCE.ipynb
 evaluations_IoU.ipynb
 roc_test.ipynb
 beadslikedata_analize.py
+realdensitydataset_test.ipynb

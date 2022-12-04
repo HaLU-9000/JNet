@@ -146,7 +146,7 @@ class Crop:
 
 class RandomCutDataset(Dataset):
     '''
-    input  : 4d torch.tensor (large (like 768**3) size)
+    input  : 4d torch.tensor (large (like 768**3) size) (image and label)
     output : 4d torch.tensor (small (like 128**3) size)
              ([channels, z_size, x_size, y_size]) 
              of randomly cropped/rotated image and label
@@ -227,9 +227,9 @@ class RandomCutDataset(Dataset):
     def __len__(self):
         return self.I
 
-class RealSparseDataset(Dataset):
+class RealDensityAwaredDataset(Dataset):
     '''
-    input  : 4d torch.tensor (large (like 768**3) size)
+    input  : 4d torch.tensor (large (like 768**3) size) (image)
     output : 4d torch.tensor (small (like 128**3) size)
              ([channels, z_size, x_size, y_size]) 
              of randomly cropped/rotated image
@@ -245,8 +245,8 @@ class RealSparseDataset(Dataset):
     2. normalize score to [0, 1]
     (__getitem__)
     3. r ~ uniform(0,1)
-    4. accept if r > score
-       reject ;else
+    4. accept | if r > score
+       reject | else
     '''
     def __init__(self, folderpath:str, imagename:str,
                  size:list, cropsize:list, I:int, low:int, high:int, scale:int,
@@ -328,3 +328,26 @@ class RealSparseDataset(Dataset):
 
     def __len__(self):
         return self.I
+
+class DatasetUtils():
+    def gen_indices(self, I, low, high):
+        return np.random.randint(low, high, (I,))
+    
+    def gen_coords(self, I, size, cropsize, scale, label):
+        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
+        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
+        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
+        if label is not None:
+            return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+        else:
+            return np.array([zcoord // scale, xcoord, ycoord])
+
+    def apply_mask(self, mask, image, mask_size, mask_num):
+        if mask:
+            image = mask_(image, mask_size, mask_num)
+        return image
+
+    def apply_surround_mask(self, surround, image, surround_size):
+        if surround:
+            image = surround_mask_(image, surround_size)
+        return image

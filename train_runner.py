@@ -34,15 +34,15 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'   ,  ###
                                  imagename   =  f'_x{scale}'       ,     ## scale
                                  labelname   =  '_label'           ,
                                  size        =  (1200, 500, 500)   ,
-                                 cropsize    =  ( 240, 112, 112)  ,
+                                 cropsize    =  ( 240, 112, 112)   ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
                                  scale         =  scale            ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 surround      =  surround       ,
-                                 surround_size =  surround_size  ,
+                                 surround      =  surround         ,
+                                 surround_size =  surround_size    ,
                                  seed          =  907              ,
                                 )
 
