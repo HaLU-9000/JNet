@@ -95,7 +95,7 @@ class JNetUpsample(nn.Module):
         super().__init__()
         self.upsample = nn.Upsample(scale_factor = scale_factor ,
                                     mode         = 'trilinear'  ,)
-        
+                                    
     def forward(self, x):
         return self.upsample(x)
 

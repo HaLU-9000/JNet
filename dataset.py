@@ -339,7 +339,7 @@ class RealDensityDataset(Dataset):
             icoords = self.coordslist[1][:, idx]
             image   = Crop(icoords, self.scsize)(torch.load(self.images[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
-        return image
+        return image, 0
 
     def __len__(self):
         return self.I
