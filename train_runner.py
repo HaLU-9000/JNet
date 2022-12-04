@@ -64,7 +64,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_153_x10'
+model_name           = 'JNet_154_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -90,7 +90,7 @@ JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_149_x10.pt'), strict=False)
 #params = [i for i in JNet.parameters()][:-4]
 params = JNet.parameters()
-optimizer            = optim.Adam(params, lr = 1e-4)
+optimizer            = optim.Adam(params, lr = 1e-5)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
@@ -111,7 +111,7 @@ train_loop(
     es_patience  = 15          ,
     tau_init     = 1           ,
     tau_lb       = 0.1         , 
-    tau_sche     = 0.999       ,
+    tau_sche     = 0.9999      ,
     reconstruct  = reconstruct ,
     check_middle = False       ,
     midloss_fn   = midloss_fn  ,
