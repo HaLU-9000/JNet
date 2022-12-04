@@ -245,7 +245,7 @@ class RealDensityDataset(Dataset):
     2. normalize score to [0, 1]
     (__getitem__)
     3. r ~ uniform(0,1)
-    4. accept | if r > score
+    4. accept | if r < score
        reject | else
     '''
     def __init__(self, folderpath:str, scorefolderpath:str, imagename:str,
