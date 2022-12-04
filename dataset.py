@@ -227,7 +227,7 @@ class RandomCutDataset(Dataset):
     def __len__(self):
         return self.I
 
-class RealDensityAwaredDataset(Dataset):
+class RealDensityDataset(Dataset):
     '''
     input  : 4d torch.tensor (large (like 768**3) size) (image)
     output : 4d torch.tensor (small (like 128**3) size)
@@ -248,9 +248,9 @@ class RealDensityAwaredDataset(Dataset):
     4. accept | if r > score
        reject | else
     '''
-    def __init__(self, folderpath:str, imagename:str,
+    def __init__(self, folderpath:str, scorefolderpath:str,
                  size:list, cropsize:list, I:int, low:int, high:int, scale:int,
-                 train=True, pretrain=True, mask=True,
+                 train=True, mask=True, score=None, score_saving=True,
                  mask_size=[10, 10, 10], mask_num=1,
                  surround=True, surround_size=[64, 8, 8],
                  seed=904):
@@ -259,39 +259,56 @@ class RealDensityAwaredDataset(Dataset):
         self.high          = high
         self.scale         = scale
         self.size          = size
-        self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
+        self.ssize         = [size[0]//scale, size[1], size[2]]
+        self.images        = list(sorted(Path(folderpath).glob('*.pt')))
         self.csize         = cropsize
-        self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
+        self.scsize        = [cropsize[0]//scale, cropsize[1], cropsize[2]]
         self.train         = train
         self.mask          = mask
         self.mask_size     = mask_size
         self.mask_num      = mask_num
         self.surround      = surround
         self.surround_size = surround_size
-        scores             = torch.zeros((len(self.images), 1, *size))
-        for i in self.images:
-            score = F.conv3d(input   = torch.load(i)        ,
-                             weight  = torch.ones(cropsize) ,
-                             stride  = 1                    ,
-                             padding = 1                    ,)
-            scores[i] = score
-        scores = (scores - torch.min(scores))           \
-               / (torch.max(scores) - torch.min(scores))
-        self.scores = scores
-
+        self.icoords_size       = [self.ssize[0] - self.scsize[0] + 1,
+                              self.ssize[1] - self.scsize[1] + 1,
+                              self.ssize[2] - self.scsize[2] + 1,]
+        
+        if score is None:
+            self.scores = self.gen_scores(self.images, self.icoords_size, self.scsize)
+            if score_saving:
+                self.save_scores(self.scores, scorefolderpath)
+        else:
+            self.scores = score
         if train == False:
             np.random.seed(seed)
             self.indiceslist = self.gen_indices(I, low, high)
-            self.coordslist  = self.gen_coords(I, size, cropsize, scale)
+            self.coordslist  = self.gen_coords(I, self.icoords_size)
+
+    def gen_scores(self, images, icoords_size, scsize):
+        for n, i in enumerate(images):
+                scores = torch.zeros((len(images), 1, *icoords_size))
+                print(f'(init) calcurating the score...({n+1}/{len(images)})')
+                score = F.conv3d(input   = torch.load(i)          ,
+                                 weight  = torch.ones(1,1,*scsize),
+                                 stride  = 1                      ,
+                                 padding = 0                      ,)
+                scores[n] = score
+        fscores = scores.flatten()
+        scores = (scores - torch.min(fscores))            \
+                / (torch.max(fscores) - torch.min(fscores))
+        return scores
+
+    def save_scores(self, scores, scorefolderpath):
+        torch.save(scores, scorefolderpath+'/score.pt')
 
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
     
-    def gen_coords(self, I, size, cropsize, scale):
-        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
-        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
-        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
-        return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+    def gen_coords(self, I, icoords_size):
+        zcoord = np.random.randint(0, icoords_size[0], (I,))
+        xcoord = np.random.randint(0, icoords_size[1], (I,))
+        ycoord = np.random.randint(0, icoords_size[2], (I,))
+        return np.array([zcoord, xcoord, ycoord])
 
     def apply_mask(self, mask, image, mask_size, mask_num):
         if mask:
@@ -305,24 +322,22 @@ class RealDensityAwaredDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.train:
-            r = 1
-            s = 0
+            r, s = 1, 0
             while not r < s:
                 idx        = self.gen_indices(1, self.low, self.high).item()
-                _, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
+                icoords = self.gen_coords( 1 , self.icoords_size)
                 icoords    = icoords[:, 0]
                 z, x, y    = icoords
                 r = np.random.uniform(0, 1)
                 s = self.scores[idx, z, x, y]
-
-            image, _, _      = Rotate(    )(Crop(icoords, self.ssize
+            image, _, _      = Rotate(    )(Crop(icoords, self.scsize
                                                 )(torch.load(self.images[idx])))
             image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             icoords = self.coordslist[1][:, idx]
-            image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx]))
+            image   = Crop(icoords, self.scsize)(torch.load(self.images[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image
 
