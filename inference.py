@@ -21,8 +21,10 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'   ,  ###
                                  low           =  16               ,
                                  high          =  20               ,
                                  scale         =  scale            ,   ## scale
-                                 train         =  False            ,
-                                 mask          =  False            ,
+                                 train         =  True             ,
+                                 mask          =  True             ,
+                                 mask_num      =  100              ,
+                                 mask_size     =  [1, 10, 10]      ,
                                  surround      =  surround         ,
                                  surround_size =  surround_size    ,
                                  seed          =  907              ,
@@ -121,5 +123,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_maskdemo{n}.png', format='png', dpi=250)
     
