@@ -255,9 +255,9 @@ class JNet(nn.Module):
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
         self.blur  = JNetBlur(scale_factor = scale_factor ,
-                              z            = 141          ,
-                              x            = 7            ,
-                              y            = 7            ,
+                              z            = 71          ,
+                              x            = 5            ,
+                              y            = 5            ,
                               mu_z         = mu_z         ,
                               sig_z        = sig_z        ,
                               bet_xy       = bet_xy       ,
