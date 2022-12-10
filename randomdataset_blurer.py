@@ -14,17 +14,18 @@ print(f"Training on device {device}.")
 scale = 10
 if scale == 10:
     model = Blur(scale   = scale ,
-                 z       = 71    ,
-                 x       = 5     ,
-                 y       = 5     ,
-                 mu_z    = -2.114,
-                 sig_z   = 0.675 , 
-                 bet_xy  = 3     ,
-                 bet_z   = 17.5  ,
-                 sig_eps = 0.01  ,)
-    model.eval
+                 z       = 141   ,
+                 x       = 35    ,
+                 y       = 35    ,
+                 mu_z    = 0.2   ,
+                 sig_z   = 0.2   , 
+                 bet_xy  = 12    ,
+                 bet_z   = 35    ,
+                 sig_eps = 0.01  ,
+                 device  = device,)
+    model.eval()
     folderpath    = 'beadslikedataset2'
     outfolderpath = 'beadslikedata3'
     labelname     = '_label'
     outlabelname  = '_label'
-    save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, 0)
+    save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, device, 0)

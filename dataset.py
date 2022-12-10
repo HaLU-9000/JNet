@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from utils import mask_, surround_mask_
 
 class Blur(nn.Module):
-    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, sig_eps,):
+    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, sig_eps,device):
         super().__init__()
         self.scale   = scale
         self.z       = z
@@ -20,8 +20,10 @@ class Blur(nn.Module):
         self.bet_xy  = bet_xy
         self.bet_z   = bet_z
         self.sig_eps = sig_eps
-        self.zd, self.xd, self.yd   = self.distance(z, x, y)
-        self.alf     = self.gen_alf()
+        self.zd,     \
+        self.xd,     \
+        self.yd      = self.distance(z, x, y)
+        self.alf     = self.gen_alf().to(device)
         
     def distance(self, z, x, y):
         [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
