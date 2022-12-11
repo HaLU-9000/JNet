@@ -59,7 +59,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_156_x10'
+model_name           = 'JNet_157_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -85,7 +85,7 @@ JNet = JNet.to(device = device)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
 optimizer            = optim.Adam(params, lr = 1e-4)
-scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
+scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 print(f"============= model {model_name} train started =============")
