@@ -19,7 +19,7 @@ val_score     = None #torch.load('./beadsscore/002_score.pt')
 
 train_dataset = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
                                    scorefolderpath =  'sparsebeadslikescore',
-                                   imagename       =  '0000'            ,
+                                   imagename       =  '_x10'            ,
                                    size            =  (1200, 500, 500) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
                                    I               =  200              ,
@@ -36,7 +36,7 @@ train_dataset = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
                                   )
 val_dataset   = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
                                    scorefolderpath =  'sparsebeadslikescore',
-                                   imagename       =  '0000'            ,
+                                   imagename       =  '_x10'            ,
                                    size            =  (1200, 500, 500) ,
                                    cropsize        =  ( 240, 112, 112) ,
                                    I               =  10               ,

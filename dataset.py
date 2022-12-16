@@ -288,18 +288,19 @@ class RealDensityDataset(Dataset):
             self.coordslist  = self.gen_coords(I, self.icoords_size)
 
     def gen_scores(self, images, icoords_size, scsize):
+        _scores = torch.zeros((len(images), 1, *icoords_size))
+        print(_scores.shape)
         for n, i in enumerate(images):
-                scores = torch.zeros((len(images), 1, *icoords_size))
-                print(f'(dataset init) calculating the score...({n+1}/{len(images)})')
-                score = F.conv3d(input   = torch.load(i)          ,
-                                 weight  = torch.ones(1,1,*scsize),
-                                 stride  = 1                      ,
-                                 padding = 0                      ,)
-                scores[n] = score
-        fscores = scores.flatten()
-        scores = (scores - torch.min(fscores))            \
-                / (torch.max(fscores) - torch.min(fscores))
-        return scores
+            print(f'(init) calcurating the score...({n+1}/{len(images)})')
+            _score = F.conv3d(input   = torch.load(i)          ,
+                              weight  = torch.ones(1,1,*scsize),
+                              stride  = 1                      ,
+                              padding = 0                      ,)
+            _scores[n] = _score
+        _fscores = _scores.flatten()
+        _scores = (_scores - torch.min(_fscores))            \
+                / (torch.max(_fscores) - torch.min(_fscores))
+        return _scores
 
     def save_scores(self, scores, scorefolderpath):
         torch.save(scores, scorefolderpath+f'/{self.imagename}_score.pt')
