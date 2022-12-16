@@ -30,7 +30,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'      ,
                                    score           =  train_score      ,
                                   )
 
-model_name           = 'JNet_154_x10'
+model_name           = 'JNet_157_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -113,5 +113,5 @@ for n in range(0,5):
         ax6.imshow(output[0, 0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
 
-    plt.savefig(f'result/{model_name}_result{n+5}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
     
