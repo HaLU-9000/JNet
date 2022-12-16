@@ -15,17 +15,17 @@ scale = 10
 if scale == 10:
     model = Blur(scale   = scale ,
                  z       = 141   ,
-                 x       = 35    ,
-                 y       = 35    ,
+                 x       = 7    ,
+                 y       = 7    ,
                  mu_z    = 0.2   ,
                  sig_z   = 0.2   , 
-                 bet_xy  = 12    ,
-                 bet_z   = 35    ,
+                 bet_xy  = 3.    ,
+                 bet_z   = 17.5  ,
                  sig_eps = 0.01  ,
                  device  = device,)
     model.eval()
-    folderpath    = 'beadslikedataset2'
-    outfolderpath = 'beadslikedata3'
+    folderpath    = 'sparsebeadslikedataset'
+    outfolderpath = 'sparsebeadslikedata'
     labelname     = '_label'
     outlabelname  = '_label'
     save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, device, 0)

@@ -14,13 +14,13 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = torch.load('./beadsscore/001_score.pt')
-val_score     = torch.load('./beadsscore/002_score.pt')
+train_score   = None #torch.load('./beadsscore/001_score.pt')
+val_score     = None #torch.load('./beadsscore/002_score.pt')
 
-train_dataset = RealDensityDataset(folderpath      =  'beadsdata'      ,
-                                   scorefolderpath =  'beadsscore'     ,
-                                   imagename       =  '001'            ,
-                                   size            =  (1200, 512, 512) , # size after segmentation
+train_dataset = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
+                                   scorefolderpath =  'sparsebeadslikescore',
+                                   imagename       =  '0000'            ,
+                                   size            =  (1200, 500, 500) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
                                    I               =  200              ,
                                    low             =   0               ,
@@ -34,10 +34,10 @@ train_dataset = RealDensityDataset(folderpath      =  'beadsdata'      ,
                                    surround_size   =  surround_size    ,
                                    score           =  train_score      ,
                                   )
-val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'      ,
-                                   scorefolderpath =  'beadsscore'     ,
-                                   imagename       =  '002'            ,
-                                   size            =  ( 650, 512, 512) ,
+val_dataset   = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
+                                   scorefolderpath =  'sparsebeadslikescore',
+                                   imagename       =  '0000'            ,
+                                   size            =  (1200, 500, 500) ,
                                    cropsize        =  ( 240, 112, 112) ,
                                    I               =  10               ,
                                    low             =   0               ,
@@ -64,7 +64,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_158_x10'
+model_name           = 'JNet_160_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -87,7 +87,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   reconstruct           = reconstruct          ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_157_x10.pt'), strict=False)
+JNet.load_state_dict(torch.load('model/JNet_149_x10.pt'), strict=False)
 #params = [i for i in JNet.parameters()][:-4]
 params = JNet.parameters()
 optimizer            = optim.Adam(params, lr = 1e-5)
