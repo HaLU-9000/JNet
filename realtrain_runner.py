@@ -14,8 +14,8 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = None #torch.load('./beadsscore/001_score.pt')
-val_score     = None #torch.load('./beadsscore/002_score.pt')
+train_score   = torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/002_score.pt')
 
 train_dataset = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
                                    scorefolderpath =  'sparsebeadslikescore',
@@ -64,7 +64,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_160_x10'
+model_name           = 'JNet_161_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2

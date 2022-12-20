@@ -256,8 +256,8 @@ class JNet(nn.Module):
                                 out_channels = 2               ,)
         self.blur  = JNetBlur(scale_factor = scale_factor ,
                               z            = 141          ,
-                              x            = 35           ,
-                              y            = 35           ,
+                              x            = 7           ,
+                              y            = 7           ,
                               mu_z         = mu_z         ,
                               sig_z        = sig_z        ,
                               bet_xy       = bet_xy       ,
