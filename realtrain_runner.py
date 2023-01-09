@@ -14,11 +14,11 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = torch.load('./beadsscore2/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-val_score     = torch.load('./beadsscore2/001_score.pt')#None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+train_score   = torch.load('./beadsscore3/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = torch.load('./beadsscore3/001_score.pt')#None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
 train_dataset = RealDensityDataset(folderpath      =  'beadsdata2' ,
-                                   scorefolderpath =  'beadsscore2',
+                                   scorefolderpath =  'beadsscore3',
                                    imagename       =  '001'            ,
                                    size            =  (1200, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
@@ -35,7 +35,7 @@ train_dataset = RealDensityDataset(folderpath      =  'beadsdata2' ,
                                    score           =  train_score      ,
                                   )
 val_dataset   = RealDensityDataset(folderpath      =  'beadsdata2' ,
-                                   scorefolderpath =  'beadsscore2',
+                                   scorefolderpath =  'beadsscore3',
                                    imagename       =  '001'            ,
                                    size            =  (1200, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) ,
@@ -91,7 +91,7 @@ JNet.load_state_dict(torch.load('model/JNet_149_x10.pt'), strict=False)
 #params = [i for i in JNet.parameters()][:-4]
 params = JNet.parameters()
 optimizer            = optim.Adam(params, lr = 1e-5)
-scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
+scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
 print(f"============= model {model_name} train started =============")
