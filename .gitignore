@@ -30,6 +30,7 @@ beadsdata/
 beadsdata2/
 beadsscore/
 beadsscore2/
+beadsscore3/
 beadsrawdata/
 sparsebeadslikedataset/
 sparsebeadslikedata/
@@ -55,3 +56,5 @@ evaluations_IoU.ipynb
 roc_test.ipynb
 beadslikedata_analize.py
 realdensitydataset_test.ipynb
+
+beadsscore
