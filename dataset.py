@@ -299,7 +299,7 @@ class RealDensityDataset(Dataset):
             _scores[n] = _score
         _fscores = _scores.flatten()
         _scores = (_scores - torch.min(_fscores))            \
-                / (torch.max(_fscores) - torch.min(_fscores))
+                / (2*(torch.max(_fscores) - torch.min(_fscores))) + 0.5
         return _scores
 
     def save_scores(self, scores, scorefolderpath):

@@ -6,15 +6,15 @@ import model
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
-print(f"Training on device {device}.")
+print(f"Inference on device {device}.")
 
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score     = torch.load('./beadsscore/001_score.pt')
+train_score     = torch.load('./beadsscore2/001_score.pt')
 
-val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'      ,
-                                   scorefolderpath =  'beadsscore'     ,
+val_dataset   = RealDensityDataset(folderpath      =  'beadsdata2'      ,
+                                   scorefolderpath =  'beadsscore2'     ,
                                    imagename       =  '001'            ,
                                    size            =  (1200, 512, 512) ,
                                    cropsize        =  ( 240, 112, 112) ,
@@ -30,7 +30,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'      ,
                                    score           =  train_score      ,
                                   )
 
-model_name           = 'JNet_157_x10'
+model_name           = 'JNet_162_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2

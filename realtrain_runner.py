@@ -14,13 +14,13 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-val_score     = torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/002_score.pt')
+train_score   = torch.load('./beadsscore2/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = torch.load('./beadsscore2/001_score.pt')#None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
-train_dataset = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
-                                   scorefolderpath =  'sparsebeadslikescore',
-                                   imagename       =  '_x10'            ,
-                                   size            =  (1200, 500, 500) , # size after segmentation
+train_dataset = RealDensityDataset(folderpath      =  'beadsdata2' ,
+                                   scorefolderpath =  'beadsscore2',
+                                   imagename       =  '001'            ,
+                                   size            =  (1200, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
                                    I               =  200              ,
                                    low             =   0               ,
@@ -34,10 +34,10 @@ train_dataset = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
                                    surround_size   =  surround_size    ,
                                    score           =  train_score      ,
                                   )
-val_dataset   = RealDensityDataset(folderpath      =  'sparsebeadslikedata' ,
-                                   scorefolderpath =  'sparsebeadslikescore',
-                                   imagename       =  '_x10'            ,
-                                   size            =  (1200, 500, 500) ,
+val_dataset   = RealDensityDataset(folderpath      =  'beadsdata2' ,
+                                   scorefolderpath =  'beadsscore2',
+                                   imagename       =  '001'            ,
+                                   size            =  (1200, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) ,
                                    I               =  10               ,
                                    low             =   0               ,
@@ -64,7 +64,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_161_x10'
+model_name           = 'JNet_162_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
