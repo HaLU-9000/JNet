@@ -11,7 +11,7 @@ print(f"Inference on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score     = torch.load('./beadsscore2/001_score.pt')
+train_score     = torch.load('./beadsscore3/001_score.pt')
 
 val_dataset   = RealDensityDataset(folderpath      =  'beadsdata2'      ,
                                    scorefolderpath =  'beadsscore2'     ,
@@ -30,7 +30,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata2'      ,
                                    score           =  train_score      ,
                                   )
 
-model_name           = 'JNet_162_x10'
+model_name           = 'JNet_149_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -54,8 +54,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(1)
-j = 60 // scale
-i = 60
+j = 120 // scale
+i = 70
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
