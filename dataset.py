@@ -6,24 +6,30 @@ import torch.nn as nn
 import torch.distributions as dist
 import torch.nn.functional as F
 from torch.utils.data import Dataset
+from scipy.stats import lognorm
+
 from utils import mask_, surround_mask_
 
 class Blur(nn.Module):
     def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, sig_eps,device):
         super().__init__()
-        self.scale   = scale
-        self.z       = z
-        self.x       = x
-        self.y       = y
-        self.mu_z    = mu_z
-        self.sig_z   = sig_z
-        self.bet_xy  = bet_xy
-        self.bet_z   = bet_z
-        self.sig_eps = sig_eps
-        self.zd,     \
-        self.xd,     \
-        self.yd      = self.distance(z, x, y)
-        self.alf     = self.gen_alf().to(device)
+        self.scale    = scale
+        self.z        = z
+        self.x        = x
+        self.y        = y
+        self.mu_z     = mu_z
+        self.sig_z    = sig_z
+        self.bet_xy   = bet_xy
+        self.bet_z    = bet_z
+        self.sig_eps  = sig_eps
+        self.zd,      \
+        self.xd,      \
+        self.yd       = self.distance(z, x, y)
+        self.alf      = self.gen_alf().to(device)
+        self.sum_alf  = torch.sum(self.alf)
+        self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=mu_z)[0] # percent point function
+        self.theomax  = self.sum_alf * self.logn_ppf
+
         
     def distance(self, z, x, y):
         [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
@@ -44,18 +50,19 @@ class Blur(nn.Module):
         pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(inp),
                               scale = self.sig_z * torch.ones_like(inp),)       
         rec  = inp * pz0.sample()
+        rec  = torch.clip(rec, min=0, max=self.logn_ppf)
         rec  = F.conv3d(input   = rec                            ,
                         weight  = self.alf                       ,
                         stride  = (self.scale, 1, 1)             ,
                         padding = ((self.z - self.scale + 1) // 2, 
                                    (self.x) // 2                 , 
                                    (self.y) // 2                 ,))
-        rec  = (rec - rec.min()) / (rec.max() - rec.min())
+        rec  = rec / self.theomax
         prec = dist.Normal(loc   = rec         ,
                            scale = self.sig_eps,)
         rec  = prec.sample()
         rec  = rec.squeeze(0)
-        rec  = (rec - rec.min()) / (rec.max() - rec.min())
+        rec  = torch.clip(rec, min=0, max=1)
         return rec
 
 class CustomDataset(Dataset):

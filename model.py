@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributions as dist
+from scipy.stats import lognorm
+import time
 
 class JNetBlock0(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -127,12 +129,11 @@ class JNetBlur(nn.Module):
         self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
         self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
         self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
-
-        self.zd, self.xd, self.yd   = self.distance(z, x, y, device)
-        #self.alf     = self.gen_alf(zd, xd, yd, bet_xy, bet_z).to(device=device)
+        self.zd,     \
+        self.xd,     \
+        self.yd      = self.distance(z, x, y, device)
         self.device  = device
-        #self.pz0     = dist.LogNormal(loc   = mu_z ,
-        #                              scale = sig_z,)
+
     def distance(self, z, x, y, device):
         [zd, xd, yd] = [torch.zeros(1, 1, z, x, y, device=device) for _ in range(3)]
         for k in range(-z // 2, z // 2 + 1):
@@ -149,26 +150,22 @@ class JNetBlur(nn.Module):
         return alf
 
     def forward(self, inp):
-        if inp.ndim == 4:
-            inp  = inp.unsqueeze(0)
-        #z0 = self.pz0.rsample(inp.shape)
+        inp  = inp.unsqueeze(0) if inp.ndim == 4 else inp
         z0   = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2) # E[z0|mu_z, sig_z]
         z0   = z0 * torch.ones_like(inp, requires_grad=True)
         rec  = inp * z0
         alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z)
+        logn_ppf = lognorm.ppf([0.99], 1, loc=self.mu_z, scale=self.mu_z)[0]
+        rec  = torch.clip(rec, min=0, max=logn_ppf)
         rec  = F.conv3d(input   = rec                               ,
                         weight  = alf                               ,
                         stride  = self.scale_factor                 ,
-                        padding = ((self.z - self.zscale + 1) // 2, 
-                                   (self.x) // 2                  , 
-                                   (self.y) // 2                  ,),)
-        #rec  = (rec - rec.min()) / (rec.max() - rec.min())
-        #prec = dist.Normal(loc   = rec         ,
-        #                   scale = self.sig_eps,)
-        #rec  = prec.rsample()
-        #rec  = rec.clip(min=0, max=1)
-        if inp.ndim == 4:
-            rec  = rec.squeeze(0)
+                        padding = ((self.z - self.zscale + 1) // 2  , 
+                                   (self.x) // 2                    , 
+                                   (self.y) // 2                    ,),)
+        theorymax = logn_ppf * torch.sum(self.alf)
+        rec  = rec / theorymax
+        rec  = rec.squeeze(0) if inp.ndim == 4 else rec
         return rec
 
 class JNetLayer(nn.Module):
@@ -231,6 +228,8 @@ class JNet(nn.Module):
                  mu_z:float, sig_z:float, bet_xy:float, bet_z:float,
                  superres:bool, reconstruct=False,device='cuda'):
         super().__init__()
+        t1 = time.time()
+        print('initializing model...')
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
@@ -248,10 +247,6 @@ class JNet(nn.Module):
                                               hidden_channels = hidden_channels,
                                               dropout         = dropout        ,
                                               ) for _ in range(nblocks)])
-        # self.sr    = SuperResolutionLayer(in_channels   = hidden_channels ,
-        #                                   scale_list    = scale_list      ,
-        #                                   nblocks       = s_nblocks       ,
-        #                                   dropout       = dropout         ,)
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
         self.blur  = JNetBlur(scale_factor = scale_factor ,
@@ -267,6 +262,8 @@ class JNet(nn.Module):
         self.activation  = activation
         self.superres    = superres
         self.reconstruct = reconstruct
+        t2 = time.time()
+        print(f'init done ({t2-t1:.2f} s)')
     def set_tau(self, tau=0.1):
         self.tau = tau
     def forward(self, x):
@@ -278,15 +275,10 @@ class JNet(nn.Module):
         x = self.mid(x)
         for f in self.post:
             x = f(x)
-        # if self.superres:
-        #     x = self.sr(x)
         x = self.post0(x)
         x = F.softmax(input  = x / self.tau ,
                       dim    = 1            ,)[:, :1,] # softmax with temperature
-        if self.reconstruct:
-            r = self.blur(x)
-        else:
-            r = x
+        r = self.blur(x) if self.reconstruct else x
         return x, r
 
 if __name__ == '__main__':
