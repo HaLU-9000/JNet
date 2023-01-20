@@ -10,22 +10,22 @@ blurring
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
-print(f"Training on device {device}.")
+print(f"Building data on device {device}.")
 scale = 10
 if scale == 10:
     model = Blur(scale   = scale ,
                  z       = 141   ,
-                 x       = 7    ,
-                 y       = 7    ,
-                 mu_z    = 0.2   ,
-                 sig_z   = 0.2   , 
+                 x       = 7     ,
+                 y       = 7     ,
+                 mu_z    = 0.01  ,
+                 sig_z   = 0.1   , 
                  bet_xy  = 3.    ,
                  bet_z   = 17.5  ,
-                 sig_eps = 0.01  ,
+                 sig_eps = 0.001 ,
                  device  = device,)
     model.eval()
-    folderpath    = 'sparsebeadslikedataset'
-    outfolderpath = 'sparsebeadslikedata'
+    folderpath    = 'beadslikedataset2'
+    outfolderpath = 'beadslikedata4'
     labelname     = '_label'
     outlabelname  = '_label'
     save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, device, 0)
