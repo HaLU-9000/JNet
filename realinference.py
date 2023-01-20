@@ -11,10 +11,9 @@ print(f"Inference on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score     = torch.load('./beadsscore3/001_score.pt')
-
-val_dataset   = RealDensityDataset(folderpath      =  'beadsdata2'      ,
-                                   scorefolderpath =  'beadsscore2'     ,
+train_score     = torch.load('beadsscore3/001_score.pt')
+val_dataset   = RealDensityDataset(folderpath      =  'beadsdata3'     ,
+                                   scorefolderpath =  'beadsscore3'    ,
                                    imagename       =  '001'            ,
                                    size            =  (1200, 512, 512) ,
                                    cropsize        =  ( 240, 112, 112) ,
@@ -78,12 +77,11 @@ for n in range(0,5):
     ax5.set_axis_off()
     ax6.set_axis_off()
     ax1.set_title('plain\nreconstruct image')
-    ax2.set_title('plain\noriginal image')
+    ax2.set_title(f'plain\noriginal image sum:{image.sum()}')
     ax3.set_title('plain\nsegmentation result')
     ax4.set_title('depth\nreconstruct')
     ax5.set_title('depth\noriginal image')
     ax6.set_title('depth\nsegmentation result')
-
     plt.subplots_adjust(hspace=-0.0)
     if partial is not None:
         ax1.imshow(reconst[0, partial[0]+j, :, :],
@@ -113,5 +111,4 @@ for n in range(0,5):
         ax6.imshow(output[0, 0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
 
-    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
-    
+    plt.savefig(f'result/{model_name}_result{n}_realrecontest7155_beadsdata3_nonormalizemodel.png', format='png', dpi=250)

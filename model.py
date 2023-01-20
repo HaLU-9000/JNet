@@ -162,11 +162,11 @@ class JNetBlur(nn.Module):
                         padding = ((self.z - self.zscale + 1) // 2, 
                                    (self.x) // 2                  , 
                                    (self.y) // 2                  ,),)
-        rec  = (rec - rec.min()) / (rec.max() - rec.min())
+        #rec  = (rec - rec.min()) / (rec.max() - rec.min())
         #prec = dist.Normal(loc   = rec         ,
         #                   scale = self.sig_eps,)
         #rec  = prec.rsample()
-        #rec  = (rec - rec.min()) / (rec.max() - rec.min())
+        #rec  = rec.clip(min=0, max=1)
         if inp.ndim == 4:
             rec  = rec.squeeze(0)
         return rec
@@ -255,9 +255,9 @@ class JNet(nn.Module):
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
         self.blur  = JNetBlur(scale_factor = scale_factor ,
-                              z            = 141          ,
-                              x            = 7           ,
-                              y            = 7           ,
+                              z            = 71          ,
+                              x            = 5           ,
+                              y            = 5           ,
                               mu_z         = mu_z         ,
                               sig_z        = sig_z        ,
                               bet_xy       = bet_xy       ,

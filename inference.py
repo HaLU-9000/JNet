@@ -30,7 +30,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata2'   ,  ###
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_161_x10'
+model_name           = 'JNet_149_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -123,5 +123,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_{n}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_{n}recontest7155.png', format='png', dpi=250)
     
