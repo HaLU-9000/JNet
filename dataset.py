@@ -27,7 +27,7 @@ class Blur(nn.Module):
         self.yd       = self.distance(z, x, y)
         self.alf      = self.gen_alf().to(device)
         self.sum_alf  = torch.sum(self.alf)
-        self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=mu_z)[0] # percent point function
+        self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0] # percent point function
         self.theomax  = self.sum_alf * self.logn_ppf
 
         

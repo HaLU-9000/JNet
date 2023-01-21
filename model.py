@@ -129,6 +129,7 @@ class JNetBlur(nn.Module):
         self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
         self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
         self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
+        self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0]
         self.zd,     \
         self.xd,     \
         self.yd      = self.distance(z, x, y, device)
@@ -155,8 +156,7 @@ class JNetBlur(nn.Module):
         z0   = z0 * torch.ones_like(inp, requires_grad=True)
         rec  = inp * z0
         alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z)
-        logn_ppf = lognorm.ppf([0.99], 1, loc=self.mu_z, scale=self.mu_z)[0]
-        rec  = torch.clip(rec, min=0, max=logn_ppf)
+        rec  = torch.clip(rec, min=0, max=self.logn_ppf)
         rec  = F.conv3d(input   = rec                               ,
                         weight  = alf                               ,
                         stride  = self.scale_factor                 ,
@@ -250,9 +250,9 @@ class JNet(nn.Module):
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
         self.blur  = JNetBlur(scale_factor = scale_factor ,
-                              z            = 71          ,
-                              x            = 5           ,
-                              y            = 5           ,
+                              z            = 141          ,
+                              x            = 7            ,
+                              y            = 7            ,
                               mu_z         = mu_z         ,
                               sig_z        = sig_z        ,
                               bet_xy       = bet_xy       ,
