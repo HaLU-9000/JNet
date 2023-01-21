@@ -88,7 +88,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_165_x10.pt'), strict=False)
-#params = [i for i in JNet.parameters()][:-4]
+#params = [i for i in JNet.parameters()][:-4] 
 params = JNet.parameters()
 optimizer            = optim.Adam(params, lr = 1e-5)
 scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
