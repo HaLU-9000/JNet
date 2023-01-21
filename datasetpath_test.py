@@ -1,5 +1,11 @@
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-label = torch.load('/home/haruhiko/Documents/JNet/dataset/make_data_1e7.pt').float()
-print(label.shape[1]*label.shape[2]*label.shape[3] // 128**3)
+folderpath = 'beadslikedata4'
+a = list(sorted(Path(folderpath).glob(f'*.pt')))
+for e, i in enumerate(a):
+    print(i)
+    if e is not 2:
+        n = torch.load(i)
+        print(n.shape)

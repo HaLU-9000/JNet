@@ -15,7 +15,7 @@ scale    = 10
 surround = False
 surround_size = [32, 4, 4]
 
-train_dataset = RandomCutDataset(folderpath  =  'beadslikedata3'     ,  ###
+train_dataset = RandomCutDataset(folderpath  =  'beadslikedata4' ,  ###
                                  imagename   =  f'_x{scale}'     , 
                                  labelname   =  '_label'         ,
                                  size        =  (1200, 500, 500) ,
@@ -26,23 +26,23 @@ train_dataset = RandomCutDataset(folderpath  =  'beadslikedata3'     ,  ###
                                  scale         =  scale          ,  ## scale
                                  mask          =  True           ,
                                  mask_size     =  [ 1, 10, 10]   ,
-                                 mask_num      =  10             ,
+                                 mask_num      =  301            ,  #(10% of image)
                                  surround      =  surround       ,
                                  surround_size =  surround_size  ,
                                  )
-val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata3'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata4'   ,  ###
                                  imagename   =  f'_x{scale}'       ,     ## scale
                                  labelname   =  '_label'           ,
                                  size        =  (1200, 500, 500)   ,
-                                 cropsize    =  ( 240, 112, 112)  ,
+                                 cropsize    =  ( 240, 112, 112)   ,
                                  I             =  10               ,
                                  low           =  16               ,
                                  high          =  20               ,
                                  scale         =  scale            ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 surround      =  surround       ,
-                                 surround_size =  surround_size  ,
+                                 surround      =  surround         ,
+                                 surround_size =  surround_size    ,
                                  seed          =  907              ,
                                 )
 
@@ -59,7 +59,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_157_x10'
+model_name           = 'JNet_164_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -73,10 +73,10 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   scale_factor          = scale_factor         ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  ,
-                  bet_xy                = 12.                  ,
-                  bet_z                 = 35.                  ,
+                  mu_z                  = 0.01                 ,
+                  sig_z                 = 0.1                  ,
+                  bet_xy                = 3.                   ,
+                  bet_z                 = 17.5                 ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   )

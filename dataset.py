@@ -214,7 +214,7 @@ class RandomCutDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.train:
-            idx              = self.gen_indices(1, self.low, self.high).item()
+            idx              = self.gen_indices(1, self.low, self.high).item()#            print('idx ', idx)
             lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
             image, i, j      = Rotate(    )(Crop(icoords, self.ssize
