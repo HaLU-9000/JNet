@@ -26,7 +26,7 @@ train_dataset = RandomCutDataset(folderpath  =  'beadslikedata4' ,  ###
                                  scale         =  scale          ,  ## scale
                                  mask          =  True           ,
                                  mask_size     =  [ 1, 10, 10]   ,
-                                 mask_num      =  301            ,  #(10% of image)
+                                 mask_num      =  30             ,  #( 1% of image)
                                  surround      =  surround       ,
                                  surround_size =  surround_size  ,
                                  )
