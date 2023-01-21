@@ -17,7 +17,7 @@ surround_size = [32, 4, 4]
 train_score   = torch.load('./beadsscore3/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
 val_score     = torch.load('./beadsscore3/001_score.pt')#None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
-train_dataset = RealDensityDataset(folderpath      =  'beadsdata2' ,
+train_dataset = RealDensityDataset(folderpath      =  'beadsdata3' ,
                                    scorefolderpath =  'beadsscore3',
                                    imagename       =  '001'            ,
                                    size            =  (1200, 512, 512) , # size after segmentation
@@ -34,7 +34,7 @@ train_dataset = RealDensityDataset(folderpath      =  'beadsdata2' ,
                                    surround_size   =  surround_size    ,
                                    score           =  train_score      ,
                                   )
-val_dataset   = RealDensityDataset(folderpath      =  'beadsdata2' ,
+val_dataset   = RealDensityDataset(folderpath      =  'beadsdata3' ,
                                    scorefolderpath =  'beadsscore3',
                                    imagename       =  '001'            ,
                                    size            =  (1200, 512, 512) , # size after segmentation
@@ -64,7 +64,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_163_x10'
+model_name           = 'JNet_166_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -79,15 +79,15 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   scale_factor          = scale_factor         ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  ,
+                  mu_z                  = 0.01                 ,
+                  sig_z                 = 0.1                  ,
                   bet_xy                = 3.                   ,
                   bet_z                 = 17.5                 ,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_149_x10.pt'), strict=False)
+JNet.load_state_dict(torch.load('model/JNet_165_x10.pt'), strict=False)
 #params = [i for i in JNet.parameters()][:-4]
 params = JNet.parameters()
 optimizer            = optim.Adam(params, lr = 1e-5)
