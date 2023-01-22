@@ -14,8 +14,8 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = None #torch.load('./beadsscore3/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-val_score     = torch.load('./beadsscore3/001_score.pt')#None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+train_score   = torch.load('./beadsscore3/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = torch.load('./beadsscore3/001_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
 train_dataset = RealDensityDataset(folderpath      =  'beadsdata3' ,
                                    scorefolderpath =  'beadsscore3',

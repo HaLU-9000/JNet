@@ -296,7 +296,6 @@ class RealDensityDataset(Dataset):
 
     def gen_scores(self, images, icoords_size, scsize):
         _scores = torch.zeros((len(images), 1, *icoords_size))
-        print(_scores.shape)
         for n, i in enumerate(images):
             print(f'(init) calcurating the score...({n+1}/{len(images)})')
             _score = F.conv3d(input   = torch.load(i)          ,
