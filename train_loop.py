@@ -57,6 +57,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             loss_sum += loss.detach().item()
             if check_middle:
                 midloss_sum += midloss.detach().item()
+                
         model.eval()
         model.set_tau(tau_lb)
         with torch.no_grad():
