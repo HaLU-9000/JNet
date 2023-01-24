@@ -163,8 +163,9 @@ class JNetBlur(nn.Module):
                         padding = ((self.z - self.zscale + 1) // 2  , 
                                    (self.x) // 2                    , 
                                    (self.y) // 2                    ,),)
-        theorymax = self.logn_ppf * torch.sum(alf)
-        rec  = rec / theorymax
+        #theorymax = self.logn_ppf * torch.sum(alf)
+        #rec  = rec / theorymax
+        rec  = (rec - rec.min()) / (rec.max() - rec.min())
         rec  = rec.squeeze(0) if inp.ndim == 4 else rec
         return rec
 

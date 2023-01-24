@@ -131,7 +131,7 @@ else:
 
         msemax = mse.max()
         msemean= mse.mean()
-        vmax = 0.05
+        vmax = 0.5
         fig = plt.figure(figsize=(25, 15))
         ax1 = fig.add_subplot(231)
         ax2 = fig.add_subplot(232)
