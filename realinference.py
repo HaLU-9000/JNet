@@ -31,7 +31,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'     ,
                                    score           =  train_score      ,
                                   )
 
-model_name           = 'JNet_153_x10'
+model_name           = 'JNet_168_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
