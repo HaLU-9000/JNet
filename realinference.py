@@ -31,7 +31,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'     ,
                                    score           =  train_score      ,
                                   )
 
-model_name           = 'JNet_168_x10'
+model_name           = 'JNet_169_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -131,7 +131,7 @@ else:
 
         msemax = mse.max()
         msemean= mse.mean()
-        vmax = 0.5
+        vmax = 0.25
         fig = plt.figure(figsize=(25, 15))
         ax1 = fig.add_subplot(231)
         ax2 = fig.add_subplot(232)
