@@ -37,6 +37,7 @@ beadsrawdata/
 sparsebeadslikedataset/
 sparsebeadslikedata/
 sparsebeadslikescore/
+beadsdataarray/
 
 pathlib_test.py
 utils_test.py
