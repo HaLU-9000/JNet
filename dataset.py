@@ -52,23 +52,27 @@ class Blur(nn.Module):
         return alf
 
     def forward(self, inp):
-        inp  = inp.unsqueeze(0) if inp.ndim == 4 else inp
+        inp  = inp.unsqueeze(0)
         pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(inp),
                               scale = self.sig_z * torch.ones_like(inp),)       
         rec  = inp * pz0.sample() # E[z0|mu_z, sig_z]
         #z0   = z0 * torch.ones_like(inp, requires_grad=True)
         rec  = rec * 3.3
         #rec  = torch.clip(rec, min=0, max=self.logn_ppf)
-        alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z, self.alpha)
         rec  = F.conv3d(input   = rec                               ,
-                        weight  = alf                               ,
-                        stride  = self.scale_factor                 ,
-                        padding = ((self.z - self.zscale + 1) // 2  , 
+                        weight  = self.alf                          ,
+                        stride  = (self.scale, 1, 1)                       ,
+                        padding = ((self.z - self.scale + 1) // 2  , 
                                    (self.x) // 2                    , 
                                    (self.y) // 2                    ,),)
         rec  = rec / self.theomax
         #rec  = (rec - rec.min()) / (rec.max() - rec.min())
-        rec  = rec.squeeze(0) if inp.ndim == 4 else rec
+        prec = dist.Normal(loc   = rec         ,
+                           scale = self.sig_eps,)
+        rec  = prec.sample()
+        rec  = rec.squeeze(0)
+        rec  = torch.clip(rec, min=0, max=1)
+        rec  = rec.squeeze(0)
         return rec
 
 class CustomDataset(Dataset):
@@ -224,7 +228,7 @@ class RandomCutDataset(Dataset):
             lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
             image, i, j      = Rotate(    )(Crop(icoords, self.ssize
-                                                )(torch.load(self.images[idx])))
+                                                )(torch.load(self.images[idx]).unsqueeze(0))) # for beadslikedata5
             label, _, _      = Rotate(i, j)(Crop(lcoords, self.csize
                                                 )(torch.load(self.labels[idx])))
             
@@ -234,7 +238,7 @@ class RandomCutDataset(Dataset):
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             icoords = self.coordslist[1][:, idx]
             lcoords = self.coordslist[0][:, idx]
-            image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx]))
+            image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx]).unsqueeze(0)) # for beadslikedata5
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image, label

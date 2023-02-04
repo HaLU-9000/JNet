@@ -15,7 +15,7 @@ scale    = 10
 surround = False
 surround_size = [32, 4, 4]
 
-train_dataset = RandomCutDataset(folderpath  =  'beadslikedata4' ,  ###
+train_dataset = RandomCutDataset(folderpath  =  'beadslikedata5' ,  ###
                                  imagename   =  f'_x{scale}'     , 
                                  labelname   =  '_label'         ,
                                  size        =  (1200, 500, 500) ,
@@ -30,12 +30,12 @@ train_dataset = RandomCutDataset(folderpath  =  'beadslikedata4' ,  ###
                                  surround      =  surround       ,
                                  surround_size =  surround_size  ,
                                  )
-val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata4'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata5'   ,  ###
                                  imagename   =  f'_x{scale}'       ,     ## scale
                                  labelname   =  '_label'           ,
                                  size        =  (1200, 500, 500)   ,
                                  cropsize    =  ( 240, 112, 112)   ,
-                                 I             =  10               ,
+                                 I             =  20               ,
                                  low           =  16               ,
                                  high          =  20               ,
                                  scale         =  scale            ,   ## scale
@@ -59,7 +59,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_167_x10'
+model_name           = 'JNet_171_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -77,6 +77,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   sig_z                 = 0.1                  ,
                   bet_xy                = 3.                   ,
                   bet_z                 = 17.5                 ,
+                  alpha                 = 75.                  ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   )

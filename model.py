@@ -230,7 +230,7 @@ class SuperResolutionLayer(nn.Module):
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
                  dropout, scale_factor,
-                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float,
+                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float, alpha:float,
                  superres:bool, reconstruct=False,device='cuda'):
         super().__init__()
         t1 = time.time()
@@ -262,6 +262,7 @@ class JNet(nn.Module):
                               sig_z        = sig_z        ,
                               bet_xy       = bet_xy       ,
                               bet_z        = bet_z        ,
+                              alpha        = alpha        ,
                               device       = device       ,)
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = activation
