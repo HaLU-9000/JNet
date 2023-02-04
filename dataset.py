@@ -11,7 +11,7 @@ from scipy.stats import lognorm
 from utils import mask_, surround_mask_
 
 class Blur(nn.Module):
-    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, sig_eps,device):
+    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, alpha, sig_eps, device):
         super().__init__()
         self.scale    = scale
         self.z        = z
@@ -21,6 +21,7 @@ class Blur(nn.Module):
         self.sig_z    = sig_z
         self.bet_xy   = bet_xy
         self.bet_z    = bet_z
+        self.alpha    = alpha
         self.sig_eps  = sig_eps
         self.zd,      \
         self.xd,      \
@@ -29,6 +30,7 @@ class Blur(nn.Module):
         self.sum_alf  = torch.sum(self.alf)
         self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0] # normalize by init value
         self.theomax  = self.sum_alf * self.logn_ppf
+
 
         
     def distance(self, z, x, y):
@@ -43,26 +45,30 @@ class Blur(nn.Module):
 
     def gen_alf(self):
         d_2 = self.zd / self.bet_z ** 2 + (self.xd + self.yd) / self.bet_xy ** 2
-        return torch.exp(-d_2 / 2) / (torch.pi * 2) ** 0.5
+        alf = torch.exp(-d_2 / 2)
+        normterm = (self.bet_z * self.bet_xy ** 2) * (torch.pi * 2) ** 1.5
+        alf = alf / normterm 
+        alf  = torch.ones_like(alf) - torch.exp(-self.alpha * alf)
+        return alf
 
     def forward(self, inp):
-        inp  = inp.unsqueeze(0)
+        inp  = inp.unsqueeze(0) if inp.ndim == 4 else inp
         pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(inp),
                               scale = self.sig_z * torch.ones_like(inp),)       
-        rec  = inp * pz0.sample()
-        rec  = torch.clip(rec, min=0, max=self.logn_ppf)
-        rec  = F.conv3d(input   = rec                            ,
-                        weight  = self.alf                       ,
-                        stride  = (self.scale, 1, 1)             ,
-                        padding = ((self.z - self.scale + 1) // 2, 
-                                   (self.x) // 2                 , 
-                                   (self.y) // 2                 ,))
+        rec  = inp * pz0.sample() # E[z0|mu_z, sig_z]
+        #z0   = z0 * torch.ones_like(inp, requires_grad=True)
+        rec  = rec * 3.3
+        #rec  = torch.clip(rec, min=0, max=self.logn_ppf)
+        alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z, self.alpha)
+        rec  = F.conv3d(input   = rec                               ,
+                        weight  = alf                               ,
+                        stride  = self.scale_factor                 ,
+                        padding = ((self.z - self.zscale + 1) // 2  , 
+                                   (self.x) // 2                    , 
+                                   (self.y) // 2                    ,),)
         rec  = rec / self.theomax
-        prec = dist.Normal(loc   = rec         ,
-                           scale = self.sig_eps,)
-        rec  = prec.sample()
-        rec  = rec.squeeze(0)
-        rec  = torch.clip(rec, min=0, max=1)
+        #rec  = (rec - rec.min()) / (rec.max() - rec.min())
+        rec  = rec.squeeze(0) if inp.ndim == 4 else rec
         return rec
 
 class CustomDataset(Dataset):

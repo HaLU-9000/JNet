@@ -117,7 +117,7 @@ class SuperResolutionBlock(nn.Module):
         return x
 
 class JNetBlur(nn.Module):
-    def __init__(self, scale_factor, z, x, y, mu_z, sig_z, bet_xy, bet_z, 
+    def __init__(self, scale_factor, z, x, y, mu_z, sig_z, bet_xy, bet_z, alpha,
                  device,):
         super().__init__()
         self.scale_factor = scale_factor
@@ -125,10 +125,11 @@ class JNetBlur(nn.Module):
         self.z       = z
         self.x       = x
         self.y       = y
-        self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=True))
-        self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
+        self.mu_z    = torch.tensor(mu_z).to(device)  
+        self.sig_z   = torch.tensor(sig_z).to(device)
         self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
         self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
+        self.alpha   = nn.Parameter(torch.tensor(alpha  , requires_grad=True))
         self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0]
         self.zd,     \
         self.xd,     \
@@ -145,18 +146,21 @@ class JNetBlur(nn.Module):
             yd[:, :, :, :, j + y // 2,] = j ** 2
         return zd, xd, yd
 
-    def gen_alf(self, zd, xd, yd, bet_xy, bet_z):
+    def gen_alf(self, zd, xd, yd, bet_xy, bet_z, alpha):
         d_2 = zd / bet_z ** 2 + (xd + yd) / bet_xy ** 2
-        alf = torch.exp(-d_2 / 2) / (torch.pi * 2) ** 0.5
+        alf = torch.exp(-d_2 / 2)
+        normterm = (bet_z * bet_xy ** 2) * (torch.pi * 2) ** 1.5
+        alf = alf / normterm 
+        alf  = torch.ones_like(alf) - torch.exp(-alpha * alf)
         return alf
 
     def forward(self, inp):
         inp  = inp.unsqueeze(0) if inp.ndim == 4 else inp
         z0   = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2) # E[z0|mu_z, sig_z]
-        z0   = z0 * torch.ones_like(inp, requires_grad=True)
-        rec  = inp * z0
-        alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z)
-        rec  = torch.clip(rec, min=0, max=self.logn_ppf)
+        #z0   = z0 * torch.ones_like(inp, requires_grad=True)
+        rec  = inp * z0 * 3.3
+        #rec  = torch.clip(rec, min=0, max=self.logn_ppf)
+        alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z, self.alpha)
         rec  = F.conv3d(input   = rec                               ,
                         weight  = alf                               ,
                         stride  = self.scale_factor                 ,
