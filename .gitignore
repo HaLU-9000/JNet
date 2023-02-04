@@ -27,6 +27,8 @@ beadslikedataset2/
 beadslikedata2/
 beadslikedata3/
 beadslikedata4/
+beadslikedata5/
+
 beadsdata/
 beadsdata2/
 beadsdata3/
@@ -38,6 +40,7 @@ sparsebeadslikedataset/
 sparsebeadslikedata/
 sparsebeadslikescore/
 beadsdataarray/
+
 
 pathlib_test.py
 utils_test.py

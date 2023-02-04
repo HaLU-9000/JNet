@@ -14,18 +14,19 @@ print(f"Building data on device {device}.")
 scale = 10
 if scale == 10:
     model = Blur(scale   = scale ,
-                 z       = 141   ,
-                 x       = 7     ,
-                 y       = 7     ,
-                 mu_z    = 0.01  ,
-                 sig_z   = 0.1   , 
-                 bet_xy  = 3.    ,
-                 bet_z   = 17.5  ,
+                 z       = 101   ,
+                 x       = 23     ,
+                 y       = 23    ,
+                 mu_z    = 0.2  ,
+                 sig_z   = 0.2   , 
+                 bet_xy  = 4.43864   ,
+                 bet_z   = 27.7052  ,
+                 alpha   = 74.9664,
                  sig_eps = 0.001 ,
                  device  = device,)
     model.eval()
     folderpath    = 'beadslikedataset2'
-    outfolderpath = 'beadslikedata4'
+    outfolderpath = 'beadslikedata5'
     labelname     = '_label'
     outlabelname  = '_label'
     save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scale, device, 0)
