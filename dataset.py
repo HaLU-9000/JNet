@@ -228,7 +228,7 @@ class RandomCutDataset(Dataset):
             lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
             image, i, j      = Rotate(    )(Crop(icoords, self.ssize
-                                                )(torch.load(self.images[idx]).unsqueeze(0))) # for beadslikedata5
+                                                )(torch.load(self.images[idx]))) # .unsqueeze(0) for beadslikedata5
             label, _, _      = Rotate(i, j)(Crop(lcoords, self.csize
                                                 )(torch.load(self.labels[idx])))
             
@@ -238,7 +238,7 @@ class RandomCutDataset(Dataset):
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             icoords = self.coordslist[1][:, idx]
             lcoords = self.coordslist[0][:, idx]
-            image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx]).unsqueeze(0)) # for beadslikedata5
+            image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx])) # .unsqueeze(0) for beadslikedata5
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image, label

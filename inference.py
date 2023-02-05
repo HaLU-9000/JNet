@@ -12,7 +12,7 @@ scale    = 10
 surround = False
 surround_size = [32, 4, 4]
 
-val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata4'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata5'   ,  ###
                                  imagename   =  f'_x{scale}'       ,     ## scale
                                  labelname   =  '_label'           ,
                                  size        =  (1200, 500, 500)   ,
@@ -30,7 +30,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata4'   ,  ###
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_167_x10'
+model_name           = 'JNet_171_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -45,9 +45,10 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   dropout               = dropout              ,
                   scale_factor          = scale_factor         ,
                   mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  ,
-                  bet_xy                = 3.                   ,
-                  bet_z                 = 17.5                 ,
+                  sig_z                 = 0.2                  , 
+                  bet_xy                = 4.43864              ,
+                  bet_z                 = 27.7052              ,
+                  alpha                 = 74.9664              ,
                   superres              = superres             ,
                   reconstruct           = True                 ,
                   )

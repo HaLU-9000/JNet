@@ -125,8 +125,8 @@ class JNetBlur(nn.Module):
         self.z       = z
         self.x       = x
         self.y       = y
-        self.mu_z    = torch.tensor(mu_z).to(device)  
-        self.sig_z   = torch.tensor(sig_z).to(device)
+        self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=True)) 
+        self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
         self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
         self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
         self.alpha   = nn.Parameter(torch.tensor(alpha  , requires_grad=True))

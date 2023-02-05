@@ -13,11 +13,11 @@ print(f"Inference on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score     = torch.load('beadsscore/001_score.pt')
-val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'     ,
-                                   scorefolderpath =  'beadsscore'    ,
-                                   imagename       =  '001'            ,
-                                   size            =  (1200, 512, 512) ,
+train_score     = torch.load('beadsscore4/002_score.pt')
+val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4'     ,
+                                   scorefolderpath =  'beadsscore4'    ,
+                                   imagename       =  '002'            ,
+                                   size            =  ( 650, 512, 512) ,
                                    cropsize        =  ( 240, 112, 112) ,
                                    I               =  10               ,
                                    low             =   0               ,
@@ -31,7 +31,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata'     ,
                                    score           =  train_score      ,
                                   )
 
-model_name           = 'JNet_169_x10'
+model_name           = 'JNet_171_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -47,9 +47,10 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   dropout               = dropout              ,
                   scale_factor          = scale_factor         ,
                   mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  ,
-                  bet_xy                = 3.                   ,
-                  bet_z                 = 17.5                 ,
+                  sig_z                 = 0.2                  , 
+                  bet_xy                = 4.43864              ,
+                  bet_z                 = 27.7052              ,
+                  alpha                 = 74.9664              ,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
                   )
@@ -118,48 +119,47 @@ if vis_mseloss == False:
         plt.savefig(f'result/{model_name}_realresult{n}.png', format='png', dpi=250)
 
 else:
-    #for n in range(0, 5):
-    n = 3
-    if n == 3:
-        image, label= val_dataset[n]
-        output, reconst= JNet(image.to("cuda").unsqueeze(0))
-        output  = output.detach().cpu().numpy()
-        reconst = reconst.squeeze(0).detach().cpu().numpy()
-        mse = (image - reconst) ** 2
-        print(n, " image max min",image.max(), image.min())
-        print(" reconst max min", reconst.max(), reconst.min())
+    for n in range(0, 10):
+        if n == 7 or n==9:
+            image, label= val_dataset[n]
+            output, reconst= JNet(image.to("cuda").unsqueeze(0))
+            output  = output.detach().cpu().numpy()
+            reconst = reconst.squeeze(0).detach().cpu().numpy()
+            mse = (image - reconst) ** 2
+            print(n, " image max min",image.max(), image.min())
+            print(" reconst max min", reconst.max(), reconst.min())
 
-        msemax = mse.max()
-        msemean= mse.mean()
-        vmax = 0.25
-        fig = plt.figure(figsize=(25, 15))
-        ax1 = fig.add_subplot(231)
-        ax2 = fig.add_subplot(232)
-        ax3 = fig.add_subplot(233)
-        ax4 = fig.add_subplot(234)
-        ax5 = fig.add_subplot(235)
-        ax6 = fig.add_subplot(236)
-        ax1.set_axis_off()
-        ax2.set_axis_off()
-        ax3.set_axis_off()
-        ax4.set_axis_off()
-        ax5.set_axis_off()
-        ax6.set_axis_off()
-        ax1.set_title(f'plain\nreconstruct image\n{model_name}\nmax {reconst.max()}\nmin {reconst.min()}\nmean {reconst.mean()}')
-        ax2.set_title(f'plain\noriginal image\nmax {image.max()}\nmin {image.min()}\nmean {image.mean()}')
-        ax3.set_title(f'plain\nmseloss\nmax mse={mse.max()}\nmin mse={mse.min()}\nmean mse={mse.mean()}')
-        ax4.set_title('depth')
-        ax5.set_title('depth')
-        ax6.set_title('depth')
-        plt.subplots_adjust(hspace=0.1)
-        ax1.imshow(reconst[0, j, :, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax2.imshow(image[0, j, :, :].to(device='cpu'),
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax3.imshow(mse[0, j, :, :], vmin=0.0, vmax=vmax, aspect=1)
-        ax4.imshow(reconst[0, :, i, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        ax5.imshow(image[0, :, i, :].to(device='cpu'),
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        ax6.imshow(mse[0, :, i, :], vmin=0.0, vmax=vmax, aspect=scale)
-        plt.savefig(f'result/{model_name}_mseloss_{n}_0_05.png', format='png', dpi=250)
+            msemax = mse.max()
+            msemean= mse.mean()
+            vmax = 0.25
+            fig = plt.figure(figsize=(25, 15))
+            ax1 = fig.add_subplot(231)
+            ax2 = fig.add_subplot(232)
+            ax3 = fig.add_subplot(233)
+            ax4 = fig.add_subplot(234)
+            ax5 = fig.add_subplot(235)
+            ax6 = fig.add_subplot(236)
+            ax1.set_axis_off()
+            ax2.set_axis_off()
+            ax3.set_axis_off()
+            ax4.set_axis_off()
+            ax5.set_axis_off()
+            ax6.set_axis_off()
+            ax1.set_title(f'plain\nreconstruct image\n{model_name}\nmax {reconst.max()}\nmin {reconst.min()}\nmean {reconst.mean()}')
+            ax2.set_title(f'plain\noriginal image\nmax {image.max()}\nmin {image.min()}\nmean {image.mean()}')
+            ax3.set_title(f'plain\nmseloss\nmax mse={mse.max()}\nmin mse={mse.min()}\nmean mse={mse.mean()}')
+            ax4.set_title('depth')
+            ax5.set_title('depth')
+            ax6.set_title('depth')
+            plt.subplots_adjust(hspace=0.1)
+            ax1.imshow(reconst[0, j, :, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax2.imshow(image[0, j, :, :].to(device='cpu'),
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax3.imshow(mse[0, j, :, :], vmin=0.0, vmax=vmax, aspect=1)
+            ax4.imshow(reconst[0, :, i, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+            ax5.imshow(image[0, :, i, :].to(device='cpu'),
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+            ax6.imshow(mse[0, :, i, :], vmin=0.0, vmax=vmax, aspect=scale)
+            plt.savefig(f'result/{model_name}_mseloss_{n}_0_05.png', format='png', dpi=250)
