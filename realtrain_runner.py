@@ -64,7 +64,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_172_x10'
+model_name           = 'JNet_173_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -74,23 +74,38 @@ dropout              = 0.5
 partial              = None #(56, 184)
 superres             = True if scale > 1 else False
 reconstruct          = True
+mu_z                 = 0.2                  
+sig_z                = 0.2                   
+bet_xy               = 4.43864              
+bet_z                = 27.7052              
+alpha                = 74.9664              
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   scale_factor          = scale_factor         ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  , 
-                  bet_xy                = 4.43864              ,
-                  bet_z                 = 27.7052              ,
-                  alpha                 = 74.9664              ,
+                  mu_z                  = mu_z                 ,
+                  sig_z                 = sig_z                , 
+                  bet_xy                = bet_xy               ,
+                  bet_z                 = bet_z                ,
+                  alpha                 = alpha                ,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
                   )
 JNet = JNet.to(device = device)
+
+
 JNet.load_state_dict(torch.load('model/JNet_171_x10.pt'), strict=False)
-#params = [i for i in JNet.parameters()][:-4] 
+
+JNet.blur.mu_z    = nn.Parameter(torch.tensor(mu_z    , requires_grad=True))
+JNet.blur.sig_z   = nn.Parameter(torch.tensor(sig_z   , requires_grad=True))
+JNet.blur.bet_xy  = nn.Parameter(torch.tensor(bet_xy  , requires_grad=True))
+JNet.blur.bet_z   = nn.Parameter(torch.tensor(bet_z   , requires_grad=True))
+JNet.blur.alpha   = nn.Parameter(torch.tensor(alpha   , requires_grad=True))
+print([i for i in JNet.parameters()][-5:])
+
 params = JNet.parameters()
+
 optimizer            = optim.Adam(params, lr = 1e-5)
 scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.MSELoss()
