@@ -31,7 +31,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4'     ,
                                    score           =  train_score      ,
                                   )
 
-model_name           = 'JNet_171_x10'
+model_name           = 'JNet_173_x10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -56,7 +56,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(1)
-j = 120 // scale
+j   = 12
+j_s = j // scale
 i = 70
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -103,9 +104,9 @@ if vis_mseloss == False:
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
 
         else:
-            ax1.imshow(reconst[0, j, :, :],
+            ax1.imshow(reconst[0, j_s, :, :],
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax2.imshow(image[0, j, :, :].to(device='cpu'),
+            ax2.imshow(image[0, j_s, :, :].to(device='cpu'),
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
             ax3.imshow(output[0, 0, j, :, :],
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
@@ -152,11 +153,11 @@ else:
             ax5.set_title('depth')
             ax6.set_title('depth')
             plt.subplots_adjust(hspace=0.1)
-            ax1.imshow(reconst[0, j, :, :],
+            ax1.imshow(reconst[0, j_s, :, :],
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax2.imshow(image[0, j, :, :].to(device='cpu'),
+            ax2.imshow(image[0, j_s, :, :].to(device='cpu'),
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax3.imshow(mse[0, j, :, :], vmin=0.0, vmax=vmax, aspect=1)
+            ax3.imshow(mse[0, j_s, :, :], vmin=0.0, vmax=vmax, aspect=1)
             ax4.imshow(reconst[0, :, i, :],
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
             ax5.imshow(image[0, :, i, :].to(device='cpu'),
