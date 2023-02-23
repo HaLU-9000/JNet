@@ -13,6 +13,7 @@ class JNetBlock0(nn.Module):
                               kernel_size  = 7           ,
                               padding      = 'same'      ,
                               padding_mode = 'replicate' ,)
+        
     def forward(self, x):
         x = self.conv(x)
         return x
@@ -36,6 +37,7 @@ class JNetBlock(nn.Module):
                                   kernel_size  = 3              ,
                                   padding      = 'same'         ,
                                   padding_mode = 'replicate'    ,)
+        
     def forward(self, x):
         d = self.bn1(x)
         d = self.relu1(d)
@@ -55,6 +57,7 @@ class JNetBlockN(nn.Module):
                               kernel_size  = 3           ,
                               padding      = 'same'      ,
                               padding_mode = 'replicate' ,)
+        
     def forward(self, x):
         x = self.conv(x)
         return x
@@ -69,6 +72,7 @@ class JNetPooling(nn.Module):
                                  padding      = 'same'         ,
                                  padding_mode = 'replicate'    ,)
         self.relu    = nn.ReLU(inplace=True)
+
     def forward(self, x):
         x = self.maxpool(x)
         x = self.conv(x)
@@ -86,6 +90,7 @@ class JNetUnpooling(nn.Module):
                                   padding        = 'same'       ,
                                   padding_mode   = 'replicate'  ,)
         self.relu     = nn.ReLU(inplace=True)
+
     def forward(self, x):
         x = self.upsample(x)
         x = self.conv(x)
@@ -217,6 +222,7 @@ class Emission(nn.Module):
         super().__init__()
         self.mu_z     = mu_z
         self.sig_z    = sig_z
+
     def sample(self, x):
         self.logn_ppf = lognorm.ppf([0.99], 1,
                                     loc=self.mu_z, scale=self.sig_z)[0]
@@ -262,19 +268,21 @@ class Blur(nn.Module):
         self.bet_z   = bet_z
         self.bet_xy  = bet_xy
         self.alpha   = alpha
-        self.scale   = scale
+        self.zscale, \
+        self.xscale, \
+        self.yscale  = scale
         self.z       = z
         self.x       = x
         self.y       = y
+        self.device  = device
         self.zd      = self.distance(z)
         self.dp      = self.gen_distance_plane(xlen=x, ylen=y)
         self.psf     = self.gen_psf(self.bet_xy, self.bet_z, self.alpha
                                     ).to(device)
-        self.z_pad   = (z - scale + 1) // 2
-        self.x_pad   =  x // 2
-        self.y_pad   =  y // 2
-        self.stride  = (self.scale, 1, 1)
-        self.device  = device
+        self.z_pad   = (z - self.zscale + 1) // 2
+        self.x_pad   = (x - self.xscale + 1) // 2
+        self.y_pad   = (y - self.yscale + 1) // 2
+        self.stride  = (self.zscale, self.xscale, self.yscale)
     
     def forward(self, x):
         psf = self.gen_psf(self.bet_xy*10., self.bet_z*100., self.alpha*100.
@@ -305,7 +313,7 @@ class Blur(nn.Module):
         distance = torch.zeros(length)
         for idx in range(length):
             distance[idx] = self._distance_from_center(idx, length)
-        return distance
+        return distance.to(self.device)
 
     def gen_distance_plane(self, xlen, ylen):
         xd = self.distance(xlen)
@@ -361,9 +369,12 @@ class PreProcess(nn.Module):
 
 class ImagingProcess(nn.Module):
     def __init__(self, mu_z, sig_z,
-                 gamma, image_size, initial_depth, voxel_size, scale, device,
+                 scale, device,
                  z, x, y, bet_z, bet_xy, alpha,
-                 sig_eps, postmin=0.1, postmax=1):
+                 sig_eps, postmin=0.1, postmax=1,
+                 gamma=0.05, image_size=(160, 128, 128),
+                 initial_depth=0., voxel_size=0.05,
+                 ):
         super().__init__()
         self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=True)
         self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=True)
@@ -372,17 +383,18 @@ class ImagingProcess(nn.Module):
         self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
         self.emission   = Emission(self.mu_z, self.sig_z)
         self.intensity  = Intensity(gamma, image_size, initial_depth,
-                                    voxel_size, scale, device,)
+                                    voxel_size, scale[0], device,)
         self.blur       = Blur(z, x, y,
-                               self.bet_z, self.bet_xy, self.alpha, scale, device,)
+                               self.bet_z, self.bet_xy, self.alpha,
+                               scale, device,)
         self.noise      = Noise(sig_eps)
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
     def forward(self, x):
         x = self.emission(x)
-        x = self.intensity(x)
+        #x = self.intensity(x)
         x = self.blur(x)
-        x = self.noise(x)
+        #x = self.noise(x)
         x = self.preprocess(x)
         return x
 
@@ -396,6 +408,7 @@ class SuperResolutionLayer(nn.Module):
                                     dropout      = dropout      ,
                                     )
                                  for scale_factor in scale_list])
+        
     def forward(self, x):
         for f in self.sr:
             x = f(x)
@@ -428,24 +441,30 @@ class JNet(nn.Module):
                                               ) for _ in range(nblocks)])
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
-        self.blur  = JNetBlur(scale_factor = scale_factor ,
-                              z            = 141          ,
-                              x            = 7            ,
-                              y            = 7            ,
-                              mu_z         = mu_z         ,
-                              sig_z        = sig_z        ,
-                              bet_xy       = bet_xy       ,
-                              bet_z        = bet_z        ,
-                              alpha        = alpha        ,
-                              device       = device       ,)
+        self.image = ImagingProcess(mu_z         = mu_z         ,
+                                    sig_z        = sig_z        ,
+                                    device       = device       ,
+                                    scale        = scale_factor ,
+                                    z            = 101          ,
+                                    x            = 23           ,
+                                    y            = 23           ,
+                                    bet_xy       = bet_xy       ,
+                                    bet_z        = bet_z        ,
+                                    alpha        = alpha        ,
+                                    sig_eps      = 0.01         ,
+                                    postmin      = 0            ,
+                                    postmax      = 1.           ,
+                                    )
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = activation
         self.superres    = superres
         self.reconstruct = reconstruct
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
+
     def set_tau(self, tau=0.1):
         self.tau = tau
+
     def forward(self, x):
         if self.superres:
             x = self.upsample(x)
@@ -458,7 +477,7 @@ class JNet(nn.Module):
         x = self.post0(x)
         x = F.softmax(input  = x / self.tau ,
                       dim    = 1            ,)[:, :1,] # softmax with temperature
-        r = self.blur(x) if self.reconstruct else x
+        r = self.image(x) if self.reconstruct else x
         return x, r
 
 if __name__ == '__main__':
@@ -480,7 +499,9 @@ if __name__ == '__main__':
                   sig_z                 = 0.2                  ,
                   bet_xy                = 6.                   ,
                   bet_z                 = 35.                  ,
+                  alpha                 = 1.                   ,
                   superres              = True                 ,
+                  reconstruct           = True                 ,
                   )
     model.set_tau(tau)
     input_size = (1, 1, 24, 112, 112)
