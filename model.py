@@ -212,6 +212,180 @@ class JNetLayer(nn.Module):
         x = x + d
         return x
 
+class Emission(nn.Module):
+    def __init__(self, mu_z, sig_z,):
+        super().__init__()
+        self.mu_z     = mu_z
+        self.sig_z    = sig_z
+    def sample(self, x):
+        self.logn_ppf = lognorm.ppf([0.99], 1,
+                                    loc=self.mu_z, scale=self.sig_z)[0]
+        pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(x),
+                              scale = self.sig_z * torch.ones_like(x),)    
+        x  = x * pz0.sample()
+        x  = torch.clip(x, min=0, max=self.logn_ppf)
+        x  = x / self.logn_ppf
+        return x
+
+    def forward(self, x):
+        ez0 = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2)
+        x  = x * ez0
+        x  = torch.clip(x, min=0, max=1)
+        return x
+
+class Intensity(nn.Module):
+    def __init__(self, gamma, image_size, initial_depth, voxel_size, scale,
+                 device):
+        super().__init__()
+        init_d = initial_depth
+        im_z,  \
+        im_x,  \
+        im_y   = image_size
+        end_d  = im_z * voxel_size * scale
+        depth  = init_d \
+               + torch.linspace(0, end_d, im_z,).view(-1,1,1,).to(device)
+        _intensity = torch.exp(-2 * depth * gamma) # gamma = 0.005
+        self._intensity = _intensity.expand(image_size)
+
+    def forward(self, x):
+         x = x * self.intensity
+         return x
+
+    @property
+    def intensity(self):
+        return self._intensity
+
+
+class Blur(nn.Module):
+    def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, device,):
+        super().__init__()
+        self.bet_z   = bet_z
+        self.bet_xy  = bet_xy
+        self.alpha   = alpha
+        self.scale   = scale
+        self.z       = z
+        self.x       = x
+        self.y       = y
+        self.zd      = self.distance(z)
+        self.dp      = self.gen_distance_plane(xlen=x, ylen=y)
+        self.psf     = self.gen_psf(self.bet_xy, self.bet_z, self.alpha
+                                    ).to(device)
+        self.z_pad   = (z - scale + 1) // 2
+        self.x_pad   =  x // 2
+        self.y_pad   =  y // 2
+        self.stride  = (self.scale, 1, 1)
+        self.device  = device
+    
+    def forward(self, x):
+        psf = self.gen_psf(self.bet_xy*10., self.bet_z*100., self.alpha*100.
+                           ).to(self.device)
+        x   = F.conv3d(input   = x                                    ,
+                       weight  = psf                                  ,
+                       stride  = self.stride                          ,
+                       padding = (self.z_pad, self.x_pad, self.y_pad,),)
+        return x
+
+    def gen_psf(self, bet_xy, bet_z, alpha):
+        psf_lateral = self.gen_2dnorm(self.dp, bet_xy).view(1, self.x, self.y)
+        psf_axial   = self.gen_double_exp_dist(self.gen_1dnorm(self.zd, bet_z),
+                                               alpha) # axial only double exp
+        psf_axial   = psf_axial.view(self.z, 1, 1)
+        psf  = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)).clone() # log-sum-exp technique
+        psf /= torch.sum(psf)
+        psf  = self.dim_3dto5d(psf)
+        return psf
+
+    def _init_distance(self, length):
+        return torch.zeros(length)
+
+    def _distance_from_center(self, index, length):
+        return abs(index - length // 2)
+
+    def distance(self, length):
+        distance = torch.zeros(length)
+        for idx in range(length):
+            distance[idx] = self._distance_from_center(idx, length)
+        return distance
+
+    def gen_distance_plane(self, xlen, ylen):
+        xd = self.distance(xlen)
+        yd = self.distance(ylen)
+        xp = xd.expand(ylen, xlen)
+        yp = yd.expand(xlen, ylen).transpose(1, 0)
+        dp = xp ** 2 + yp ** 2
+        return dp
+
+    def gen_2dnorm(self, distance_plane, bet_xy):
+        d_2      =  distance_plane / bet_xy ** 2
+        normterm = (torch.pi * 2) * (bet_xy ** 2)
+        norm     = torch.exp(-d_2 / 2) / normterm
+        return norm
+
+    def gen_1dnorm(self, distance, bet_z):
+        d_2      =  distance ** 2 / bet_z ** 2
+        normterm = (torch.pi * 2) ** 0.5 * bet_z
+        norm     = torch.exp(-d_2 / 2) / normterm
+        return norm
+
+    def gen_double_exp_dist(self, norm, alpha,):
+        pdf  = 1. - torch.exp(-alpha * norm)
+        return pdf
+
+    def dim_3dto5d(self, arr):
+        return arr.view(1, 1, self.z, self.x, self.y)
+
+
+class Noise(nn.Module):
+    def __init__(self, sig_eps):
+        super().__init__()
+        self.sig_eps = sig_eps
+
+    def forward(self, x):
+        px = dist.Normal(loc   = x           ,
+                         scale = self.sig_eps,)
+        x  = px.rsample()
+        x  = torch.clip(x, min=0, max=1)
+        return x
+
+
+class PreProcess(nn.Module):
+    def __init__(self, min, max):
+        super().__init__()
+        self.min = min
+        self.max = max
+
+    def forward(self, x):
+        x = (torch.clip(x, min=self.min) - self.min) / (self.max - self.min)
+        return x
+
+
+class ImagingProcess(nn.Module):
+    def __init__(self, mu_z, sig_z,
+                 gamma, image_size, initial_depth, voxel_size, scale, device,
+                 z, x, y, bet_z, bet_xy, alpha,
+                 sig_eps, postmin=0.1, postmax=1):
+        super().__init__()
+        self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=True)
+        self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=True)
+        self.bet_z   = nn.Parameter(torch.tensor(bet_z ), requires_grad=True)
+        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=True)
+        self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
+        self.emission   = Emission(self.mu_z, self.sig_z)
+        self.intensity  = Intensity(gamma, image_size, initial_depth,
+                                    voxel_size, scale, device,)
+        self.blur       = Blur(z, x, y,
+                               self.bet_z, self.bet_xy, self.alpha, scale, device,)
+        self.noise      = Noise(sig_eps)
+        self.preprocess = PreProcess(min=postmin, max=postmax)
+
+    def forward(self, x):
+        x = self.emission(x)
+        x = self.intensity(x)
+        x = self.blur(x)
+        x = self.noise(x)
+        x = self.preprocess(x)
+        return x
+
 class SuperResolutionLayer(nn.Module):
     def __init__(self, in_channels, scale_list, nblocks, dropout):
         super().__init__()
