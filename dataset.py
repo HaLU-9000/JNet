@@ -9,107 +9,8 @@ from torch.utils.data import Dataset
 from scipy.stats import lognorm
 
 from utils import mask_, surround_mask_
+from model import ImagingProcess
 
-class Blur(nn.Module):
-    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, alpha, sig_eps, device):
-        super().__init__()
-        self.scale    = scale
-        self.z        = z
-        self.x        = x
-        self.y        = y
-        self.mu_z     = mu_z
-        self.sig_z    = sig_z
-        self.bet_xy   = bet_xy
-        self.bet_z    = bet_z
-        self.alpha    = alpha
-        self.sig_eps  = sig_eps
-        self.zd,      \
-        self.xd,      \
-        self.yd       = self.distance(z, x, y)
-        self.alf      = self.gen_alf().to(device)
-        self.sum_alf  = torch.sum(self.alf)
-        self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0] # normalize by init value
-        self.theomax  = self.sum_alf * self.logn_ppf
-
-
-        
-    def distance(self, z, x, y):
-        [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
-        for k in range(-z // 2, z // 2 + 1):
-            zd[:, :, k + z // 2, :, :,] = k ** 2
-        for i in range(-x // 2, x // 2 + 1):
-            xd[:, :, :, i + x // 2, :,] = i ** 2
-        for j in range(-y // 2, y // 2 + 1):
-            yd[:, :, :, :, j + y // 2,] = j ** 2
-        return zd, xd, yd
-
-    def gen_alf(self):
-        d_2 = self.zd / self.bet_z ** 2 + (self.xd + self.yd) / self.bet_xy ** 2
-        alf = torch.exp(-d_2 / 2)
-        normterm = (self.bet_z * self.bet_xy ** 2) * (torch.pi * 2) ** 1.5
-        alf = alf / normterm 
-        alf  = torch.ones_like(alf) - torch.exp(-self.alpha * alf)
-        return alf
-
-    def forward(self, inp):
-        inp  = inp.unsqueeze(0)
-        pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(inp),
-                              scale = self.sig_z * torch.ones_like(inp),)       
-        rec  = inp * pz0.sample() # E[z0|mu_z, sig_z]
-        #z0   = z0 * torch.ones_like(inp, requires_grad=True)
-        rec  = rec * 3.3
-        #rec  = torch.clip(rec, min=0, max=self.logn_ppf)
-        rec  = F.conv3d(input   = rec                               ,
-                        weight  = self.alf                          ,
-                        stride  = (self.scale, 1, 1)                       ,
-                        padding = ((self.z - self.scale + 1) // 2  , 
-                                   (self.x) // 2                    , 
-                                   (self.y) // 2                    ,),)
-        rec  = rec / self.theomax
-        #rec  = (rec - rec.min()) / (rec.max() - rec.min())
-        prec = dist.Normal(loc   = rec         ,
-                           scale = self.sig_eps,)
-        rec  = prec.sample()
-        rec  = rec.squeeze(0)
-        rec  = torch.clip(rec, min=0, max=1)
-        rec  = rec.squeeze(0)
-        return rec
-
-class CustomDataset(Dataset):
-    def __init__(self, ori_data, scale, zsize, xsize, ysize, z, x=1, y=1, bet_xy=1, bet_z=50,):
-        model = Blur(scale   = scale ,
-                     z       = z     ,
-                     x       = x     ,
-                     y       = y     ,
-                     mu_z    = 0.2   ,
-                     sig_z   = 0.2   ,
-                     bet_xy  = bet_xy,
-                     bet_z   = bet_z ,
-                     sig_eps = 0.02   ,)
-        blur_zsize  = zsize // scale
-        true        = ori_data
-        self.trues  = self.cut(true                  , zsize     , xsize, ysize).float()
-        self.blurs  = self.cut(self.blur(true, model), blur_zsize, xsize, ysize)
-    def blur(self, inp, model):
-        blur = model(inp)
-        blur = (blur - blur.min()) / (blur.max() - blur.min())
-        return blur
-    
-    def cut(self, inp, zsize, xsize, ysize):
-        """
-        input  : 4d tensor ([channels, z_shape, x_shape, y_shape])
-        output : 5d tensor ([patches, channels, z_size, x_size, y_size]) 
-        """
-        inp = inp.unfold(1, zsize , zsize ,)\
-                 .unfold(2, xsize , xsize ,)\
-                 .unfold(3, ysize , ysize ,)
-        return inp.contiguous().view(-1, 1, zsize, xsize, ysize)
-
-    def __getitem__(self, idx):
-        return self.blurs[idx], self.trues[idx]
-    
-    def __len__(self):
-        return self.blurs.shape[0]
 
 class Rotate:
     def __init__(self, i=None, j=None):
@@ -124,35 +25,6 @@ class Rotate:
     def __call__(self, x):
         return torch.rot90(torch.rot90(x, self.i, [1, 2]), self.j, [2, 3]), self.i, self.j
 
-class PathDataset(Dataset):
-    """
-    Dataset for evaluation that uses already cropped data.
-    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
-    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
-    low, high : use [low]th ~ [high]th files in folderpath as data.
-    """
-    def __init__(self, folderpath, imagename, labelname='_label', low=0, high=100):
-        self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
-        self.images = list(sorted(Path(folderpath).glob(f'*{imagename}.npy')))
-        self.low    = low
-        self.high   = high
-    def __getitem__(self, idx):
-        image = torch.from_numpy(np.load(self.images[idx + self.low ]))
-        label = torch.from_numpy(np.load(self.labels[idx + self.low]))
-        return image, label
-    def __len__(self):
-        return self.high - self.low
-
-class RotateDataset(Dataset):
-    def __init__(self, folderpath, imagename, labelname='_label'):
-        self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
-        self.images = list(sorted(Path(folderpath).glob(f'*{imagename}.npy')))
-    def __getitem__(self, idx):
-        image, i, j = Rotate(    )(torch.from_numpy(np.load(self.images[idx])))
-        label, _, _ = Rotate(i, j)(torch.from_numpy(np.load(self.labels[idx])))
-        return image, label
-    def __len__(self):
-        return len(self.labels)
 
 class Crop:
     def __init__(self, coord:list, cropsize:list):
@@ -162,6 +34,7 @@ class Crop:
        return x[0 : , self.coord[0] : self.coord[0] + self.csize[0],
                       self.coord[1] : self.coord[1] + self.csize[1],
                       self.coord[2] : self.coord[2] + self.csize[2]].detach().clone()
+
 
 class RandomCutDataset(Dataset):
     '''
@@ -258,14 +131,17 @@ class RandomBlurDataset(Dataset):
     labelname : "0001***.pt" `s "**" part. (e.g. "_label")
     I : sample size. Returns I samples. (e.g. 200)
     low, high : use [low]th ~ [high]th files in folderpath as data.
-    scale: scale (should be same as [imagename]'s int part.)
+    scale: scale 
     '''
-    def __init__(self, folderpath:str, imagename:str, labelname:str, 
-                 size:list, cropsize:list, I:int, low:int, high:int, scale:int,
-                 train=True, pretrain=True, mask=True,
+    def __init__(self, folderpath:str, labelname:str, 
+                 size:list, cropsize:list, filtersize:list, 
+                 I:int, low:int, high:int, scale:int,
+                 sig_mu_z, sig_sig_z, mu_bet_xy, sig_bet_xy,
+                 mu_bet_z, sig_bet_z, mu_alpha,  sig_alpha,
+                 device, train=True, mask=True, varid_params=[],
                  mask_size=[10, 10, 10], mask_num=1,
                  surround=True, surround_size=[64, 8, 8],
-                 seed=904):
+                 seed=904,):
         self.I             = I
         self.low           = low
         self.high          = high
@@ -280,7 +156,18 @@ class RandomBlurDataset(Dataset):
         self.mask_num      = mask_num
         self.surround      = surround
         self.surround_size = surround_size
-        # define imageprocess here
+        self.varid_params  = varid_params
+        self.sig_mu_z      = sig_mu_z  
+        self.sig_sig_z     = sig_sig_z 
+        self.mu_bet_xy     = mu_bet_xy 
+        self.sig_bet_xy    = sig_bet_xy
+        self.mu_bet_z      = mu_bet_z  
+        self.sig_bet_z     = sig_bet_z 
+        self.mu_alpha      = mu_alpha  
+        self.sig_alpha     = sig_alpha 
+        z, x, y            = filtersize
+        self.imaging       = ImagingProcess(scale, z, x, y, *varid_params,
+                                            device)
         if train == False:
             np.random.seed(seed)
             self.indiceslist = self.gen_indices(I, low, high)
@@ -294,6 +181,14 @@ class RandomBlurDataset(Dataset):
         xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
         ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
         return np.array([zcoord, xcoord, ycoord])
+
+    def gen_params(self):
+        mu_z   = abs(np.random.normal(0, self.sig_mu_z))
+        sig_z  = abs(np.random.normal(0, self.sig_sig_z))
+        bet_xy = abs(np.random.normal(self.mu_bet_xy, self.sig_bet_xy))
+        bet_z  = abs(np.random.normal(self.mu_bet_z , self.sig_bet_z ))
+        alpha  = abs(np.random.normal(self.mu_alpha , self.sig_alpha))
+        return [mu_z, sig_z, bet_xy, bet_z, alpha]
 
     def apply_mask(self, mask, image, mask_size, mask_num):
         if mask:
@@ -310,24 +205,27 @@ class RandomBlurDataset(Dataset):
             idx     = self.gen_indices(1, self.low, self.high).item()#            print('idx ', idx)
             lcoords = self.gen_coords(1, self.size, self.csize,)
             lcoords = lcoords[:, 0]
-            label, _, _      = Rotate(    )(Crop(lcoords, self.csize
-                                                )(torch.load(self.labels[idx])))
-            image, params = image(label)
-            image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+            label, _, _  = Rotate(    )(Crop(lcoords, self.csize
+                                            )(torch.load(self.labels[idx])))
+            params = self.gen_params()
+            image  = self.imaging.sample(label, *params)
+            image  = self.apply_mask(self.mask, image, self.mask_size,
+                                     self.mask_num)
+            image  = self.apply_surround_mask(self.surround, image,
+                                              self.surround_size)
 
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             lcoords = self.coordslist[0][:, idx]
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
-            image, params  = self.fiximage(label)
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+            image   = self.imaging(label, *self.varid_params)
+            image   = self.apply_surround_mask(self.surround, image,
+                                               self.surround_size)
 
         return image, label, params
 
     def __len__(self):
         return self.I
-
 
 
 class RealDensityDataset(Dataset):

@@ -121,62 +121,7 @@ class SuperResolutionBlock(nn.Module):
             x = f(x)
         return x
 
-class JNetBlur(nn.Module):
-    def __init__(self, scale_factor, z, x, y, mu_z, sig_z, bet_xy, bet_z, alpha,
-                 device,):
-        super().__init__()
-        self.scale_factor = scale_factor
-        self.zscale  = scale_factor[0]
-        self.z       = z
-        self.x       = x
-        self.y       = y
-        self.mu_z    = nn.Parameter(torch.tensor(mu_z   , requires_grad=True)) 
-        self.sig_z   = nn.Parameter(torch.tensor(sig_z  , requires_grad=True))
-        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy , requires_grad=True))
-        self.bet_z   = nn.Parameter(torch.tensor(bet_z  , requires_grad=True))
-        self.alpha   = nn.Parameter(torch.tensor(alpha  , requires_grad=True))
-        self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0]
-        self.zd,     \
-        self.xd,     \
-        self.yd      = self.distance(z, x, y, device)
-        self.device  = device
 
-    def distance(self, z, x, y, device):
-        [zd, xd, yd] = [torch.zeros(1, 1, z, x, y, device=device) for _ in range(3)]
-        for k in range(-z // 2, z // 2 + 1):
-            zd[:, :, k + z // 2, :, :,] = k ** 2
-        for i in range(-x // 2, x // 2 + 1):
-            xd[:, :, :, i + x // 2, :,] = i ** 2
-        for j in range(-y // 2, y // 2 + 1):
-            yd[:, :, :, :, j + y // 2,] = j ** 2
-        return zd, xd, yd
-
-    def gen_alf(self, zd, xd, yd, bet_xy, bet_z, alpha):
-        d_2 = zd / bet_z ** 2 + (xd + yd) / bet_xy ** 2
-        alf = torch.exp(-d_2 / 2)
-        normterm = (bet_z * bet_xy ** 2) * (torch.pi * 2) ** 1.5
-        alf = alf / normterm 
-        alf  = torch.ones_like(alf) - torch.exp(-alpha * alf)
-        return alf
-
-    def forward(self, inp):
-        inp  = inp.unsqueeze(0) if inp.ndim == 4 else inp
-        z0   = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2) # E[z0|mu_z, sig_z]
-        #z0   = z0 * torch.ones_like(inp, requires_grad=True)
-        rec  = inp * z0 * 3.3
-        #rec  = torch.clip(rec, min=0, max=self.logn_ppf)
-        alf  = self.gen_alf(self.zd, self.xd, self.yd, self.bet_xy, self.bet_z, self.alpha)
-        rec  = F.conv3d(input   = rec                               ,
-                        weight  = alf                               ,
-                        stride  = self.scale_factor                 ,
-                        padding = ((self.z - self.zscale + 1) // 2  , 
-                                   (self.x) // 2                    , 
-                                   (self.y) // 2                    ,),)
-        theorymax = self.logn_ppf * torch.sum(alf)
-        rec  = rec / theorymax
-        #rec  = (rec - rec.min()) / (rec.max() - rec.min())
-        rec  = rec.squeeze(0) if inp.ndim == 4 else rec
-        return rec
 
 class JNetLayer(nn.Module):
     def __init__(self, in_channels, hidden_channels_list, nblocks, dropout):
@@ -217,27 +162,29 @@ class JNetLayer(nn.Module):
         x = x + d
         return x
 
+
 class Emission(nn.Module):
     def __init__(self, mu_z, sig_z,):
         super().__init__()
         self.mu_z     = mu_z
         self.sig_z    = sig_z
 
-    def sample(self, x):
-        self.logn_ppf = lognorm.ppf([0.99], 1,
-                                    loc=self.mu_z, scale=self.sig_z)[0]
-        pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(x),
-                              scale = self.sig_z * torch.ones_like(x),)    
-        x  = x * pz0.sample()
-        x  = torch.clip(x, min=0, max=self.logn_ppf)
-        x  = x / self.logn_ppf
-        return x
-
     def forward(self, x):
         ez0 = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2)
         x  = x * ez0
         x  = torch.clip(x, min=0, max=1)
         return x
+
+    def sample(self, x, mu_z, sig_z):
+        self.logn_ppf = lognorm.ppf([0.99], 1,
+                                    loc=mu_z, scale=sig_z)[0]
+        pz0  = dist.LogNormal(loc   = mu_z  * torch.ones_like(x),
+                              scale = sig_z * torch.ones_like(x),)    
+        x  = x * pz0.sample()
+        x  = torch.clip(x, min=0, max=self.logn_ppf)
+        x  = x / self.logn_ppf
+        return x
+
 
 class Intensity(nn.Module):
     def __init__(self, gamma, image_size, initial_depth, voxel_size, scale,
@@ -293,6 +240,16 @@ class Blur(nn.Module):
                        padding = (self.z_pad, self.x_pad, self.y_pad,),)
         return x
 
+    def sample(self, x, bet_xy, bet_z, alpha):
+        psf = self.gen_psf(bet_xy*10., bet_z*100., alpha*100.
+                           ).to(self.device)
+        x   = F.conv3d(input   = x                                    ,
+                       weight  = psf                                  ,
+                       stride  = self.stride                          ,
+                       padding = (self.z_pad, self.x_pad, self.y_pad,),)
+        return x
+
+    
     def gen_psf(self, bet_xy, bet_z, alpha):
         psf_lateral = self.gen_2dnorm(self.dp, bet_xy).view(1, self.x, self.y)
         psf_axial   = self.gen_double_exp_dist(self.gen_1dnorm(self.zd, bet_z),
@@ -368,19 +325,18 @@ class PreProcess(nn.Module):
 
 
 class ImagingProcess(nn.Module):
-    def __init__(self, mu_z, sig_z,
-                 scale, device,
-                 z, x, y, bet_z, bet_xy, alpha,
-                 sig_eps, postmin=0.1, postmax=1,
+    def __init__(self,scale,z, x, y,  
+                 mu_z, sig_z, bet_z, bet_xy, alpha, sig_eps, 
+                 device, postmin=0.1, postmax=1,
                  gamma=0.05, image_size=(160, 128, 128),
                  initial_depth=0., voxel_size=0.05,
                  ):
         super().__init__()
-        self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=True)
-        self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=True)
-        self.bet_z   = nn.Parameter(torch.tensor(bet_z ), requires_grad=True)
-        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=True)
-        self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
+        self.mu_z   = nn.Parameter(torch.tensor(mu_z  ), requires_grad=True)
+        self.sig_z  = nn.Parameter(torch.tensor(sig_z ), requires_grad=True)
+        self.bet_z  = nn.Parameter(torch.tensor(bet_z ), requires_grad=True)
+        self.bet_xy = nn.Parameter(torch.tensor(bet_xy), requires_grad=True)
+        self.alpha  = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
         self.emission   = Emission(self.mu_z, self.sig_z)
         self.intensity  = Intensity(gamma, image_size, initial_depth,
                                     voxel_size, scale[0], device,)
@@ -394,9 +350,17 @@ class ImagingProcess(nn.Module):
         x = self.emission(x)
         #x = self.intensity(x)
         x = self.blur(x)
-        #x = self.noise(x)
         x = self.preprocess(x)
         return x
+
+    def sample(self, x, mu_z, sig_z, bet_xy, bet_z, alpha,):
+        x = self.emission.sample(x, mu_z, sig_z)
+        #x = self.intensity(x)
+        x = self.blur.sample(x, bet_xy, bet_z, alpha,)
+        x = self.noise(x)
+        x = self.preprocess(x)
+        return x
+
 
 class SuperResolutionLayer(nn.Module):
     def __init__(self, in_channels, scale_list, nblocks, dropout):
@@ -413,6 +377,7 @@ class SuperResolutionLayer(nn.Module):
         for f in self.sr:
             x = f(x)
         return x
+
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
@@ -479,6 +444,7 @@ class JNet(nn.Module):
                       dim    = 1            ,)[:, :1,] # softmax with temperature
         r = self.image(x) if self.reconstruct else x
         return x, r
+
 
 if __name__ == '__main__':
     import torchinfo
