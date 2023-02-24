@@ -18,6 +18,7 @@ class JNetBlock0(nn.Module):
         x = self.conv(x)
         return x
 
+
 class JNetBlock(nn.Module):
     def __init__(self, in_channels, hidden_channels, dropout):
         super().__init__()
@@ -49,18 +50,66 @@ class JNetBlock(nn.Module):
         x = x + d
         return x
 
-class JNetBlockN(nn.Module):
-    def __init__(self, in_channels, out_channels):
+
+class JNetFC(nn.Module):
+    def __init__(self, in_features, out_features, hidden_features, activation):
         super().__init__()
-        self.conv = nn.Conv3d(in_channels  = in_channels ,
-                              out_channels = out_channels,
-                              kernel_size  = 3           ,
-                              padding      = 'same'      ,
-                              padding_mode = 'replicate' ,)
+        self.fc0 = nn.Linear(in_features  = in_features,
+                             out_features = hidden_features,)
+        self.fc1 = nn.Linear(in_features  = hidden_features,
+                             out_features = hidden_features,)
+        self.fc2 = nn.Linear(in_features  = hidden_features,
+                             out_features = out_features,)
+        self.activation = activation
+    
+    def forward(self, x):
+        x = self.activation(self.fc0(x))
+        x = self.activation(self.fc1(x))
+        x = self.activation(self.fc2(x))
+        return x
+
+
+class JNetBlockN(nn.Module):
+    def __init__(self, in_channels, p_channels, out_channels, activation):
+        super().__init__()
+        self.pconv0 = nn.Conv3d(in_channels  = in_channels ,
+                                out_channels = p_channels  ,
+                                kernel_size  = 4           ,
+                                stride       = 2           ,
+                                padding      = 1           ,
+                                padding_mode = 'replicate' ,)
+        self.pconv1 = nn.Conv3d(in_channels  = p_channels  ,
+                                out_channels = p_channels  ,
+                                kernel_size  = 4           ,
+                                stride       = 2           ,
+                                padding      = 1           ,
+                                padding_mode = 'replicate' ,)
+        self.pconv2 = nn.Conv3d(in_channels  = p_channels  ,
+                                out_channels = p_channels  ,
+                                kernel_size  = 4           ,
+                                stride       = 2           ,
+                                padding      = 1           ,
+                                padding_mode = 'replicate' ,)
+        self.fc     = JNetFC(in_features     = p_channels * 30 * 14 * 14,
+                             out_features    = 5           ,
+                             hidden_features = 16          ,
+                             activation      = activation  ,
+                             )
+        self.conv   = nn.Conv3d(in_channels  = in_channels ,
+                                out_channels = out_channels,
+                                kernel_size  = 3           ,
+                                padding      = 'same'      ,
+                                padding_mode = 'replicate' ,)
+        self.activation = activation
         
     def forward(self, x):
-        x = self.conv(x)
-        return x
+        _x = self.activation(self.pconv0(x))
+        _x = self.activation(self.pconv1(_x))
+        _x = self.activation(self.pconv2(_x))
+        pp = self.fc(_x.flatten())
+        x  = self.conv(x)
+        return x, pp
+
 
 class JNetPooling(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -78,6 +127,7 @@ class JNetPooling(nn.Module):
         x = self.conv(x)
         x = self.relu(x)
         return x
+
 
 class JNetUnpooling(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -97,6 +147,7 @@ class JNetUnpooling(nn.Module):
         x = self.relu(x)
         return x
 
+
 class JNetUpsample(nn.Module):
     def __init__(self, scale_factor):
         super().__init__()
@@ -105,6 +156,7 @@ class JNetUpsample(nn.Module):
                                     
     def forward(self, x):
         return self.upsample(x)
+
 
 class SuperResolutionBlock(nn.Module):
     def __init__(self, scale_factor, in_channels, nblocks, dropout):
@@ -120,7 +172,6 @@ class SuperResolutionBlock(nn.Module):
         for f in self.post:
             x = f(x)
         return x
-
 
 
 class JNetLayer(nn.Module):
@@ -405,21 +456,9 @@ class JNet(nn.Module):
                                               dropout         = dropout        ,
                                               ) for _ in range(nblocks)])
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
-                                out_channels = 2               ,)
-        self.image = ImagingProcess(mu_z         = mu_z         ,
-                                    sig_z        = sig_z        ,
-                                    device       = device       ,
-                                    scale        = scale_factor ,
-                                    z            = 101          ,
-                                    x            = 23           ,
-                                    y            = 23           ,
-                                    bet_xy       = bet_xy       ,
-                                    bet_z        = bet_z        ,
-                                    alpha        = alpha        ,
-                                    sig_eps      = 0.01         ,
-                                    postmin      = 0            ,
-                                    postmax      = 1.           ,
-                                    )
+                                p_channels   = 8               ,
+                                out_channels = 2               ,
+                                activation   = activation      ,)
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = activation
         self.superres    = superres
@@ -439,11 +478,11 @@ class JNet(nn.Module):
         x = self.mid(x)
         for f in self.post:
             x = f(x)
-        x = self.post0(x)
+        x, pp = self.post0(x)
         x = F.softmax(input  = x / self.tau ,
                       dim    = 1            ,)[:, :1,] # softmax with temperature
-        r = self.image(x) if self.reconstruct else x
-        return x, r
+        #r = self.image(x) if self.reconstruct else x
+        return x, pp
 
 
 if __name__ == '__main__':
@@ -475,7 +514,6 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
     model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
     optimizer            = optim.Adam(model.parameters(), lr = 1e-4)
-
-    a, b, c, d = [i for i in model.parameters()][-4:]
-    print(a.item())
+    #a, b, c, d = [i for i in model.parameters()][-4:]
+    #print(a.item())
     torchinfo.summary(model, input_size)

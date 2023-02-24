@@ -187,7 +187,7 @@ class RandomBlurDataset(Dataset):
         sig_z  = abs(np.random.normal(0, self.sig_sig_z))
         bet_xy = abs(np.random.normal(self.mu_bet_xy, self.sig_bet_xy))
         bet_z  = abs(np.random.normal(self.mu_bet_z , self.sig_bet_z ))
-        alpha  = abs(np.random.normal(self.mu_alpha , self.sig_alpha))
+        alpha  = abs(np.random.normal(self.mu_alpha , self.sig_alpha ))
         return [mu_z, sig_z, bet_xy, bet_z, alpha]
 
     def apply_mask(self, mask, image, mask_size, mask_num):
@@ -202,7 +202,7 @@ class RandomBlurDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.train:
-            idx     = self.gen_indices(1, self.low, self.high).item()#            print('idx ', idx)
+            idx     = self.gen_indices(1, self.low, self.high).item()
             lcoords = self.gen_coords(1, self.size, self.csize,)
             lcoords = lcoords[:, 0]
             label, _, _  = Rotate(    )(Crop(lcoords, self.csize
@@ -215,13 +215,14 @@ class RandomBlurDataset(Dataset):
                                               self.surround_size)
 
         else:
-            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
+            _idx    = self.indiceslist[idx]# convert idx to [low] ~[high] number
             lcoords = self.coordslist[0][:, idx]
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
-            image   = self.imaging(label, *self.varid_params)
+            params  = self.varid_params
+            image   = self.imaging(label, *params)
             image   = self.apply_surround_mask(self.surround, image,
                                                self.surround_size)
-
+        params = torch.tensor(params)
         return image, label, params
 
     def __len__(self):
