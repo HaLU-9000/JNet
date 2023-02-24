@@ -36,8 +36,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, ploss_fn, train_loader, val_
             image    = image.to(device = device)
             label    = label.to(device = device)
             out, pp  = model(image)
-            loss, midloss = calc_loss(out, label, pp, p,
-                                      loss_fn, ploss_fn, partial,)
+            loss,    = calc_loss(out, label, pp, p,
+                                 loss_fn, ploss_fn, partial,)
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
@@ -56,21 +56,13 @@ def train_loop(n_epochs, optimizer, model, loss_fn, ploss_fn, train_loader, val_
                 vloss_sum += vloss.detach().item()
         num  = len(train_loader)
         vnum = len(val_loader)
-        mu_z, sig_z, bet_xy, bet_z, alpha = [i for i in model.parameters()][-5:]
-        #print(mu_z, sig_z, bet_xy, bet_z, alpha)
         loss_list.append(loss_sum / num)
         vloss_list.append(vloss_sum / vnum)
         writer.add_scalar('tau', tau, epoch)
         writer.add_scalar('train loss', loss_sum / num, epoch)
         writer.add_scalar('val loss', vloss_sum / vnum, epoch)
-        writer.add_scalar('mu_z'  , mu_z.item()  , epoch)
-        writer.add_scalar('sig_z' , sig_z.item() , epoch)
-        writer.add_scalar('bet_xy', bet_xy.item(), epoch)
-        writer.add_scalar('bet_z' , bet_z.item() , epoch)
-        writer.add_scalar('alpha' , alpha.item() , epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
-            #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
             scheduler.step(vloss_sum / vnum)
         earlystopping((vloss_sum / vnum), model, tau == tau_lb)
@@ -78,8 +70,5 @@ def train_loop(n_epochs, optimizer, model, loss_fn, ploss_fn, train_loader, val_
             break
     plt.plot(loss_list, label='train loss')
     plt.plot(vloss_list , label='validation loss')
-    if check_middle:
-        plt.plot(midloss_list, label='train loss (middle)')
-        plt.plot(vmidloss_list , label='validation loss (middle)')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
