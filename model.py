@@ -220,8 +220,8 @@ class JNetLayer(nn.Module):
 class Emission(nn.Module):
     def __init__(self, mu_z, sig_z,):
         super().__init__()
-        self.mu_z     = mu_z
-        self.sig_z    = sig_z
+        self.mu_z     = mu_z.item()
+        self.sig_z    = sig_z.item()
 
     def sample(self, x):
         self.logn_ppf = lognorm.ppf([0.99], 1,
@@ -285,7 +285,7 @@ class Blur(nn.Module):
         self.stride  = (self.zscale, self.xscale, self.yscale)
     
     def forward(self, x):
-        psf = self.gen_psf(self.bet_xy*10., self.bet_z*100., self.alpha*100.
+        psf = self.gen_psf(self.bet_xy, self.bet_z, self.alpha
                            ).to(self.device)
         x   = F.conv3d(input   = x                                    ,
                        weight  = psf                                  ,
@@ -348,7 +348,10 @@ class Noise(nn.Module):
         super().__init__()
         self.sig_eps = sig_eps
 
-    def forward(self, x):
+    def foward(self, x):
+        return x
+    
+    def sample(self, x):
         px = dist.Normal(loc   = x           ,
                          scale = self.sig_eps,)
         x  = px.rsample()
@@ -382,8 +385,8 @@ class ImagingProcess(nn.Module):
         self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=True)
         self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
         self.emission   = Emission(self.mu_z, self.sig_z)
-        self.intensity  = Intensity(gamma, image_size, initial_depth,
-                                    voxel_size, scale[0], device,)
+        #self.intensity  = Intensity(gamma, image_size, initial_depth,
+        #                            voxel_size, scale[0], device,)
         self.blur       = Blur(z, x, y,
                                self.bet_z, self.bet_xy, self.alpha,
                                scale, device,)
@@ -394,9 +397,17 @@ class ImagingProcess(nn.Module):
         x = self.emission(x)
         #x = self.intensity(x)
         x = self.blur(x)
-        #x = self.noise(x)
         x = self.preprocess(x)
         return x
+
+    def sample(self, x):
+        x = self.emission.sample(x)
+        #x = self.intensity(x)
+        x = self.blur(x)
+        x = self.noise.sample(x)
+        x = self.preprocess(x)
+        return x
+
 
 class SuperResolutionLayer(nn.Module):
     def __init__(self, in_channels, scale_list, nblocks, dropout):

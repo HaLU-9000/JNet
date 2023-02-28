@@ -92,7 +92,7 @@ def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scal
         label = torch.from_numpy(np.load(label))
 #        if not Path(f'{outfolderpath}/{str(i+I).zfill(4)}{outlabelname}.pt').is_file():
         torch.save(label.float(),  f'{outfolderpath}/{str(i+I).zfill(4)}{outlabelname}.pt')
-        blur = model(label.to(device))
+        blur = model.sample(label.to(device))
         blur = blur.detach().to('cpu')#.numpy()
         #blur = torch.from_numpy(blur) #2022/12/10 changed
         torch.save(blur, f'{outfolderpath}/{str(i+I).zfill(4)}_x{scale}.pt')

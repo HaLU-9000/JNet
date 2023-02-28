@@ -11,11 +11,11 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-scale    = 10
+scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-train_dataset = RandomCutDataset(folderpath  =  'beadslikedata5' ,  ###
+train_dataset = RandomCutDataset(folderpath  =  'spinelikedata0' ,  ###
                                  imagename   =  f'_x{scale}'     , 
                                  labelname   =  '_label'         ,
                                  size        =  (1200, 500, 500) ,
@@ -30,7 +30,7 @@ train_dataset = RandomCutDataset(folderpath  =  'beadslikedata5' ,  ###
                                  surround      =  surround       ,
                                  surround_size =  surround_size  ,
                                  )
-val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata5'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  'spinelikedata0'   ,  ###
                                  imagename   =  f'_x{scale}'       ,     ## scale
                                  labelname   =  '_label'           ,
                                  size        =  (1200, 500, 500)   ,
@@ -59,7 +59,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_171_x10'
+model_name           = 'JNet_174_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -73,19 +73,19 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   scale_factor          = scale_factor         ,
-                  mu_z                  = 0.01                 ,
-                  sig_z                 = 0.1                  ,
-                  bet_xy                = 3.                   ,
-                  bet_z                 = 17.5                 ,
-                  alpha                 = 75.                  ,
+                  mu_z                  = 0.2                  ,
+                  sig_z                 = 0.2                  ,
+                  bet_z                 = 23.5329              ,
+                  bet_xy                = 1.00000              ,
+                  alpha                 = 0.9544               ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
-params = [i for i in JNet.parameters()][:-4]
+params = [i for i in JNet.parameters()][:-5]
 #params = JNet.parameters()
-optimizer            = optim.Adam(params, lr = 1e-4)
+optimizer            = optim.Adam(params, lr = 1e-3)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
