@@ -47,7 +47,6 @@ spinedata0/
 spinescore0/
 spinerawdata0/
 
-
 pathlib_test.py
 utils_test.py
 utils_test2.py
@@ -73,5 +72,6 @@ fitting2.ipynb
 fitting4.ipynb
 fitting5.ipynb
 rotationmatrix.ipynb
+datatransformer.py
 
 beadsscore

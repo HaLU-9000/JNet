@@ -14,8 +14,8 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-train_score   = None #torch.load('./spinescore0/020_score.pt') 
-val_score     = None #torch.load('./spinescore4/020_score.pt') 
+train_score   = torch.load('./spinescore0/020_score.pt') 
+val_score     = torch.load('./spinescore0/020_score.pt') 
 
 train_dataset = RealDensityDataset(folderpath      =  'spinedata0' ,
                                    scorefolderpath =  'spinescore0',
@@ -34,6 +34,7 @@ train_dataset = RealDensityDataset(folderpath      =  'spinedata0' ,
                                    surround_size   =  surround_size    ,
                                    score           =  train_score      ,
                                   )
+
 val_dataset   = RealDensityDataset(folderpath      =  'spinedata0'     ,
                                    scorefolderpath =  'spinescore0'    ,
                                    imagename       =  '020'            ,
@@ -93,13 +94,13 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   reconstruct           = reconstruct          ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_176_x6.pt'), strict=False)
+JNet.load_state_dict(torch.load('model/JNet_175_x6.pt'), strict=False)
 
-JNet.blur.mu_z    = nn.Parameter(torch.tensor(mu_z    , requires_grad=True))
-JNet.blur.sig_z   = nn.Parameter(torch.tensor(sig_z   , requires_grad=True))
-JNet.blur.bet_xy  = nn.Parameter(torch.tensor(bet_xy  , requires_grad=True))
-JNet.blur.bet_z   = nn.Parameter(torch.tensor(bet_z   , requires_grad=True))
-JNet.blur.alpha   = nn.Parameter(torch.tensor(alpha   , requires_grad=True))
+JNet.image.mu_z    = nn.Parameter(torch.tensor(mu_z    , requires_grad=True))
+JNet.image.sig_z   = nn.Parameter(torch.tensor(sig_z   , requires_grad=True))
+JNet.image.bet_xy  = nn.Parameter(torch.tensor(bet_xy  , requires_grad=True))
+JNet.image.bet_z   = nn.Parameter(torch.tensor(bet_z   , requires_grad=True))
+JNet.image.alpha   = nn.Parameter(torch.tensor(alpha   , requires_grad=True))
 print([i for i in JNet.parameters()][-5:])
 
 params = JNet.parameters()
