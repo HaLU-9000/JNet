@@ -220,23 +220,25 @@ class JNetLayer(nn.Module):
 class Emission(nn.Module):
     def __init__(self, mu_z, sig_z,):
         super().__init__()
-        self.mu_z     = mu_z.item()
-        self.sig_z    = sig_z.item()
-
-    def sample(self, x):
+        self.mu_z     = mu_z
+        self.sig_z    = sig_z
+        self.mu_z_    = mu_z.item()
+        self.sig_z_   = sig_z.item()
         self.logn_ppf = lognorm.ppf([0.99], 1,
-                                    loc=self.mu_z, scale=self.sig_z)[0]
+                            loc=self.mu_z_, scale=self.sig_z_)[0]
+    def sample(self, x):
         pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(x),
                               scale = self.sig_z * torch.ones_like(x),)    
-        x  = x * pz0.sample()
-        x  = torch.clip(x, min=0, max=self.logn_ppf)
-        x  = x / self.logn_ppf
+        x    = x * pz0.sample()
+        x    = torch.clip(x, min=0, max=self.logn_ppf)
+        x    = x / self.logn_ppf
         return x
 
     def forward(self, x):
         ez0 = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2)
-        x  = x * ez0
-        x  = torch.clip(x, min=0, max=1)
+        x   = x * ez0
+        x   = torch.clip(x, min=0, max=self.logn_ppf)
+        x   = x / self.logn_ppf
         return x
 
 class Intensity(nn.Module):

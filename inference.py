@@ -8,11 +8,11 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-scale    = 10
+scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata5'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  'spinelikedata0'   ,  ###
                                  imagename   =  f'_x{scale}'       ,     ## scale
                                  labelname   =  '_label'           ,
                                  size        =  (1200, 500, 500)   ,
@@ -30,7 +30,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'beadslikedata5'   ,  ###
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_171_x10'
+model_name           = 'JNet_175_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -46,16 +46,17 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   scale_factor          = scale_factor         ,
                   mu_z                  = 0.2                  ,
                   sig_z                 = 0.2                  , 
-                  bet_xy                = 4.43864              ,
-                  bet_z                 = 27.7052              ,
-                  alpha                 = 74.9664              ,
+                  bet_z                 = 23.5329              ,
+                  bet_xy                = 1.00000              ,
+                  alpha                 = 0.9544               ,
                   superres              = superres             ,
                   reconstruct           = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.set_tau(1)
-j = 60 // scale
+j = 60
 i = 60
+j_s = j // scale
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
@@ -91,11 +92,11 @@ for n in range(0,5):
     ax8.set_title('depth\nlabel')
     plt.subplots_adjust(hspace=-0.0)
     if partial is not None:
-        ax1.imshow(reconst[0, partial[0]+j, :, :],
+        ax1.imshow(reconst[0, partial[0]+j_s, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax2.imshow(image[0, partial[0]+j, :, :].to(device='cpu'),
+        ax2.imshow(image[0, partial[0]+j_s, :, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax3.imshow(output[0, 0, partial[0]+j, :, :],
+        ax3.imshow(output[0, 0, partial[0]+j_s, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax4.imshow(label[0, partial[0]+j, :, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
@@ -108,9 +109,9 @@ for n in range(0,5):
         ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
     else:
-        ax1.imshow(reconst[0, j, :, :],
+        ax1.imshow(reconst[0, j_s, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax2.imshow(image[0, j, :, :].to(device='cpu'),
+        ax2.imshow(image[0, j_s, :, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax3.imshow(output[0, 0, j, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
