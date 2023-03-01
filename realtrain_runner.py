@@ -94,7 +94,6 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 
-
 JNet.load_state_dict(torch.load('model/JNet_176_x6.pt'), strict=False)
 
 JNet.blur.mu_z    = nn.Parameter(torch.tensor(mu_z    , requires_grad=True))
