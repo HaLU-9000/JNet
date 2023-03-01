@@ -43,6 +43,9 @@ sparsebeadslikedataset/
 sparsebeadslikedata/
 sparsebeadslikescore/
 beadsdataarray/
+spinedata0/
+spinescore0/
+spinerawdata0/
 
 
 pathlib_test.py

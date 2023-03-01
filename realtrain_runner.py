@@ -11,16 +11,16 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-scale    = 10
+scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-train_score   = torch.load('./beadsscore4/002_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-val_score     = torch.load('./beadsscore4/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+train_score   = None #torch.load('./spinescore0/020_score.pt') 
+val_score     = None #torch.load('./spinescore4/020_score.pt') 
 
-train_dataset = RealDensityDataset(folderpath      =  'beadsdata4' ,
-                                   scorefolderpath =  'beadsscore4',
-                                   imagename       =  '002'            ,
-                                   size            =  ( 650, 512, 512) , # size after segmentation
+train_dataset = RealDensityDataset(folderpath      =  'spinedata0' ,
+                                   scorefolderpath =  'spinescore0',
+                                   imagename       =  '020'            ,
+                                   size            =  ( 282, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
                                    I               =  200              ,
                                    low             =   0               ,
@@ -34,10 +34,10 @@ train_dataset = RealDensityDataset(folderpath      =  'beadsdata4' ,
                                    surround_size   =  surround_size    ,
                                    score           =  train_score      ,
                                   )
-val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4' ,
-                                   scorefolderpath =  'beadsscore4',
-                                   imagename       =  '002'            ,
-                                   size            =  ( 650, 512, 512) , # size after segmentation
+val_dataset   = RealDensityDataset(folderpath      =  'spinedata0'     ,
+                                   scorefolderpath =  'spinescore0'    ,
+                                   imagename       =  '020'            ,
+                                   size            =  ( 282, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) ,
                                    I               =  10               ,
                                    low             =   0               ,
@@ -46,7 +46,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4' ,
                                    train           =  False            ,
                                    mask            =  False            ,
                                    surround        =  False            ,
-                                   surround_size   =  [64, 8, 8]       ,
+                                   surround_size   =  surround_size    ,
                                    seed            =  1204             ,
                                    score           =  val_score        ,
                                   )
@@ -64,7 +64,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_173_x10'
+model_name           = 'JNet_176_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -76,9 +76,9 @@ superres             = True if scale > 1 else False
 reconstruct          = True
 mu_z                 = 0.2                  
 sig_z                = 0.2                   
-bet_xy               = 4.43864              
-bet_z                = 27.7052              
-alpha                = 74.9664              
+bet_z                = 23.5329              
+bet_xy               = 1.00000              
+alpha                = 0.9544                        
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
@@ -95,7 +95,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
 JNet = JNet.to(device = device)
 
 
-JNet.load_state_dict(torch.load('model/JNet_171_x10.pt'), strict=False)
+JNet.load_state_dict(torch.load('model/JNet_176_x6.pt'), strict=False)
 
 JNet.blur.mu_z    = nn.Parameter(torch.tensor(mu_z    , requires_grad=True))
 JNet.blur.sig_z   = nn.Parameter(torch.tensor(sig_z   , requires_grad=True))
