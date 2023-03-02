@@ -30,7 +30,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'spinelikedata0'   ,  ###
                                  seed          =  907              ,
                                 )
 
-model_name           = 'JNet_175_x6'
+model_name           = 'JNet_178_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
