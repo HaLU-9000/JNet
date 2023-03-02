@@ -73,7 +73,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     vmidloss_sum += vmid_loss.detach().item()
         num  = len(train_loader)
         vnum = len(val_loader)
-        mu_z, sig_z, bet_xy, bet_z, alpha = [i for i in model.parameters()][-5:]
+        mu_z, sig_z, bet_z, bet_xy, alpha = [i for i in model.parameters()][-5:]
         #print(mu_z, sig_z, bet_xy, bet_z, alpha)
         loss_list.append(loss_sum / num)
         midloss_list.append(midloss_sum / num) if check_middle else 0

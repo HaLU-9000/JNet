@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from dataset import RealDensityDataset
 import model
 
-vis_mseloss = True
+vis_mseloss = False
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -13,11 +13,11 @@ print(f"Inference on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score     = torch.load('beadsscore4/002_score.pt')
-val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4'     ,
-                                   scorefolderpath =  'beadsscore4'    ,
-                                   imagename       =  '002'            ,
-                                   size            =  ( 650, 512, 512) ,
+val_score     = torch.load('./spinescore0/020_score.pt') 
+val_dataset   = RealDensityDataset(folderpath      =  'spinedata0'     ,
+                                   scorefolderpath =  'spinescore0'    ,
+                                   imagename       =  '020'            ,
+                                   size            =  ( 282, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) ,
                                    I               =  10               ,
                                    low             =   0               ,
@@ -26,12 +26,12 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4'     ,
                                    train           =  False            ,
                                    mask            =  False            ,
                                    surround        =  False            ,
-                                   surround_size   =  [64, 8, 8]       ,
+                                   surround_size   =  surround_size    ,
                                    seed            =  1204             ,
-                                   score           =  train_score      ,
+                                   score           =  val_score        ,
                                   )
 
-model_name           = 'JNet_173_x10'
+model_name           = 'JNet_175_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -121,7 +121,7 @@ if vis_mseloss == False:
 
 else:
     for n in range(0, 10):
-        if n == 7 or n==9:
+        #if n == 7 or n==9:
             image, label= val_dataset[n]
             output, reconst= JNet(image.to("cuda").unsqueeze(0))
             output  = output.detach().cpu().numpy()

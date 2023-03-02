@@ -297,10 +297,9 @@ class Blur(nn.Module):
 
     def gen_psf(self, bet_xy, bet_z, alpha):
         psf_lateral = self.gen_2dnorm(self.dp, bet_xy).view(1, self.x, self.y)
-        psf_axial   = self.gen_double_exp_dist(self.gen_1dnorm(self.zd, bet_z),
-                                               alpha) # axial only double exp
-        psf_axial   = psf_axial.view(self.z, 1, 1)
-        psf  = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)).clone() # log-sum-exp technique
+        psf_axial   = self.gen_1dnorm(self.zd, bet_z).view(self.z, 1, 1)
+        psf  = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
+        psf  = self.gen_double_exp_dist(psf, alpha,)
         psf /= torch.sum(psf)
         psf  = self.dim_3dto5d(psf)
         return psf
@@ -418,7 +417,7 @@ class SuperResolutionLayer(nn.Module):
                 SuperResolutionBlock(scale_factor = scale_factor ,
                                      in_channels  = in_channels  ,
                                      nblocks      = nblocks      ,
-                                    dropout      = dropout      ,
+                                     dropout      = dropout      ,
                                     )
                                  for scale_factor in scale_list])
         
