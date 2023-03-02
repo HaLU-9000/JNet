@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_177_x6'
+model_name           = 'JNet_179_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -94,7 +94,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   reconstruct           = reconstruct          ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_175_x6.pt'), strict=False)
+JNet.load_state_dict(torch.load('model/JNet_178_x6.pt'), strict=False)
 
 JNet.image.mu_z    = nn.Parameter(torch.tensor(mu_z    , requires_grad=True))
 JNet.image.sig_z   = nn.Parameter(torch.tensor(sig_z   , requires_grad=True))
