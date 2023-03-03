@@ -31,7 +31,24 @@ val_dataset   = RealDensityDataset(folderpath      =  'spinedata0'     ,
                                    score           =  val_score        ,
                                   )
 
-model_name           = 'JNet_175_x6'
+val_dataset_  = RealDensityDataset(folderpath      =  'spinerawdata0'  ,
+                                   scorefolderpath =  'spinescore0'    ,
+                                   imagename       =  '020'            ,
+                                   size            =  ( 282, 512, 512) , # size after segmentation
+                                   cropsize        =  ( 240, 112, 112) ,
+                                   I               =  10               ,
+                                   low             =   0               ,
+                                   high            =   1               ,
+                                   scale           =  scale            ,
+                                   train           =  False            ,
+                                   mask            =  False            ,
+                                   surround        =  False            ,
+                                   surround_size   =  surround_size    ,
+                                   seed            =  1204             ,
+                                   score           =  val_score        ,
+                                  )
+
+model_name           = 'JNet_179_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -64,8 +81,10 @@ JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
 if vis_mseloss == False:
-    for n in range(0,10):
-        image, label= val_dataset[n]
+    n = 5
+    if n == 5: #for n in range(0,10):
+        image , label = val_dataset[n]
+        image_, label = val_dataset_[n]
         output, reconst= JNet(image.to("cuda").unsqueeze(0))
         output  = output.detach().cpu().numpy()
         reconst = reconst.squeeze(0).detach().cpu().numpy()
@@ -106,18 +125,18 @@ if vis_mseloss == False:
         else:
             ax1.imshow(reconst[0, j_s, :, :],
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax2.imshow(image[0, j_s, :, :].to(device='cpu'),
+            ax2.imshow(image_[0, j_s, :, :].to(device='cpu'),
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
             ax3.imshow(output[0, 0, j, :, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                    cmap='gray', vmin=0.2, vmax=1.0, aspect=1)
             ax4.imshow(reconst[0, :, i, :],
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-            ax5.imshow(image[0, :, i, :].to(device='cpu'),
+            ax5.imshow(image_[0, :, i, :].to(device='cpu'),
                     cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
             ax6.imshow(output[0, 0, :, i, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                    cmap='gray', vmin=0.2, vmax=1.0, aspect=1)
 
-        plt.savefig(f'result/{model_name}_realresult{n}.png', format='png', dpi=250)
+        plt.savefig(f'result/{model_name}_realresult{n}_raw.png', format='png', dpi=250)
 
 else:
     for n in range(0, 10):
