@@ -63,6 +63,7 @@ JNet.eval()
 for n in range(0,1):
     image, label= val_dataset[n]
     torch.save(image, f'./result_psj/{model_name}_image{n}.pt')
+    torch.save(label, f'./result_psj/{model_name}_label{n}.pt')
     output, reconst= JNet(image.to("cuda").unsqueeze(0))
     output  = output.detach().cpu().numpy()
     torch.save(output, f'./result_psj/{model_name}_result{n}.pt')
