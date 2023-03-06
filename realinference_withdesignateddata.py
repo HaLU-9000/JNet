@@ -10,16 +10,24 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Inference on device {device}.")
 
-scale    = 10
+scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 image_path    = 'images_psj/'
-image_name    = 'croped_cliped_beads'
-image__name   = 'croped_beads'
-image         = torch.load('./' + image_path + image_name  + '.pt').to(device)
-image_        = torch.load('./' + image_path + image__name + '.pt').to(device)
+image_name    = 'cropped_normalized_175-11w-D3-xyz6-020'
+image__name   = 'cropped_raw_175-11w-D3-xyz6-020'
+images        = torch.load('./' + image_path + image_name  + '.pt').to(device)
+images_       = torch.load('./' + image_path + image__name + '.pt').to(device)
+images =  [images[:, :, :112, :112].clone(),
+           images[:, :, :112, 112:].clone(),
+           images[:, :, 112:, :112].clone(),
+           images[:, :, 112:, 112:].clone(),]
+images_ = [images_[:, :, :112, :112].clone(),
+           images_[:, :, :112, 112:].clone(),
+           images_[:, :, 112:, :112].clone(),
+           images_[:, :, 112:, 112:].clone(),]
 
-model_num            = 173
+model_num            = 179
 model_name           = f'JNet_{model_num}_x{scale}'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
@@ -51,12 +59,12 @@ i = 56
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
-if vis_mseloss == False:
-
+for k, image in enumerate(zip(images, images_)):
+    image, image_ = image
     output, reconst= JNet(image.to("cuda").unsqueeze(0))
     output  = output.detach().cpu().numpy()
     reconst = reconst.squeeze(0).detach().cpu().numpy()
-    torch.save(output, f'./result_psj/{image_name}_result.pt')
+    torch.save(output, f'./result_psj/{image_name}_result{k}.pt')
     fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
@@ -71,7 +79,6 @@ if vis_mseloss == False:
             cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
     ax2.imshow(output[0, 0, :, i, :],
             cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result_psj/{model_name}_{image_name}__.png', format='png', dpi=250)
-
+    plt.savefig(f'result_psj/{model_name}_{image_name}_{k}.png', format='png', dpi=250) 
 else:
     pass
