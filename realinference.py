@@ -10,7 +10,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Inference on device {device}.")
 
-scale    = 10
+scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 val_score     = torch.load('./spinescore0/020_score.pt') 
@@ -81,8 +81,7 @@ JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
 if vis_mseloss == False:
-    n = 5
-    if n == 5: #for n in range(0,10):
+    for n in range(0,10):
         image , label = val_dataset[n]
         image_, label = val_dataset_[n]
         output, reconst= JNet(image.to("cuda").unsqueeze(0))
@@ -136,7 +135,7 @@ if vis_mseloss == False:
             ax6.imshow(output[0, 0, :, i, :],
                     cmap='gray', vmin=0.2, vmax=1.0, aspect=1)
 
-        plt.savefig(f'result/{model_name}_realresult{n}_raw.png', format='png', dpi=250)
+        plt.savefig(f'result/{model_name}_realresult{n}_raw_6.png', format='png', dpi=250)
 
 else:
     for n in range(0, 10):
