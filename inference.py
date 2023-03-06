@@ -60,11 +60,14 @@ j_s = j // scale
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
-for n in range(0,5):
+for n in range(0,1):
     image, label= val_dataset[n]
+    torch.save(image, f'./result_psj/{model_name}_image{n}.pt')
     output, reconst= JNet(image.to("cuda").unsqueeze(0))
     output  = output.detach().cpu().numpy()
+    torch.save(output, f'./result_psj/{model_name}_result{n}.pt')
     reconst = reconst.squeeze(0).detach().cpu().numpy()
+
     fig = plt.figure(figsize=(25, 15))
     ax1 = fig.add_subplot(241)
     ax2 = fig.add_subplot(242)
@@ -125,5 +128,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax8.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_sim_result{n}.png', format='png', dpi=250)
+    plt.savefig(f'result_psj/{model_name}_sim_result{n}.png', format='png', dpi=250)
     
