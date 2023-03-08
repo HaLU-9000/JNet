@@ -108,10 +108,10 @@ for n in range(0,1):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
         ax6.imshow(image[0, partial[0]:partial[1], i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        ax7.imshow(output[0, 0, partial[0]:partial[1], i, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        #ax7.imshow(output[0, 0, partial[0]:partial[1], i, :],
+        #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        #ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
+        #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
     else:
         #ax1.imshow(reconst[0, j_s, :, :],
         #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
