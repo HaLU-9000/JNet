@@ -63,6 +63,7 @@ blur_test.py
 inference_former.py
 animation.py
 evaluations_BCE.ipynb
+evaluations_BCE_178.ipynb
 evaluations_IoU.ipynb
 roc_test.ipynb
 beadslikedata_analize.py
