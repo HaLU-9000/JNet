@@ -1,3 +1,4 @@
+# this code is modified from labml.ai https://nn.labml.ai/diffusion/stable_diffusion/model/unet.html
 import math
 from typing import List
 
@@ -180,106 +181,98 @@ class TimestepEmbedSequential(nn.Sequential):
 
 
 class UpSample(nn.Module):
-    """
-    ### Up-sampling layer
-    """
-
     def __init__(self, channels: int):
-        """
-        :param channels: is the number of channels
-        """
         super().__init__()
-        # $3 \times 3$ convolution mapping
-        self.conv = nn.Conv2d(channels, channels, 3, padding=1)
+        self.conv = nn.Conv2d(
+                                in_channels  = channels,
+                                out_channels = channels,
+                                kernel_size  = 3       ,
+                                padding      = 1       ,
+                             )
+    
+        self.up   = nn.Upsample(
+                                    scale_factor = 2         ,
+                                    mode         = "nearest" ,
+                               )
 
     def forward(self, x: torch.Tensor):
-        """
-        :param x: is the input feature map with shape `[batch_size, channels, height, width]`
-        """
-        # Up-sample by a factor of $2$
-        x = F.interpolate(x, scale_factor=2, mode="nearest")
-        # Apply convolution
-        return self.conv(x)
+        x = self.up(x)
+        x = self.conv(x)
+        return x
 
 
 class DownSample(nn.Module):
-    """
-    ## Down-sampling layer
-    """
-
     def __init__(self, channels: int):
-        """
-        :param channels: is the number of channels
-        """
         super().__init__()
-        # $3 \times 3$ convolution with stride length of $2$ to down-sample by a factor of $2$
-        self.op = nn.Conv2d(channels, channels, 3, stride=2, padding=1)
+        self.down = nn.Conv2d(
+                                in_channels  = channels ,
+                                out_channels = channels ,
+                                kernel_size  = 3        ,
+                                stride       = 2        ,
+                                padding      = 1        ,
+                             )
 
     def forward(self, x: torch.Tensor):
-        """
-        :param x: is the input feature map with shape `[batch_size, channels, height, width]`
-        """
-        # Apply convolution
-        return self.op(x)
+        x = self.down(x)
+        return x
 
 
 class ResBlock(nn.Module):
-    """
-    ## ResNet Block
-    """
-
-    def __init__(self, channels: int, d_t_emb: int, *, out_channels=None):
+    def __init__(self, channels: int, d_t_emb: int, *, out_channels=None,
+                 activation=nn.SiLU(), dropout_rate=0.):
         """
         :param channels: the number of input channels
         :param d_t_emb: the size of timestep embeddings
         :param out_channels: is the number of out channels. defaults to `channels.
         """
         super().__init__()
-        # `out_channels` not specified
         if out_channels is None:
-            out_channels = channels
+            out_channels = channels # `out_channels` not specified
 
-        # First normalization and convolution
-        self.in_layers = nn.Sequential(
-            normalization(channels),
-            nn.SiLU(),
-            nn.Conv2d(channels, out_channels, 3, padding=1),
-        )
+        self.prev = nn.Sequential(
+                                    normalization(channels)                 ,
+                                    activation                              ,
+                                    nn.Conv2d(in_channels  = channels     ,
+                                              out_channels = out_channels ,
+                                              kernel_size  = 3            ,
+                                              stride       = 1            ,
+                                              padding      = 1            ,),
+                                 ) # First normalization and convolution
+        
+        self.emb  = nn.Sequential(
+                                    activation,
+                                    nn.Linear(d_t_emb,
+                                              out_channels),
+                                 ) # Time step embeddings
 
-        # Time step embeddings
-        self.emb_layers = nn.Sequential(
-            nn.SiLU(),
-            nn.Linear(d_t_emb, out_channels),
-        )
-        # Final convolution layer
-        self.out_layers = nn.Sequential(
-            normalization(out_channels),
-            nn.SiLU(),
-            nn.Dropout(0.),
-            nn.Conv2d(out_channels, out_channels, 3, padding=1)
-        )
+        self.post = nn.Sequential(
+                                    normalization(out_channels)             ,
+                                    activation                              ,
+                                    nn.Dropout(p=dropout_rate)              ,
+                                    nn.Conv2d(in_channels  = out_channels ,
+                                              out_channels = out_channels ,
+                                              kernel_size  = 3            ,
+                                              stride       = 1            ,
+                                              padding      = 1            ,),
+                                 ) # Final convolution layer
 
-        # `channels` to `out_channels` mapping layer for residual connection
         if out_channels == channels:
             self.skip_connection = nn.Identity()
         else:
-            self.skip_connection = nn.Conv2d(channels, out_channels, 1)
+            self.skip_connection = nn.Conv2d(in_channels  = channels    ,
+                                             out_channels = out_channels,
+                                             kernel_size  = 1           ,)
 
-    def forward(self, x: torch.Tensor, t_emb: torch.Tensor):
+    def forward(self, x: torch.Tensor, t: torch.Tensor):
         """
         :param x: is the input feature map with shape `[batch_size, channels, height, width]`
-        :param t_emb: is the time step embeddings of shape `[batch_size, d_t_emb]`
+        :param t: is the time step embeddings of shape `[batch_size, d_t_emb]`
         """
-        # Initial convolution
-        h = self.in_layers(x)
-        # Time step embeddings
-        t_emb = self.emb_layers(t_emb).type(h.dtype)
-        # Add time step embeddings
-        h = h + t_emb[:, :, None, None]
-        # Final convolution
-        h = self.out_layers(h)
-        # Add skip connection
-        return self.skip_connection(x) + h
+        h = self.prev(x)                   # Initial convolution
+        t = self.emb(t).type(h.dtype)      # Time step embeddings
+        h = h + t[:, :, None, None]        # Add time step embeddings
+        h = self.post(h)                   # Final convolution
+        return self.skip_connection(x) + h # Add skip connection
 
 
 class GroupNorm32(nn.GroupNorm):
