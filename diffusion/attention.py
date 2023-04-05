@@ -18,8 +18,9 @@ class SpatialTransformer(nn.Module):
         :param d_cond: is the size of the conditional embedding
         """
         super().__init__()
-        # Initial group normalization
-        self.norm = torch.nn.GroupNorm(num_groups=32, num_channels=channels, eps=1e-6, affine=True)
+        self.norm = torch.nn.GroupNorm(num_groups=32,
+                                       num_channels=channels,
+                                       eps=1e-6, affine=True)
         # Initial $1 \times 1$ convolution
         self.proj_in = nn.Conv2d(channels, channels, kernel_size=1, stride=1, padding=0)
 
@@ -131,8 +132,21 @@ class CrossAttention(nn.Module):
 
         # Final linear layer
         self.to_out = nn.Sequential(nn.Linear(d_attn, d_model))
-        
-        self.flash = None
+
+        # Setup [flash attention](https://github.com/HazyResearch/flash-attention).
+        # Flash attention is only used if it's installed
+        # and `CrossAttention.use_flash_attention` is set to `True`.
+        try:
+            # You can install flash attention by cloning their Github repo,
+            # [https://github.com/HazyResearch/flash-attention](https://github.com/HazyResearch/flash-attention)
+            # and then running `python setup.py install`
+            from flash_attn.flash_attention import FlashAttention
+            self.flash = FlashAttention()
+            # Set the scale for scaled dot-product attention.
+            self.flash.softmax_scale = self.scale
+        # Set to `None` if it's not installed
+        except ImportError:
+            self.flash = None
 
     def forward(self, x: torch.Tensor, cond: Optional[torch.Tensor] = None):
         """
@@ -151,7 +165,10 @@ class CrossAttention(nn.Module):
         v = self.to_v(cond)
 
         # Use flash attention if it's available and the head size is less than or equal to `128`
-        if CrossAttention.use_flash_attention and self.flash is not None and not has_cond and self.d_head <= 128:
+        if CrossAttention.use_flash_attention \
+            and self.flash is not None        \
+            and not has_cond                  \
+            and self.d_head <= 128:
             return self.flash_attention(q, k, v)
         # Otherwise, fallback to normal attention
         else:
