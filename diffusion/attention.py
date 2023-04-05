@@ -131,7 +131,7 @@ class CrossAttention(nn.Module):
 
         # Final linear layer
         self.to_out = nn.Sequential(nn.Linear(d_attn, d_model))
-
+        
         self.flash = None
 
     def forward(self, x: torch.Tensor, cond: Optional[torch.Tensor] = None):

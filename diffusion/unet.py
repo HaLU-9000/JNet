@@ -13,7 +13,6 @@ class UNetModel(nn.Module):
     """
     ## U-Net model
     """
-
     def __init__(
             self, *,
             in_channels: int,
@@ -42,96 +41,140 @@ class UNetModel(nn.Module):
         # Size time embeddings
         d_time_emb = channels * 4
         self.time_embed = nn.Sequential(
-            nn.Linear(channels, d_time_emb),
-            nn.SiLU(),
-            nn.Linear(d_time_emb, d_time_emb),
+            nn.Linear(in_features  = channels   ,
+                      out_features = d_time_emb ,),
+            nn.SiLU()                             ,
+            nn.Linear(in_features  = d_time_emb ,
+                      out_features = d_time_emb ,),
         )
-
-        # Input half of the U-Net
+        # Contraction Path of the U-Net
         self.input_blocks = nn.ModuleList()
-        # Initial $3 \times 3$ convolution that maps the input to `channels`.
-        # The blocks are wrapped in `TimestepEmbedSequential` module because
-        # different modules have different forward function signatures;
-        # for example, convolution only accepts the feature map and
-        # residual blocks accept the feature map and time embedding.
-        # `TimestepEmbedSequential` calls them accordingly.
-        self.input_blocks.append(TimestepEmbedSequential(
-            nn.Conv2d(in_channels, channels, 3, padding=1)))
-        # Number of channels at each block in the input half of U-Net
+        self.input_blocks.append(
+            TimestepEmbedSequential(
+                                    nn.Conv2d(in_channels  = in_channels ,
+                                              out_channels = channels    ,
+                                              kernel_size  = 3           ,
+                                              padding      = 1           ,
+                                              )
+                                    )
+                                )
         input_block_channels = [channels]
-        # Number of channels at each level
-        channels_list = [channels * m for m in channel_multipliers]
-        # Prepare levels
+        channels_list        = [channels * m for m in channel_multipliers]
         for i in range(levels):
-            # Add the residual blocks and attentions
             for _ in range(n_res_blocks):
-                # Residual block maps from previous number of channels to the number of
-                # channels in the current level
-                layers = [ResBlock(channels, d_time_emb, out_channels=channels_list[i])]
+                layers   = [
+                                ResBlock(channels    = channels        ,
+                                         d_t_emb     = d_time_emb      ,
+                                         out_channels= channels_list[i],)
+                            ]
                 channels = channels_list[i]
-                # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers, d_cond))
-                # Add them to the input half of the U-Net and keep track of the number of channels of
-                # its output
-                self.input_blocks.append(TimestepEmbedSequential(*layers))
+                    layers.append(
+                        SpatialTransformer(channels = channels ,
+                                           n_heads  = n_heads  ,
+                                           n_layers = tf_layers,
+                                           d_cond   = d_cond   ,
+                                           )
+                                  )
+                self.input_blocks.append(
+                    TimestepEmbedSequential(
+                                            *layers
+                                            )
+                                        )
                 input_block_channels.append(channels)
+            
             # Down sample at all levels except last
             if i != levels - 1:
-                self.input_blocks.append(TimestepEmbedSequential(DownSample(channels)))
+                self.input_blocks.append(
+                    TimestepEmbedSequential(
+                                            DownSample(
+                                                       channels = channels
+                                                       )
+                                            )
+                                         )
                 input_block_channels.append(channels)
 
         # The middle of the U-Net
         self.middle_block = TimestepEmbedSequential(
-            ResBlock(channels, d_time_emb),
-            SpatialTransformer(channels, n_heads, tf_layers, d_cond),
-            ResBlock(channels, d_time_emb),
+            ResBlock(
+                        channels = channels   ,
+                        d_t_emb  = d_time_emb ,
+                     )                                 ,
+            SpatialTransformer(
+                                channels = channels  ,
+                                n_heads  = n_heads   ,
+                                n_layers = tf_layers ,
+                                d_cond   = d_cond    ,
+                               )                       ,
+            ResBlock(
+                        channels = channels   ,
+                        d_t_emb  = d_time_emb ,
+                     )                                 ,
         )
-
-        # Second half of the U-Net
+        # extraction path (Second half) of the U-Net
         self.output_blocks = nn.ModuleList([])
-        # Prepare levels in reverse order
         for i in reversed(range(levels)):
-            # Add the residual blocks and attentions
             for j in range(n_res_blocks + 1):
-                # Residual block maps from previous number of channels plus the
-                # skip connections from the input half of U-Net to the number of
-                # channels in the current level.
-                layers = [ResBlock(channels + input_block_channels.pop(), d_time_emb, out_channels=channels_list[i])]
+                layers = [
+                    ResBlock(channels     = channels 
+                                            + input_block_channels.pop() ,
+                             d_t_emb      = d_time_emb                   ,
+                             out_channels = channels_list[i]             ,
+                             )
+                          ]
                 channels = channels_list[i]
-                # Add transformer
                 if i in attention_levels:
-                    layers.append(SpatialTransformer(channels, n_heads, tf_layers, d_cond))
-                # Up-sample at every level after last residual block
-                # except the last one.
-                # Note that we are iterating in reverse; i.e. `i == 0` is the last.
+                    layers.append(
+                        SpatialTransformer(
+                                            channels = channels ,
+                                            n_heads  = n_heads  ,
+                                            n_layers = tf_layers,
+                                            d_cond   = d_cond   ,
+                                           )
+                                  )
                 if i != 0 and j == n_res_blocks:
-                    layers.append(UpSample(channels))
+                    layers.append(
+                        UpSample(
+                                    channels = channels
+                                 )
+                                  )
                 # Add to the output half of the U-Net
-                self.output_blocks.append(TimestepEmbedSequential(*layers))
+                self.output_blocks.append(
+                    TimestepEmbedSequential(
+                                            *layers
+                                            )
+                                          )
 
-        # Final normalization and $3 \times 3$ convolution
         self.out = nn.Sequential(
-            normalization(channels),
-            nn.SiLU(),
-            nn.Conv2d(channels, out_channels, 3, padding=1),
-        )
+                                  normalization(
+                                                  channels = channels
+                                                )                            ,
+                                  nn.SiLU()                                  ,
+                                  nn.Conv2d(
+                                              in_channels  = channels     ,
+                                              out_channels = out_channels ,
+                                              kernel_size  = 3            ,
+                                              padding      = 1            ,
+                                            )                                ,
+                                 )
 
-    def time_step_embedding(self, time_steps: torch.Tensor, max_period: int = 10000):
+    def time_step_embedding(
+            self,
+            time_steps: torch.Tensor, max_period: int = 10000):
         """
         ## Create sinusoidal time step embeddings
         :param time_steps: are the time steps of shape `[batch_size]`
         :param max_period: controls the minimum frequency of the embeddings.
         """
-        # $\frac{c}{2}$; half the channels are sin and the other half is cos,
-        half = self.channels // 2
-        # $\frac{1}{10000^{\frac{2i}{c}}}$
+        half        = self.channels // 2
         frequencies = torch.exp(
-            -math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32) / half
-        ).to(device=time_steps.device)
-        # $\frac{t}{10000^{\frac{2i}{c}}}$
-        args = time_steps[:, None].float() * frequencies[None]
-        # $\cos\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$ and $\sin\Bigg(\frac{t}{10000^{\frac{2i}{c}}}\Bigg)$
+                                - math.log(max_period) 
+                                * torch.arange(start = 0             ,
+                                               end   = half          ,
+                                               dtype = torch.float32 ,
+                                               ) / half
+                                ).to(device=time_steps.device)
+        args        = time_steps[:, None].float() * frequencies[None]
         return torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
 
     def forward(self, x: torch.Tensor, time_steps: torch.Tensor, cond: torch.Tensor):
@@ -146,7 +189,7 @@ class UNetModel(nn.Module):
         # Get time step embeddings
         t_emb = self.time_step_embedding(time_steps)
         t_emb = self.time_embed(t_emb)
-
+# ------UNetLayer x = self.unetlayer(x, t_emb, cond)
         # Input half of the U-Net
         for module in self.input_blocks:
             x = module(x, t_emb, cond)
@@ -157,18 +200,19 @@ class UNetModel(nn.Module):
         for module in self.output_blocks:
             x = torch.cat([x, x_input_block.pop()], dim=1)
             x = module(x, t_emb, cond)
-
+# ------UNetLayer
         # Final normalization and $3 \times 3$ convolution
         return self.out(x)
+    
 
+class UNetLayer(nn.Module):
+    def __init__():
+        
+        pass
+    def forward():
+        pass
 
 class TimestepEmbedSequential(nn.Sequential):
-    """
-    ### Sequential block for modules with different inputs
-    This sequential module can compose of different modules suck as `ResBlock`,
-    `nn.Conv` and `SpatialTransformer` and calls them with the matching signatures
-    """
-
     def forward(self, x, t_emb, cond=None):
         for layer in self:
             if isinstance(layer, ResBlock):
@@ -183,17 +227,13 @@ class TimestepEmbedSequential(nn.Sequential):
 class UpSample(nn.Module):
     def __init__(self, channels: int):
         super().__init__()
-        self.conv = nn.Conv2d(
-                                in_channels  = channels,
-                                out_channels = channels,
-                                kernel_size  = 3       ,
-                                padding      = 1       ,
-                             )
+        self.conv = nn.Conv2d(in_channels  = channels,
+                              out_channels = channels,
+                              kernel_size  = 3       ,
+                              padding      = 1       ,)
     
-        self.up   = nn.Upsample(
-                                    scale_factor = 2         ,
-                                    mode         = "nearest" ,
-                               )
+        self.up   = nn.Upsample(scale_factor = 2         ,
+                                mode         = "nearest" ,)
 
     def forward(self, x: torch.Tensor):
         x = self.up(x)
@@ -204,13 +244,11 @@ class UpSample(nn.Module):
 class DownSample(nn.Module):
     def __init__(self, channels: int):
         super().__init__()
-        self.down = nn.Conv2d(
-                                in_channels  = channels ,
-                                out_channels = channels ,
-                                kernel_size  = 3        ,
-                                stride       = 2        ,
-                                padding      = 1        ,
-                             )
+        self.down = nn.Conv2d(in_channels  = channels ,
+                              out_channels = channels ,
+                              kernel_size  = 3        ,
+                              stride       = 2        ,
+                              padding      = 1        ,)
 
     def forward(self, x: torch.Tensor):
         x = self.down(x)
@@ -313,7 +351,7 @@ if __name__ == "__main__":
     unet = UNetModel(in_channels=1,
                      out_channels=1,
                      channels=64,
-                     n_res_blocks=1,
+                     n_res_blocks=2,
                      attention_levels=[1],
                      channel_multipliers=[1],
                      n_heads=8)
