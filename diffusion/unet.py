@@ -82,7 +82,7 @@ class UNetModel(nn.Module):
                                             )
                                         )
                 input_block_channels.append(channels)
-            
+                
             # Down sample at all levels except last
             if i != levels - 1:
                 self.input_blocks.append(
@@ -189,7 +189,7 @@ class UNetModel(nn.Module):
         # Get time step embeddings
         t_emb = self.time_step_embedding(time_steps)
         t_emb = self.time_embed(t_emb)
-# ------UNetLayer x = self.unetlayer(x, t_emb, cond)
+
         # Input half of the U-Net
         for module in self.input_blocks:
             x = module(x, t_emb, cond)
@@ -200,17 +200,10 @@ class UNetModel(nn.Module):
         for module in self.output_blocks:
             x = torch.cat([x, x_input_block.pop()], dim=1)
             x = module(x, t_emb, cond)
-# ------UNetLayer
+
         # Final normalization and $3 \times 3$ convolution
         return self.out(x)
-    
 
-class UNetLayer(nn.Module):
-    def __init__():
-        
-        pass
-    def forward():
-        pass
 
 class TimestepEmbedSequential(nn.Sequential):
     def forward(self, x, t_emb, cond=None):
