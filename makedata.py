@@ -38,7 +38,7 @@ def make_data(num, datasize = (128, 128, 128)):
 
 def make_beads_data(num, datasize = (128, 128, 128)):
     data = np.zeros(datasize)
-    r_l  = [randint(15, 25)                        for _ in range(num)]
+    r_l  = [randint(10, 30)                        for _ in range(num)]
     s_l  = [choice(['ball', 'octahedron', 'cube']) for _ in range(num)]
     z_l  = [randint(0, datasize[0])                for _ in range(num)]
     x_l  = [randint(0, datasize[1])                for _ in range(num)]

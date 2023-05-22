@@ -47,6 +47,8 @@ spinedata0/
 spinescore0/
 spinerawdata0/
 
+newrandomdataset/
+
 pathlib_test.py
 utils_test.py
 utils_test2.py
