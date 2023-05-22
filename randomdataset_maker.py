@@ -15,3 +15,4 @@ for i in range(0, 1):
     t2 = time.time()
     print(f'{t2 - t1} s')
     np.save(f'sparsebeadslikedataset/{str(i).zfill(4)}_label.npy', inp)
+    
