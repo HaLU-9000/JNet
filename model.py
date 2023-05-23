@@ -265,7 +265,8 @@ class Intensity(nn.Module):
 
 
 class Blur(nn.Module):
-    def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, device,):
+    def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, device,
+                 psf_mode:str="double_exp"):
         super().__init__()
         self.bet_z   = bet_z
         self.bet_xy  = bet_xy
@@ -299,7 +300,12 @@ class Blur(nn.Module):
         psf_lateral = self.gen_2dnorm(self.dp, bet_xy).view(1, self.x, self.y)
         psf_axial   = self.gen_1dnorm(self.zd, bet_z).view(self.z, 1, 1)
         psf  = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
-        psf  = self.gen_double_exp_dist(psf, alpha,)
+        if self.mode == "gaussian":
+            pass
+        elif self.mode == "double_exp":
+            psf  = self.gen_double_exp_dist(psf, alpha,)
+        else:
+            raise(NotImplementedError())
         psf /= torch.sum(psf)
         psf  = self.dim_3dto5d(psf)
         return psf
@@ -367,7 +373,8 @@ class PreProcess(nn.Module):
         self.max = max
 
     def forward(self, x):
-        x = (torch.clip(x, min=self.min) - self.min) / (self.max - self.min)
+        x = torch.clip(x, min=self.min, max=self.max)
+        x = (x - self.min) / (self.max - self.min)
         return x
 
 
@@ -376,18 +383,24 @@ class ImagingProcess(nn.Module):
                  scale, device,
                  z, x, y, bet_z, bet_xy, alpha,
                  sig_eps, postmin=0.1, postmax=1,
-                 gamma=0.05, image_size=(160, 128, 128),
-                 initial_depth=0., voxel_size=0.05,
-                 ):
+                 mode:str="train", ):
         super().__init__()
-        self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=True)
-        self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=True)
-        self.bet_z   = nn.Parameter(torch.tensor(bet_z ), requires_grad=True)
-        self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=True)
-        self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
+        if mode == "train":
+            self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=True)
+            self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=True)
+            self.bet_z   = nn.Parameter(torch.tensor(bet_z ), requires_grad=True)
+            self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=True)
+            self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
+        elif mode == "dataset":
+            self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=False)
+            self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=False)
+            self.bet_z   = nn.Parameter(torch.tensor(bet_z ), requires_grad=False)
+            self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=False)
+            self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=False)
+        else:
+            raise(NotImplementedError())
+        
         self.emission   = Emission(self.mu_z, self.sig_z)
-        #self.intensity  = Intensity(gamma, image_size, initial_depth,
-        #                            voxel_size, scale[0], device,)
         self.blur       = Blur(z, x, y,
                                self.bet_z, self.bet_xy, self.alpha,
                                scale, device,)
@@ -396,14 +409,12 @@ class ImagingProcess(nn.Module):
 
     def forward(self, x):
         x = self.emission(x)
-        #x = self.intensity(x)
         x = self.blur(x)
         x = self.preprocess(x)
         return x
 
     def sample(self, x):
         x = self.emission.sample(x)
-        #x = self.intensity(x)
         x = self.blur(x)
         x = self.noise.sample(x)
         x = self.preprocess(x)
@@ -458,8 +469,8 @@ class JNet(nn.Module):
                                     device       = device       ,
                                     scale        = scale_factor ,
                                     z            = 161          ,
-                                    x            = 3           ,
-                                    y            = 3           ,
+                                    x            = 3            ,
+                                    y            = 3            ,
                                     bet_xy       = bet_xy       ,
                                     bet_z        = bet_z        ,
                                     alpha        = alpha        ,

@@ -10,6 +10,55 @@ from scipy.stats import lognorm
 
 from utils import mask_, surround_mask_
 
+
+def gen_indices(I, low, high):
+    return np.random.randint(low, high, (I,))
+
+def gen_coords(I, size, cropsize, scale, label):
+    zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
+    xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
+    ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
+    if label is not None:
+        return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+    
+    else:
+        return np.array([zcoord // scale, xcoord, ycoord])
+    
+def apply_mask( mask, image, mask_size, mask_num):
+    if mask:
+        image = mask_(image, mask_size, mask_num)
+    return image
+
+def apply_surround_mask(surround, image, surround_size):
+    if surround:
+        image = surround_mask_(image, surround_size)
+    return image
+
+
+class Rotate:
+    def __init__(self, i=None, j=None):
+        if i is not None:
+            self.i = i
+        else:
+            self.i = random.choice([0,2])
+        if j is not None:
+            self.j = j
+        else:
+            self.j = random.choice([0,1,2,3])
+    def __call__(self, x):
+        return torch.rot90(torch.rot90(x, self.i, [1, 2]), self.j, [2, 3]), self.i, self.j
+
+
+class Crop:
+    def __init__(self, coord:list, cropsize:list):
+        self.coord = coord
+        self.csize = cropsize
+    def __call__(self,x:torch.Tensor):
+       return x[0 : , self.coord[0] : self.coord[0] + self.csize[0],
+                      self.coord[1] : self.coord[1] + self.csize[1],
+                      self.coord[2] : self.coord[2] + self.csize[2]].detach().clone()
+    
+
 class Blur(nn.Module):
     def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, alpha, sig_eps, device):
         super().__init__()
@@ -31,8 +80,6 @@ class Blur(nn.Module):
         self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0] # normalize by init value
         self.theomax  = self.sum_alf * self.logn_ppf
 
-
-        
     def distance(self, z, x, y):
         [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
         for k in range(-z // 2, z // 2 + 1):
@@ -75,93 +122,14 @@ class Blur(nn.Module):
         rec  = rec.squeeze(0)
         return rec
 
-class CustomDataset(Dataset):
-    def __init__(self, ori_data, scale, zsize, xsize, ysize, z, x=1, y=1, bet_xy=1, bet_z=50,):
-        model = Blur(scale   = scale ,
-                     z       = z     ,
-                     x       = x     ,
-                     y       = y     ,
-                     mu_z    = 0.2   ,
-                     sig_z   = 0.2   ,
-                     bet_xy  = bet_xy,
-                     bet_z   = bet_z ,
-                     sig_eps = 0.02   ,)
-        blur_zsize  = zsize // scale
-        true        = ori_data
-        self.trues  = self.cut(true                  , zsize     , xsize, ysize).float()
-        self.blurs  = self.cut(self.blur(true, model), blur_zsize, xsize, ysize)
-    def blur(self, inp, model):
-        blur = model(inp)
-        blur = (blur - blur.min()) / (blur.max() - blur.min())
-        return blur
+class RandomBlur(Blur):
+    def __init__(self):
+        pass
     
-    def cut(self, inp, zsize, xsize, ysize):
-        """
-        input  : 4d tensor ([channels, z_shape, x_shape, y_shape])
-        output : 5d tensor ([patches, channels, z_size, x_size, y_size]) 
-        """
-        inp = inp.unfold(1, zsize , zsize ,)\
-                 .unfold(2, xsize , xsize ,)\
-                 .unfold(3, ysize , ysize ,)
-        return inp.contiguous().view(-1, 1, zsize, xsize, ysize)
-
-    def __getitem__(self, idx):
-        return self.blurs[idx], self.trues[idx]
-    
-    def __len__(self):
-        return self.blurs.shape[0]
-
-class Rotate:
-    def __init__(self, i=None, j=None):
-        if i is not None:
-            self.i = i
-        else:
-            self.i = random.choice([0,2])
-        if j is not None:
-            self.j = j
-        else:
-            self.j = random.choice([0,1,2,3])
-    def __call__(self, x):
-        return torch.rot90(torch.rot90(x, self.i, [1, 2]), self.j, [2, 3]), self.i, self.j
-
-class PathDataset(Dataset):
-    """
-    Dataset for evaluation that uses already cropped data.
-    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
-    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
-    low, high : use [low]th ~ [high]th files in folderpath as data.
-    """
-    def __init__(self, folderpath, imagename, labelname='_label', low=0, high=100):
-        self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
-        self.images = list(sorted(Path(folderpath).glob(f'*{imagename}.npy')))
-        self.low    = low
-        self.high   = high
-    def __getitem__(self, idx):
-        image = torch.from_numpy(np.load(self.images[idx + self.low ]))
-        label = torch.from_numpy(np.load(self.labels[idx + self.low]))
-        return image, label
-    def __len__(self):
-        return self.high - self.low
-
-class RotateDataset(Dataset):
-    def __init__(self, folderpath, imagename, labelname='_label'):
-        self.labels = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
-        self.images = list(sorted(Path(folderpath).glob(f'*{imagename}.npy')))
-    def __getitem__(self, idx):
-        image, i, j = Rotate(    )(torch.from_numpy(np.load(self.images[idx])))
-        label, _, _ = Rotate(i, j)(torch.from_numpy(np.load(self.labels[idx])))
-        return image, label
-    def __len__(self):
-        return len(self.labels)
-
-class Crop:
-    def __init__(self, coord:list, cropsize:list):
-        self.coord = coord
-        self.csize = cropsize
-    def __call__(self,x:torch.Tensor):
-       return x[0 : , self.coord[0] : self.coord[0] + self.csize[0],
-                      self.coord[1] : self.coord[1] + self.csize[1],
-                      self.coord[2] : self.coord[2] + self.csize[2]].detach().clone()
+    def forward(self, inp):
+        return super().forward(inp)
+    def gen_valid_params(self):
+        pass
 
 class RandomCutDataset(Dataset):
     '''
@@ -200,134 +168,33 @@ class RandomCutDataset(Dataset):
 
         if train == False:
             np.random.seed(seed)
-            self.indiceslist = self.gen_indices(I, low, high)
-            self.coordslist  = self.gen_coords(I, size, cropsize, scale)
-
-    def gen_indices(self, I, low, high):
-        return np.random.randint(low, high, (I,))
-    
-    def gen_coords(self, I, size, cropsize, scale):
-        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
-        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
-        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
-        return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
-
-    def apply_mask(self, mask, image, mask_size, mask_num):
-        if mask:
-            image = mask_(image, mask_size, mask_num)
-        return image
-
-    def apply_surround_mask(self, surround, image, surround_size):
-        if surround:
-            image = surround_mask_(image, surround_size)
-        return image
+            self.indiceslist = gen_indices(I, low, high)
+            self.coordslist  = gen_coords(I, size, cropsize, scale)
 
     def __getitem__(self, idx):
         if self.train:
-            idx              = self.gen_indices(1, self.low, self.high).item()#;print('idx ', idx)
-            lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
+            idx              = gen_indices(1, self.low, self.high).item()#;print('idx ', idx)
+            lcoords, icoords = gen_coords(1, self.size, self.csize, self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
             image, i, j      = Rotate(    )(Crop(icoords, self.ssize
                                                 )(torch.load(self.images[idx]))) # .unsqueeze(0) for beadslikedata5
             label, _, _      = Rotate(i, j)(Crop(lcoords, self.csize
                                                 )(torch.load(self.labels[idx])))
             
-            image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+            image = apply_mask(self.mask, image, self.mask_size, self.mask_num)
+            image = apply_surround_mask(self.surround, image, self.surround_size)
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             icoords = self.coordslist[1][:, idx]
             lcoords = self.coordslist[0][:, idx]
             image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx])) # .unsqueeze(0) for beadslikedata5
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+            image = apply_surround_mask(self.surround, image, self.surround_size)
         return image, label
 
     def __len__(self):
         return self.I
     
-
-class RandomBlurDataset(Dataset):
-    '''
-    input  : 4d torch.tensor (large (like 768**3) size) (label)
-    output : 4d torch.tensor (small (like 128**3) size)
-             ([channels, z_size, x_size, y_size]) 
-             of randomly blurred/cropped/rotated image and label
-    folderpath : large data path ("randomdata" in this repo)
-    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
-    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
-    I : sample size. Returns I samples. (e.g. 200)
-    low, high : use [low]th ~ [high]th files in folderpath as data.
-    scale: scale (should be same as [imagename]'s int part.)
-    '''
-    def __init__(self, folderpath:str, imagename:str, labelname:str, 
-                 size:list, cropsize:list, I:int, low:int, high:int, scale:int,
-                 train=True, pretrain=True, mask=True,
-                 mask_size=[10, 10, 10], mask_num=1,
-                 surround=True, surround_size=[64, 8, 8],
-                 seed=904):
-        self.I             = I
-        self.low           = low
-        self.high          = high
-        self.scale         = scale
-        self.size          = size
-        self.labels        = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
-        self.csize         = cropsize
-        self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
-        self.train         = train
-        self.mask          = mask
-        self.mask_size     = mask_size
-        self.mask_num      = mask_num
-        self.surround      = surround
-        self.surround_size = surround_size
-        # define imageprocess here
-        if train == False:
-            np.random.seed(seed)
-            self.indiceslist = self.gen_indices(I, low, high)
-            self.coordslist  = self.gen_coords(I, size, cropsize, scale)
-
-    def gen_indices(self, I, low, high):
-        return np.random.randint(low, high, (I,))
-    
-    def gen_coords(self, I, size, cropsize,):
-        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
-        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
-        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
-        return np.array([zcoord, xcoord, ycoord])
-
-    def apply_mask(self, mask, image, mask_size, mask_num):
-        if mask:
-            image = mask_(image, mask_size, mask_num)
-        return image
-
-    def apply_surround_mask(self, surround, image, surround_size):
-        if surround:
-            image = surround_mask_(image, surround_size)
-        return image
-
-    def __getitem__(self, idx):
-        if self.train:
-            idx     = self.gen_indices(1, self.low, self.high).item()#            print('idx ', idx)
-            lcoords = self.gen_coords(1, self.size, self.csize,)
-            lcoords = lcoords[:, 0]
-            label, _, _      = Rotate(    )(Crop(lcoords, self.csize
-                                                )(torch.load(self.labels[idx])))
-            image, params = image(label)
-            image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
-
-        else:
-            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
-            lcoords = self.coordslist[0][:, idx]
-            label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
-            image, params  = self.fiximage(label)
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
-
-        return image, label, params
-
-    def __len__(self):
-        return self.I
-
 
 class RealDensityDataset(Dataset):
     '''
@@ -446,26 +313,65 @@ class RealDensityDataset(Dataset):
 
     def __len__(self):
         return self.I
-
-class DatasetUtils():
-    def gen_indices(self, I, low, high):
-        return np.random.randint(low, high, (I,))
     
-    def gen_coords(self, I, size, cropsize, scale, label):
-        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
-        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
-        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
-        if label is not None:
-            return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+
+class RandomBlurDataset(Dataset):
+    '''
+    input  : 4d torch.tensor (large (like 768**3) size) (label)
+    output : 4d torch.tensor (small (like 128**3) size)
+             ([channels, z_size, x_size, y_size]) 
+             of randomly blurred/cropped/rotated image and label
+    :param folderpath : large data path ("randomdata" in this repo)
+    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
+    I : sample size. Returns I samples. (e.g. 200)
+    low, high : use [low]th ~ [high]th files in folderpath as data.
+    '''
+    def __init__(self, folderpath:str, labelname:str, 
+                 size:list, cropsize:list, I:int, low:int, high:int, scale:int,
+                 train=True, pretrain=True, mask=True,
+                 mask_size=[10, 10, 10], mask_num=1,
+                 surround=True, surround_size=[64, 8, 8],
+                 seed=904):
+        self.I             = I
+        self.low           = low
+        self.high          = high
+        self.scale         = scale
+        self.size          = size
+        self.labels        = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
+        self.csize         = cropsize
+        self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
+        self.is_train      = train
+        self.mask          = mask
+        self.mask_size     = mask_size
+        self.mask_num      = mask_num
+        self.surround      = surround
+        self.surround_size = surround_size
+        self.imaging       = RandomBlur() # define imageprocess here
+        if train == False:
+            np.random.seed(seed)
+            self.indiceslist = gen_indices(I, low, high)
+            self.coordslist  = gen_coords(I, size, cropsize, scale)
+            self.imaging.gen_validation_params() # parameter for validation
+
+    def __getitem__(self, idx):
+        if self.is_train:
+            idx     = gen_indices(1, self.low, self.high).item()#　print('idx ', idx)
+            lcoords = gen_coords(1, self.size, self.csize,)
+            lcoords = lcoords[:, 0]
+            label, _, _      = Rotate(    )(Crop(lcoords, self.csize
+                                                )(torch.load(self.labels[idx])))
+            image , params = self.imaging(label)
+            image = apply_mask(self.mask, image, self.mask_size, self.mask_num)
+            image = apply_surround_mask(self.surround, image, self.surround_size)
+
         else:
-            return np.array([zcoord // scale, xcoord, ycoord])
+            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
+            lcoords = self.coordslist[0][:, idx]
+            label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
+            image   = self.imaging(label, self.is_train)
+            image   = apply_surround_mask(self.surround, image, self.surround_size)
 
-    def apply_mask(self, mask, image, mask_size, mask_num):
-        if mask:
-            image = mask_(image, mask_size, mask_num)
-        return image
+        return image, label, params
 
-    def apply_surround_mask(self, surround, image, surround_size):
-        if surround:
-            image = surround_mask_(image, surround_size)
-        return image
+    def __len__(self):
+        return self.I
