@@ -59,25 +59,28 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_178_x6'
+model_name           = 'JNet_180_x6_tau_scheduring'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (scale, 1, 1)
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
 superres = True if scale > 1 else False
+params               = {"mu_z"   : 0.2    ,
+                        "sig_z"  : 0.2    ,
+                        "bet_z"  : 23.5329,
+                        "bet_xy" : 1.00000,
+                        "alpha"  : 0.9544 ,
+                        "sig_eps": 0.01   ,
+                        "scale"  : 6
+                        }
+
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
-                  scale_factor          = scale_factor         ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  ,
-                  bet_z                 = 23.5329              ,
-                  bet_xy                = 1.00000              ,
-                  alpha                 = 0.9544               ,
+                  params                = params               ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   )
@@ -104,9 +107,9 @@ train_loop(
     partial      = partial    ,
     scheduler    = scheduler  ,
     es_patience  = 15         ,
-    tau_init     = 1.         ,
-    tau_lb       = 1          , 
-    tau_sche     = 1          ,
+    tau_init     = 1          ,
+    tau_lb       = 0.1        , 
+    tau_sche     = 0.9999     ,
     reconstruct  = False      ,
     check_middle = False      ,
     midloss_fn   = midloss_fn ,

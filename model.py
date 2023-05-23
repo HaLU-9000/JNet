@@ -280,6 +280,7 @@ class Blur(nn.Module):
         self.device  = device
         self.zd      = self.distance(z)
         self.dp      = self.gen_distance_plane(xlen=x, ylen=y)
+        self.mode    = psf_mode
         self.psf     = self.gen_psf(self.bet_xy, self.bet_z, self.alpha
                                     ).to(device)
         self.z_pad   = (z - self.zscale + 1) // 2
@@ -379,32 +380,30 @@ class PreProcess(nn.Module):
 
 
 class ImagingProcess(nn.Module):
-    def __init__(self, mu_z, sig_z,
-                 scale, device,
-                 z, x, y, bet_z, bet_xy, alpha,
-                 sig_eps, postmin=0.1, postmax=1,
-                 mode:str="train", ):
+    def __init__(self, device, params,
+                 z, x, y, postmin=0., postmax=1.,
+                 mode:str="train",):
         super().__init__()
         if mode == "train":
-            self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=True)
-            self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=True)
-            self.bet_z   = nn.Parameter(torch.tensor(bet_z ), requires_grad=True)
-            self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=True)
-            self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=True)
+            self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=True)
+            self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=True)
+            self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]), requires_grad=True)
+            self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]), requires_grad=True)
+            self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]), requires_grad=True)
         elif mode == "dataset":
-            self.mu_z    = nn.Parameter(torch.tensor(mu_z  ), requires_grad=False)
-            self.sig_z   = nn.Parameter(torch.tensor(sig_z ), requires_grad=False)
-            self.bet_z   = nn.Parameter(torch.tensor(bet_z ), requires_grad=False)
-            self.bet_xy  = nn.Parameter(torch.tensor(bet_xy), requires_grad=False)
-            self.alpha   = nn.Parameter(torch.tensor(alpha ), requires_grad=False)
+            self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=False)
+            self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=False)
+            self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]), requires_grad=False)
+            self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]), requires_grad=False)
+            self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]), requires_grad=False)
         else:
             raise(NotImplementedError())
-        
+        scale = [params["scale"], 1, 1]
         self.emission   = Emission(self.mu_z, self.sig_z)
         self.blur       = Blur(z, x, y,
                                self.bet_z, self.bet_xy, self.alpha,
                                scale, device,)
-        self.noise      = Noise(sig_eps)
+        self.noise      = Noise(params["sig_eps"])
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
     def forward(self, x):
@@ -439,12 +438,11 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
-                 dropout, scale_factor,
-                 mu_z:float, sig_z:float, bet_xy:float, bet_z:float, alpha:float,
-                 superres:bool, reconstruct=False,device='cuda'):
+                 dropout, params, superres:bool, reconstruct=False, device='cuda'):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
+        scale_factor         = (params["scale"], 1, 1)
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels         = hidden_channels_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
@@ -464,19 +462,12 @@ class JNet(nn.Module):
                                               ) for _ in range(nblocks)])
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
-        self.image = ImagingProcess(mu_z         = mu_z         ,
-                                    sig_z        = sig_z        ,
-                                    device       = device       ,
-                                    scale        = scale_factor ,
-                                    z            = 161          ,
-                                    x            = 3            ,
-                                    y            = 3            ,
-                                    bet_xy       = bet_xy       ,
-                                    bet_z        = bet_z        ,
-                                    alpha        = alpha        ,
-                                    sig_eps      = 0.01         ,
-                                    postmin      = 0            ,
-                                    postmax      = 1.           ,
+        self.image = ImagingProcess(device       = device           ,
+                                    params       = params           ,
+                                    z            = 161              ,
+                                    x            = 35               ,
+                                    y            = 35               ,
+                                    mode         = "train"          ,
                                     )
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = activation

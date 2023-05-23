@@ -6,24 +6,20 @@ import torch.nn as nn
 import torch.distributions as dist
 import torch.nn.functional as F
 from torch.utils.data import Dataset
-from scipy.stats import lognorm
+from scipy.stats import lognorm, truncnorm
 
 from utils import mask_, surround_mask_
-
+from model import ImagingProcess
 
 def gen_indices(I, low, high):
     return np.random.randint(low, high, (I,))
 
-def gen_coords(I, size, cropsize, scale, label):
+def gen_coords(I, size, cropsize, scale=None, label=None):
     zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
     xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
     ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
-    if label is not None:
-        return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
-    
-    else:
-        return np.array([zcoord // scale, xcoord, ycoord])
-    
+    return np.array([zcoord, xcoord, ycoord])
+
 def apply_mask( mask, image, mask_size, mask_num):
     if mask:
         image = mask_(image, mask_size, mask_num)
@@ -33,6 +29,34 @@ def apply_surround_mask(surround, image, surround_size):
     if surround:
         image = surround_mask_(image, surround_size)
     return image
+
+def sample_truncnorm(low, high, loc, scale):
+    a = (low  - loc) / scale
+    b = (high - loc) / scale
+    return truncnorm.rvs(a, b, loc, scale)
+
+def gen_imaging_parameters(params_ranges:dict
+                           )->dict:
+    """
+    :params params_ranges
+    ## input exapmle\n
+    {"mu_z"   : [0,   1, 0.2  ,  0.5 ],\n
+     "sig_z"  : [0,   1, 0.2  ,  0.5 ],\n
+     "bet_z"  : [0,  50,  25  , 12.5 ],\n
+     "bet_xy" : [0,  20,   1. ,  5.  ],\n
+     "alpha"  : [0, 100,  10  ,  5.  ],\n
+     "sig_eps": [0, 0.3, 0.15 ,  0.05],\n
+     "scale"  : [1, 2, 4, 8, 12      ]\n
+     } 
+    """
+    params = {}
+    for param in params_ranges:
+        if param == "scale":
+            params[param] = np.random.choice((params_ranges[param]))
+        else:
+            params[param] = sample_truncnorm(*params_ranges[param])
+    return params
+
 
 
 class Rotate:
@@ -169,12 +193,28 @@ class RandomCutDataset(Dataset):
         if train == False:
             np.random.seed(seed)
             self.indiceslist = gen_indices(I, low, high)
-            self.coordslist  = gen_coords(I, size, cropsize, scale)
+            self.coordslist  = self.gen_coords(I, size, cropsize, scale)
+    
+    def gen_coords(self, I, size, cropsize, scale):
+        zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
+        xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
+        ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
+        return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+
+    def apply_mask(self, mask, image, mask_size, mask_num):
+        if mask:
+            image = mask_(image, mask_size, mask_num)
+        return image
+
+    def apply_surround_mask(self, surround, image, surround_size):
+        if surround:
+            image = surround_mask_(image, surround_size)
+        return image
 
     def __getitem__(self, idx):
         if self.train:
             idx              = gen_indices(1, self.low, self.high).item()#;print('idx ', idx)
-            lcoords, icoords = gen_coords(1, self.size, self.csize, self.scale)
+            lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
             image, i, j      = Rotate(    )(Crop(icoords, self.ssize
                                                 )(torch.load(self.images[idx]))) # .unsqueeze(0) for beadslikedata5
@@ -314,7 +354,6 @@ class RealDensityDataset(Dataset):
     def __len__(self):
         return self.I
     
-
 class RandomBlurDataset(Dataset):
     '''
     input  : 4d torch.tensor (large (like 768**3) size) (label)
@@ -326,52 +365,108 @@ class RandomBlurDataset(Dataset):
     I : sample size. Returns I samples. (e.g. 200)
     low, high : use [low]th ~ [high]th files in folderpath as data.
     '''
-    def __init__(self, folderpath:str, labelname:str, 
-                 size:list, cropsize:list, I:int, low:int, high:int, scale:int,
-                 train=True, pretrain=True, mask=True,
+    def __init__(self, folderpath:str,
+                 size:list, cropsize:list, I:int, low:int, high:int,
+                 z, x, y,
+                 imaging_params_range:dict,
+                 validation_params:dict,
+                 device, train=True, mask=True, 
                  mask_size=[10, 10, 10], mask_num=1,
-                 surround=True, surround_size=[64, 8, 8],
-                 seed=904):
+                 surround=True, surround_size=[72, 8, 8],
+                 seed=523):
+        
+        self.z             = z
+        self.x             = x
+        self.y             = y
         self.I             = I
         self.low           = low
         self.high          = high
-        self.scale         = scale
         self.size          = size
-        self.labels        = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
+        self.labels        = list(sorted(Path(folderpath).glob(f'*_label.npy')))
         self.csize         = cropsize
-        self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
         self.is_train      = train
         self.mask          = mask
         self.mask_size     = mask_size
         self.mask_num      = mask_num
         self.surround      = surround
         self.surround_size = surround_size
-        self.imaging       = RandomBlur() # define imageprocess here
+        self.params_range  = imaging_params_range
+        self.imaging       = ImagingProcess(device, validation_params,
+                                            z=z, x=x, y=y, mode="dataset")
+        self.validation_scale = validation_params["scale"]
+        self.device           = device
         if train == False:
             np.random.seed(seed)
             self.indiceslist = gen_indices(I, low, high)
-            self.coordslist  = gen_coords(I, size, cropsize, scale)
-            self.imaging.gen_validation_params() # parameter for validation
+            self.coordslist  = gen_coords(I, size, cropsize)
 
     def __getitem__(self, idx):
         if self.is_train:
-            idx     = gen_indices(1, self.low, self.high).item()#　print('idx ', idx)
+            idx     = gen_indices(1, self.low, self.high).item()
             lcoords = gen_coords(1, self.size, self.csize,)
             lcoords = lcoords[:, 0]
-            label, _, _      = Rotate(    )(Crop(lcoords, self.csize
-                                                )(torch.load(self.labels[idx])))
-            image , params = self.imaging(label)
+            label, _, _      = Rotate()(
+                Crop(lcoords, self.csize)(
+                torch.from_numpy(np.load(self.labels[idx]))).float()
+                .to(self.device))
+            params = gen_imaging_parameters(self.params_range)
+            self.imaging = ImagingProcess(self.device, params,
+                                          z=self.z, x=self.x, y=self.y,
+                                          mode="dataset")
+            with torch.no_grad():
+                image = self.imaging(label)
             image = apply_mask(self.mask, image, self.mask_size, self.mask_num)
-            image = apply_surround_mask(self.surround, image, self.surround_size)
+            surround_size = [self.surround_size[0] // params["scale"],
+                             self.surround_size[1],
+                             self.surround_size[2],]
+            image = apply_surround_mask(self.surround, image, surround_size)
 
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             lcoords = self.coordslist[0][:, idx]
-            label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
-            image   = self.imaging(label, self.is_train)
-            image   = apply_surround_mask(self.surround, image, self.surround_size)
+            label   = Crop(lcoords, self.csize)(
+                      torch.from_numpy(np.load(self.labels[_idx])).float()
+                      .to(self.device))
+            with torch.no_grad():
+                image = self.imaging(label, self.is_train)
+            surround_size = [self.surround_size[0] // self.validation_scale,
+                             self.surround_size[1],
+                             self.surround_size[2],]
+            image   = apply_surround_mask(self.surround, image,
+                                          surround_size)
 
         return image, label, params
 
     def __len__(self):
         return self.I
+    
+if __name__ == "__main__":
+    device = (torch.device('cuda') if torch.cuda.is_available()
+          else torch.device('cpu'))
+
+    params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.5 ],
+                     "sig_z"  : [0,   1, 0.2  ,  0.5 ],
+                     "bet_z"  : [0,  50,  25  , 12.5 ],
+                     "bet_xy" : [0,  20,   1. ,  5.  ],
+                     "alpha"  : [0, 100,  10  ,  5.  ],
+                     "sig_eps": [0, 0.3, 0.15 ,  0.05],
+                     "scale"  : [1, 2, 4, 8, 12      ]
+                     }
+
+    train_dataset = RandomBlurDataset(folderpath      = "newrandomdataset",
+                                      size            = (1200, 500, 500)  ,
+                                      cropsize        = ( 240, 112, 112)  ,
+                                      I               =  10               ,
+                                      low             =   0               ,
+                                      high            =  19               ,
+                                      z = 71,
+                                      x = 5,
+                                      y = 5,
+                                      imaging_params_range=params_ranges,
+                                      validation_params=gen_imaging_parameters(params_ranges),
+                                      device= device
+                                      )
+    for i in range(10):
+        print(train_dataset[i][0].mean(),
+              train_dataset[i][0].shape,
+              train_dataset[i][2])
