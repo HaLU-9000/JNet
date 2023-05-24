@@ -23,50 +23,49 @@ val_dataset   = RandomCutDataset(folderpath  =  'spinelikedata0'   ,  ###
                                  scale         =  scale            ,   ## scale
                                  train         =  False            ,
                                  mask          =  False            ,
-                                 mask_num      =  100              ,
+                                 mask_num      =  0                ,
                                  mask_size     =  [1, 10, 10]      ,
                                  surround      =  surround         ,
                                  surround_size =  surround_size    ,
                                  seed          =  907              ,
                                 )
-
-model_name           = 'JNet_178_x6'
+model_name           = 'JNet_180_x6_tau_scheduring'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (scale, 1, 1)
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
 superres = True if scale > 1 else False
+params               = {"mu_z"   : 0.2    ,
+                        "sig_z"  : 0.2    ,
+                        "bet_z"  : 23.5329,
+                        "bet_xy" : 1.00000,
+                        "alpha"  : 0.9544 ,
+                        "sig_eps": 0.01   ,
+                        "scale"  : 6
+                        }
+
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
-                  scale_factor          = scale_factor         ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  , 
-                  bet_z                 = 23.5329              ,
-                  bet_xy                = 1.00000              ,
-                  alpha                 = 0.9544               ,
+                  params                = params               ,
                   superres              = superres             ,
-                  reconstruct           = True                 ,
+                  reconstruct           = False                ,
                   )
 JNet = JNet.to(device = device)
-JNet.set_tau(1)
+JNet.set_tau(0.1)
 j = 120
 i = 60
 j_s = j // scale
 
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
-for n in range(0,1):
+for n in range(0,5):
     image, label= val_dataset[n]
-    torch.save(image, f'./result_psj/{model_name}_image{n}.pt')
-    torch.save(label, f'./result_psj/{model_name}_label{n}.pt')
     output, reconst= JNet(image.to("cuda").unsqueeze(0))
     output  = output.detach().cpu().numpy()
-    torch.save(output, f'./result_psj/{model_name}_result{n}.pt')
     reconst = reconst.squeeze(0).detach().cpu().numpy()
 
     fig = plt.figure(figsize=(25, 15))
@@ -129,5 +128,5 @@ for n in range(0,1):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result_psj/{model_name}_sim_result{n}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_sim_result{n}.png', format='png', dpi=250)
     
