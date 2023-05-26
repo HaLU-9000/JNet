@@ -305,8 +305,6 @@ class Blur(nn.Module):
             pass
         elif self.mode == "double_exp":
             psf  = self.gen_double_exp_dist(psf, alpha,)
-        else:
-            raise(NotImplementedError())
         psf /= torch.sum(psf)
         psf  = self.dim_3dto5d(psf)
         return psf
@@ -465,8 +463,8 @@ class JNet(nn.Module):
         self.image = ImagingProcess(device       = device           ,
                                     params       = params           ,
                                     z            = 161              ,
-                                    x            = 35               ,
-                                    y            = 35               ,
+                                    x            = 3                ,
+                                    y            = 3                ,
                                     mode         = "train"          ,
                                     )
         self.upsample    = JNetUpsample(scale_factor = scale_factor)

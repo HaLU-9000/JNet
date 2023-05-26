@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_182_x6_start01'
+model_name           = 'JNet_183_x6_start01'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
