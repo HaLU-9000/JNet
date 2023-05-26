@@ -29,7 +29,7 @@ val_dataset   = RandomCutDataset(folderpath  =  'spinelikedata0'   ,  ###
                                  surround_size =  surround_size    ,
                                  seed          =  907              ,
                                 )
-model_name           = 'JNet_180_x6_tau_scheduring'
+model_name           = 'JNet_175_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -65,9 +65,10 @@ JNet.eval()
 for n in range(0,5):
     image, label= val_dataset[n]
     output, reconst= JNet(image.to("cuda").unsqueeze(0))
+    lossfunc = nn.BCELoss()
+    print(lossfunc(output.squeeze(0).detach().cpu(), label))
     output  = output.detach().cpu().numpy()
     reconst = reconst.squeeze(0).detach().cpu().numpy()
-
     fig = plt.figure(figsize=(25, 15))
     ax1 = fig.add_subplot(231)
     ax2 = fig.add_subplot(232)
@@ -128,5 +129,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_sim_result{n}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_tau0_1_sim_result{n}.png', format='png', dpi=250)
     
