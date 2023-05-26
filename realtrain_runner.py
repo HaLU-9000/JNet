@@ -65,47 +65,44 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_179_x6'
+model_name           = 'JNet_182_x6_start01'
 hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (scale, 1, 1)
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
-superres             = True if scale > 1 else False
-reconstruct          = True
-mu_z                 = 0.2                  
-sig_z                = 0.2                   
-bet_z                = 23.5329              
-bet_xy               = 1.00000              
-alpha                = 0.9544                        
+superres = True if scale > 1 else False
+params               = {"mu_z"   : 0.2    ,
+                        "sig_z"  : 0.2    ,
+                        "bet_z"  : 23.5329,
+                        "bet_xy" : 1.00000,
+                        "alpha"  : 0.9544 ,
+                        "sig_eps": 0.01   ,
+                        "scale"  : 6
+                        }                   
+reconstruct = True
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
-                  scale_factor          = scale_factor         ,
-                  mu_z                  = mu_z                 ,
-                  sig_z                 = sig_z                , 
-                  bet_xy                = bet_xy               ,
-                  bet_z                 = bet_z                ,
-                  alpha                 = alpha                ,
+                  params                = params               ,
                   superres              = superres             ,
-                  reconstruct           = reconstruct          ,
+                  reconstruct           = reconstruct         ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_178_x6.pt'), strict=False)
+JNet.load_state_dict(torch.load('model/JNet_175_x6.pt'), strict=False)
 
-JNet.image.mu_z    = nn.Parameter(torch.tensor(mu_z    , requires_grad=True))
-JNet.image.sig_z   = nn.Parameter(torch.tensor(sig_z   , requires_grad=True))
-JNet.image.bet_xy  = nn.Parameter(torch.tensor(bet_xy  , requires_grad=True))
-JNet.image.bet_z   = nn.Parameter(torch.tensor(bet_z   , requires_grad=True))
-JNet.image.alpha   = nn.Parameter(torch.tensor(alpha   , requires_grad=True))
+JNet.image.mu_z    = nn.Parameter(torch.tensor(params["mu_z"]   , requires_grad=True))
+JNet.image.sig_z   = nn.Parameter(torch.tensor(params["sig_z"]  , requires_grad=True))
+JNet.image.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"] , requires_grad=True))
+JNet.image.bet_z   = nn.Parameter(torch.tensor(params["bet_z"]  , requires_grad=True))
+JNet.image.alpha   = nn.Parameter(torch.tensor(params["alpha"]  , requires_grad=True))
 print([i for i in JNet.parameters()][-5:])
 
 params = JNet.parameters()
 
-optimizer            = optim.Adam(params, lr = 1e-5)
+optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
@@ -124,9 +121,9 @@ train_loop(
     partial      = partial     ,
     scheduler    = scheduler   ,
     es_patience  = 15          ,
-    tau_init     = 1           ,
+    tau_init     = 0.1         ,
     tau_lb       = 0.1         , 
-    tau_sche     = 0.9999      ,
+    tau_sche     = 1.          ,
     reconstruct  = reconstruct ,
     check_middle = False       ,
     midloss_fn   = midloss_fn  ,
