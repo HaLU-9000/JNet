@@ -517,6 +517,7 @@ if __name__ == '__main__':
                   superres              = True                 ,
                   reconstruct           = True                 ,
                   )
+    
     model.set_tau(tau)
     input_size = (1, 1, 24, 112, 112)
     model.to(device='cuda')
