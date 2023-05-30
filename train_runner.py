@@ -59,7 +59,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_181_x6_tau_scheduring'
+model_name           = 'JNet_184_x6_ez0_test'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -86,7 +86,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
-params = [i for i in JNet.parameters()][:-5]
+params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
 optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
@@ -108,8 +108,8 @@ train_loop(
     scheduler    = scheduler  ,
     es_patience  = 15         ,
     tau_init     = 1          ,
-    tau_lb       = 0.1        , 
-    tau_sche     = 0.9997     ,
+    tau_lb       = 1          , 
+    tau_sche     = 1          ,
     reconstruct  = False      ,
     check_middle = False      ,
     midloss_fn   = midloss_fn ,
