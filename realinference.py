@@ -48,7 +48,7 @@ val_dataset_  = RealDensityDataset(folderpath      =  'spinerawdata0'  ,
                                    score           =  val_score        ,
                                   )
 
-model_name           = 'JNet_179_x6'
+model_name           = 'JNet_183_x6_start01'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -58,26 +58,30 @@ dropout              = 0.5
 partial              = None #(56, 184)
 superres             = True if scale > 1 else False
 reconstruct          = True
+params               = {"mu_z"   : 0.2    ,
+                        "sig_z"  : 0.2    ,
+                        "bet_z"  : 23.5329,
+                        "bet_xy" : 1.00000,
+                        "alpha"  : 0.9544 ,
+                        "sig_eps": 0.01   ,
+                        "scale"  : 6
+                        }                   
+reconstruct = True
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
-                  scale_factor          = scale_factor         ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  , 
-                  bet_xy                = 4.43864              ,
-                  bet_z                 = 27.7052              ,
-                  alpha                 = 74.9664              ,
+                  params                = params               ,
                   superres              = superres             ,
-                  reconstruct           = reconstruct          ,
+                  reconstruct           = reconstruct         ,
                   )
 JNet = JNet.to(device = device)
-JNet.set_tau(1)
+JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
+JNet.set_tau(0.1)
 j   = 12
 j_s = j // scale
 i = 70
 
-JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
 if vis_mseloss == False:
