@@ -27,8 +27,7 @@ images_ = [images_[:, :, :112, :112].clone(),
            images_[:, :, 112:, :112].clone(),
            images_[:, :, 112:, 112:].clone(),]
 
-model_num            = 179
-model_name           = f'JNet_{model_num}_x{scale}'
+model_name           = 'JNet_183_x6_start01'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2

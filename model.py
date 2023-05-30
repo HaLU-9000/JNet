@@ -222,6 +222,7 @@ class Emission(nn.Module):
         super().__init__()
         self.mu_z     = mu_z
         self.sig_z    = sig_z
+        self.ez0      = nn.Parameter(torch.exp(mu_z + 0.5 * sig_z ** 2), requires_grad=True)
         self.mu_z_    = mu_z.item()
         self.sig_z_   = sig_z.item()
         self.logn_ppf = lognorm.ppf([0.99], 1,
@@ -383,8 +384,8 @@ class ImagingProcess(nn.Module):
                  mode:str="train",):
         super().__init__()
         if mode == "train":
-            self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=True)
-            self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=True)
+            self.mu_z    = torch.tensor(params["mu_z"  ])
+            self.sig_z   = torch.tensor(params["sig_z" ])
             self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]), requires_grad=True)
             self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]), requires_grad=True)
             self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]), requires_grad=True)
