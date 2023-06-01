@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_183_x6_start01'
+model_name           = 'JNet_185_x6_ez0'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -93,38 +93,38 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_175_x6.pt'), strict=False)
 
-JNet.image.mu_z    = nn.Parameter(torch.tensor(params["mu_z"]   , requires_grad=True))
-JNet.image.sig_z   = nn.Parameter(torch.tensor(params["sig_z"]  , requires_grad=True))
+JNet.image.mu_z    = torch.tensor(params["mu_z"] )
+JNet.image.sig_z   = torch.tensor(params["sig_z"])
 JNet.image.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"] , requires_grad=True))
 JNet.image.bet_z   = nn.Parameter(torch.tensor(params["bet_z"]  , requires_grad=True))
 JNet.image.alpha   = nn.Parameter(torch.tensor(params["alpha"]  , requires_grad=True))
-print([i for i in JNet.parameters()][-5:])
+print([i for i in JNet.parameters()][-4:])
 
 params = JNet.parameters()
-
-optimizer            = optim.Adam(params, lr = 1e-4)
-scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
-loss_fn              = nn.MSELoss()
-midloss_fn           = nn.BCELoss()
-print(f"============= model {model_name} train started =============")
-train_loop(
-    n_epochs     = 500         , ####
-    optimizer    = optimizer   ,
-    model        = JNet        ,
-    loss_fn      = loss_fn     ,
-    train_loader = train_data  ,
-    val_loader   = val_data    ,
-    device       = device      ,
-    path         = 'model'     ,
-    savefig_path = 'train'     ,
-    model_name   = model_name  ,
-    partial      = partial     ,
-    scheduler    = scheduler   ,
-    es_patience  = 15          ,
-    tau_init     = 0.1         ,
-    tau_lb       = 0.1         , 
-    tau_sche     = 1.          ,
-    reconstruct  = reconstruct ,
-    check_middle = False       ,
-    midloss_fn   = midloss_fn  ,
-    )
+#
+#optimizer            = optim.Adam(params, lr = 1e-4)
+#scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
+#loss_fn              = nn.MSELoss()
+#midloss_fn           = nn.BCELoss()
+#print(f"============= model {model_name} train started =============")
+#train_loop(
+#    n_epochs     = 500         , ####
+#    optimizer    = optimizer   ,
+#    model        = JNet        ,
+#    loss_fn      = loss_fn     ,
+#    train_loader = train_data  ,
+#    val_loader   = val_data    ,
+#    device       = device      ,
+#    path         = 'model'     ,
+#    savefig_path = 'train'     ,
+#    model_name   = model_name  ,
+#    partial      = partial     ,
+#    scheduler    = scheduler   ,
+#    es_patience  = 15          ,
+#    tau_init     = 0.1         ,
+#    tau_lb       = 0.1         , 
+#    tau_sche     = 1.          ,
+#    reconstruct  = reconstruct ,
+#    check_middle = False       ,
+#    midloss_fn   = midloss_fn  ,
+#    )
