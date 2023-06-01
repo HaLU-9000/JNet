@@ -39,6 +39,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     writer = SummaryWriter(f'runs/{model_name}')
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     tau = tau_init
+    qloss = None
     for epoch in range(1, n_epochs + 1):
         loss_sum, midloss_sum, vloss_sum, vmidloss_sum = 0., 0., 0., 0.
         model.train()
@@ -46,10 +47,16 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             model.set_tau(tau)
             image    = image.to(device = device)
             label    = label.to(device = device)
-            out, rec = model(image)
+            o = model(image)
+            if len(o) == 2:
+                out, rec = o
+            if len(o) == 3:
+                out, rec, qloss = o
             loss, midloss = branch_calc_loss(out, rec, image, label,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
+            if qloss is not None:
+                loss = loss + qloss
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
@@ -64,7 +71,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             for image, label in val_loader:
                 image       = image.to(device = device)
                 label       = label.to(device = device)
-                out, rec    = model(image)
+                o = model(image)
+                if len(o) == 2:
+                    out, rec = o
+                if len(o) == 3:
+                    out, rec, qloss = o
                 vloss, vmid_loss = branch_calc_loss(out, rec, image, label,
                                                     loss_fn,midloss_fn,partial,
                                                     reconstruct, check_middle)

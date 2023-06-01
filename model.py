@@ -122,10 +122,12 @@ class SuperResolutionBlock(nn.Module):
         return x
 
 class VectolQuantizer(nn.Module):
-    def __init__(self):
+    def __init__(self, device):
         super().__init__()
+        self.device = device
     def forward(self, x):
-        x_quantized = (x >= 0.5).to(torch.cuda.FloatTensor)
+        x_quantized = (x >= 0.5).to(self.device).float()
+        x_quantized = x + (x_quantized - x).detach()
         quantize_loss = F.mse_loss(x_quantized.detach(), x)
         return x_quantized, quantize_loss
 
@@ -481,7 +483,7 @@ class JNet(nn.Module):
         self.superres    = superres
         self.reconstruct = reconstruct
         self.apply_vq    = apply_vq
-        self.vq = VectolQuantizer()
+        self.vq = VectolQuantizer(device=device)
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
 
@@ -502,7 +504,10 @@ class JNet(nn.Module):
                       dim    = 1            ,)[:, :1,] # softmax with temperature
         x, qloss = self.vq(x)
         r = self.image(x) if self.reconstruct else x
-        return x, r, qloss if self.apply_vq else x, r
+        if self.apply_vq:
+            return x, r, qloss
+        else:
+            return x, r
 
 if __name__ == '__main__':
     import torchinfo
