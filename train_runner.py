@@ -57,9 +57,7 @@ val_dataset   = RandomBlurDataset(folderpath           = "newrandomdataset"     
                                   validation_params    = gen_imaging_parameters(params_ranges)    ,
                                   device               = device                                   ,
                                   is_train             = False                                    ,
-                                  mask                 = True                                     ,
-                                  mask_size            = [1, 10, 10]                              ,
-                                  mask_num             = 30                                       ,
+                                  mask                 = False                                    ,
                                   surround             = surround                                 ,
                                   surround_size        = surround_size                            ,
                                   seed                 = 907                                      ,
@@ -78,7 +76,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_189_x6_ez0_test'
+model_name           = 'JNet_189_x6_randomblur_test'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
