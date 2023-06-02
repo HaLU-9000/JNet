@@ -59,7 +59,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_184_x6_ez0_test'
+model_name           = 'JNet_181_x6_tau_scheduring'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -83,6 +83,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   params                = params               ,
                   superres              = superres             ,
                   reconstruct           = False                ,
+                  apply_vq              = False                ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)

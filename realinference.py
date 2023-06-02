@@ -48,7 +48,7 @@ val_dataset_  = RealDensityDataset(folderpath      =  'spinerawdata0'  ,
                                    score           =  val_score        ,
                                   )
 
-model_name           = 'JNet_183_x6_start01'
+model_name           = 'JNet_187_x6_vq'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -73,7 +73,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   dropout               = dropout              ,
                   params                = params               ,
                   superres              = superres             ,
-                  reconstruct           = reconstruct         ,
+                  reconstruct           = reconstruct          ,
+                  apply_vq              = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -88,7 +89,12 @@ if vis_mseloss == False:
     for n in range(0,10):
         image , label = val_dataset[n]
         image_, label = val_dataset_[n]
-        output, reconst= JNet(image.to("cuda").unsqueeze(0))
+        o = JNet(image.to("cuda").unsqueeze(0))
+        if len(o) == 2:
+            output, reconst = o
+        if len(o) == 3:
+             output, reconst, qloss = o
+             print(qloss)
         output  = output.detach().cpu().numpy()
         reconst = reconst.squeeze(0).detach().cpu().numpy()
         fig = plt.figure(figsize=(25, 15))
@@ -139,7 +145,7 @@ if vis_mseloss == False:
             ax6.imshow(output[0, 0, :, i, :],
                     cmap='gray', vmin=0.2, vmax=1.0, aspect=1)
 
-        plt.savefig(f'result/{model_name}_realresult{n}_raw_6.png', format='png', dpi=250)
+        plt.savefig(f'result/{model_name}_realresult{n}_vq_6.png', format='png', dpi=250)
 
 else:
     for n in range(0, 10):

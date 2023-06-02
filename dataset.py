@@ -410,11 +410,11 @@ class RandomBlurDataset(Dataset):
                 torch.from_numpy(np.load(self.labels[idx]))).float()
                 .to(self.device))
             params = gen_imaging_parameters(self.params_range)
-            self.imaging = ImagingProcess(self.device, params,
-                                          z=self.z, x=self.x, y=self.y,
-                                          mode="dataset")
+            imaging = ImagingProcess(self.device, params,
+                                     z=self.z, x=self.x, y=self.y,
+                                     mode="dataset")
             with torch.no_grad():
-                image = self.imaging(label)
+                image = imaging(label)
             image = apply_mask(self.mask, image, self.mask_size, self.mask_num)
             surround_size = [self.surround_size[0] // params["scale"],
                              self.surround_size[1],

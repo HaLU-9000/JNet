@@ -22,7 +22,7 @@ train_dataset = RealDensityDataset(folderpath      =  'spinedata0' ,
                                    imagename       =  '020'            ,
                                    size            =  ( 282, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
-                                   I               =  200              ,
+                                   I               = 200               ,
                                    low             =   0               ,
                                    high            =   1               ,
                                    scale           =  scale            ,   ## scale
@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_185_x6_ez0'
+model_name           = 'JNet_187_x6_vq'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -88,7 +88,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   dropout               = dropout              ,
                   params                = params               ,
                   superres              = superres             ,
-                  reconstruct           = reconstruct         ,
+                  reconstruct           = reconstruct          ,
+                  apply_vq              = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_175_x6.pt'), strict=False)
