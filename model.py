@@ -489,6 +489,10 @@ class JNet(nn.Module):
 
     def set_tau(self, tau=0.1):
         self.tau = tau
+    
+    def set_upsample_rate(self, scale):
+        scale_factor  = (scale, 1, 1)
+        self.upsample = JNetUpsample(scale_factor = scale_factor)
 
     def forward(self, x):
         if self.superres:

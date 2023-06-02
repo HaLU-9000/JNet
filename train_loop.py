@@ -43,10 +43,13 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     for epoch in range(1, n_epochs + 1):
         loss_sum, midloss_sum, vloss_sum, vmidloss_sum = 0., 0., 0., 0.
         model.train()
-        for image, label in train_loader:
+        for train_data in train_loader:
             model.set_tau(tau)
-            image    = image.to(device = device)
-            label    = label.to(device = device)
+            image    = train_data[0].to(device = device)
+            label    = train_data[1].to(device = device)
+            if len(train_data) == 3:
+                params = train_data[2]
+                model.set_upsample_rate(params["scale"])
             o = model(image)
             if len(o) == 2:
                 out, rec = o
