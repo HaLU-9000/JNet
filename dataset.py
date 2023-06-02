@@ -370,7 +370,7 @@ class RandomBlurDataset(Dataset):
                  z, x, y,
                  imaging_params_range:dict,
                  validation_params:dict,
-                 device, train=True, mask=True, 
+                 device, is_train=True, mask=True, 
                  mask_size=[10, 10, 10], mask_num=1,
                  surround=True, surround_size=[72, 8, 8],
                  seed=523):
@@ -384,7 +384,7 @@ class RandomBlurDataset(Dataset):
         self.size          = size
         self.labels        = list(sorted(Path(folderpath).glob(f'*_label.npy')))
         self.csize         = cropsize
-        self.is_train      = train
+        self.is_train      = is_train
         self.mask          = mask
         self.mask_size     = mask_size
         self.mask_num      = mask_num
@@ -395,7 +395,7 @@ class RandomBlurDataset(Dataset):
                                             z=z, x=x, y=y, mode="dataset")
         self.validation_scale = validation_params["scale"]
         self.device           = device
-        if train == False:
+        if is_train == False:
             np.random.seed(seed)
             self.indiceslist = gen_indices(I, low, high)
             self.coordslist  = gen_coords(I, size, cropsize)

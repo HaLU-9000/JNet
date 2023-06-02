@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import model as model
-from dataset import RandomCutDataset
+from dataset import RandomCutDataset, RandomBlurDataset, gen_imaging_parameters
 from   train_loop import train_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -15,36 +15,55 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-train_dataset = RandomCutDataset(folderpath  =  'spinelikedata0' ,  ###
-                                 imagename   =  f'_x{scale}'     , 
-                                 labelname   =  '_label'         ,
-                                 size        =  (1200, 500, 500) ,
-                                 cropsize    =  ( 240, 112, 112) , 
-                                 I             = 200             ,
-                                 low           =   0             ,
-                                 high          =  16             ,
-                                 scale         =  scale          ,  ## scale
-                                 mask          =  True           ,
-                                 mask_size     =  [ 1, 10, 10]   ,
-                                 mask_num      =  30             ,  #( 1% of image)
-                                 surround      =  surround       ,
-                                 surround_size =  surround_size  ,
-                                 )
-val_dataset   = RandomCutDataset(folderpath  =  'spinelikedata0'   ,  ###
-                                 imagename   =  f'_x{scale}'       ,     ## scale
-                                 labelname   =  '_label'           ,
-                                 size        =  (1200, 500, 500)   ,
-                                 cropsize    =  ( 240, 112, 112)   ,
-                                 I             =  20               ,
-                                 low           =  16               ,
-                                 high          =  20               ,
-                                 scale         =  scale            ,   ## scale
-                                 train         =  False            ,
-                                 mask          =  False            ,
-                                 surround      =  surround         ,
-                                 surround_size =  surround_size    ,
-                                 seed          =  907              ,
-                                )
+params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.5 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.5 ],
+                 "bet_z"  : [0,  50,  25  , 12.5 ],
+                 "bet_xy" : [0,  20,   1. ,  5.  ],
+                 "alpha"  : [0, 100,  10  ,  5.  ],
+                 "sig_eps": [0, 0.3, 0.15 ,  0.05],
+                 "scale"  : [1, 2, 4, 8, 12      ]
+                 }
+
+train_dataset = RandomBlurDataset(folderpath           = "newrandomdataset"                       ,
+                                  size                 = (1200, 500, 500)                         ,
+                                  cropsize             = (240, 112, 112)                          ,
+                                  I                    = 10                                       ,
+                                  low                  = 0                                        ,
+                                  high                 = 16                                       ,
+                                  z                    = 161                                      ,
+                                  x                    = 3                                        ,
+                                  y                    = 3                                        ,
+                                  imaging_params_range = params_ranges                            ,
+                                  validation_params    = gen_imaging_parameters(params_ranges)    ,
+                                  device               = device                                   ,
+                                  is_train             = True                                     ,
+                                  mask                 = True                                     ,
+                                  mask_size            = [1, 10, 10]                              ,
+                                  mask_num             = 30                                       ,
+                                  surround             = surround                                 ,
+                                  surround_size        = surround_size                            ,
+                                  seed                 = 907                                      ,
+                                  )
+val_dataset   = RandomBlurDataset(folderpath           = "newrandomdataset"                       ,
+                                  size                 = (1200, 500, 500)                         ,
+                                  cropsize             = (240, 112, 112)                          ,
+                                  I                    = 10                                       ,
+                                  low                  = 16                                       ,
+                                  high                 = 19                                       ,
+                                  z                    = 161                                      ,
+                                  x                    = 3                                        ,
+                                  y                    = 3                                        ,
+                                  imaging_params_range = params_ranges                            ,
+                                  validation_params    = gen_imaging_parameters(params_ranges)    ,
+                                  device               = device                                   ,
+                                  is_train             = False                                    ,
+                                  mask                 = True                                     ,
+                                  mask_size            = [1, 10, 10]                              ,
+                                  mask_num             = 30                                       ,
+                                  surround             = surround                                 ,
+                                  surround_size        = surround_size                            ,
+                                  seed                 = 907                                      ,
+                                  )
 
 train_data  = DataLoader(train_dataset                 ,
                          batch_size  = 1               ,
@@ -59,7 +78,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_181_x6_tau_scheduring'
+model_name           = 'JNet_189_x6_ez0_test'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
