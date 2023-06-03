@@ -391,7 +391,7 @@ class RandomBlurDataset(Dataset):
         self.surround      = surround
         self.surround_size = surround_size
         self.params_range  = imaging_params_range
-        self.imaging       = ImagingProcess("cpu", validation_params,
+        self.imaging       = ImagingProcess(device, validation_params,
                                             z=z, x=x, y=y, mode="dataset")
         self.validation_scale = validation_params["scale"]
         self.device           = device
@@ -420,8 +420,6 @@ class RandomBlurDataset(Dataset):
                              self.surround_size[1],
                              self.surround_size[2],]
             image = apply_surround_mask(self.surround, image, surround_size)
-            imaging = None
-
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             lcoords = self.coordslist[0][:, idx]
@@ -429,9 +427,7 @@ class RandomBlurDataset(Dataset):
                       torch.from_numpy(np.load(self.labels[_idx])).float()
                       .to(self.device))
             with torch.no_grad():
-                self.imaging.to(self.device)
                 image = self.imaging(label, self.is_train)
-                self.imaging.to("cpu")
             surround_size = [self.surround_size[0] // self.validation_scale,
                              self.surround_size[1],
                              self.surround_size[2],]
@@ -465,9 +461,9 @@ if __name__ == "__main__":
                                       z = 71,
                                       x = 5,
                                       y = 5,
-                                      imaging_params_range=params_ranges,
-                                      validation_params=gen_imaging_parameters(params_ranges),
-                                      device= device
+                                      imaging_params_range = params_ranges,
+                                      validation_params = gen_imaging_parameters(params_ranges),
+                                      device = device
                                       )
     for i in range(10):
         print(train_dataset[i][0].mean(),

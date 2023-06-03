@@ -43,9 +43,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     for epoch in range(1, n_epochs + 1):
         loss_sum, midloss_sum, vloss_sum, vmidloss_sum = 0., 0., 0., 0.
         model.train()
-        model.to("cpu")
         for train_data in train_loader:
-            model.to(device)
             model.set_tau(tau)
             image    = train_data[0].to(device = device)
             label    = train_data[1].to(device = device)
@@ -72,7 +70,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 
         model.eval()
         model.set_tau(tau_lb)
-        model.to("cpu")
         with torch.no_grad():
             for image, label in val_loader:
                 model.to(device)

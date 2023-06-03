@@ -1,11 +1,12 @@
 import os
+import multiprocessing
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import model as model
 from dataset import RandomCutDataset, RandomBlurDataset, gen_imaging_parameters
-from   train_loop import train_loop
+from train_loop import train_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -111,24 +112,28 @@ scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', pa
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 print(f"============= model {model_name} train started =============")
-train_loop(
-    n_epochs     = 500        , ####
-    optimizer    = optimizer  ,
-    model        = JNet       ,
-    loss_fn      = loss_fn    ,
-    train_loader = train_data ,
-    val_loader   = val_data   ,
-    device       = device     ,
-    path         = 'model'    ,
-    savefig_path = 'train'    ,
-    model_name   = model_name ,
-    partial      = partial    ,
-    scheduler    = scheduler  ,
-    es_patience  = 15         ,
-    tau_init     = 1          ,
-    tau_lb       = 1          , 
-    tau_sche     = 1          ,
-    reconstruct  = False      ,
-    check_middle = False      ,
-    midloss_fn   = midloss_fn ,
-    )
+
+trainer = train_loop(
+                     n_epochs     = 500        , ####
+                     optimizer    = optimizer  ,
+                     model        = JNet       ,
+                     loss_fn      = loss_fn    ,
+                     train_loader = train_data ,
+                     val_loader   = val_data   ,
+                     device       = device     ,
+                     path         = 'model'    ,
+                     savefig_path = 'train'    ,
+                     model_name   = model_name ,
+                     partial      = partial    ,
+                     scheduler    = scheduler  ,
+                     es_patience  = 15         ,
+                     tau_init     = 1          ,
+                     tau_lb       = 1          , 
+                     tau_sche     = 1          ,
+                     reconstruct  = False      ,
+                     check_middle = False      ,
+                     midloss_fn   = midloss_fn ,
+                     )
+process = multiprocessing.Process(target=trainer)
+process.start()
+process.join()
