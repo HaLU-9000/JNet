@@ -18,14 +18,14 @@ surround_size = [32, 4, 4]
 
 params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.5 ],
                  "sig_z"  : [0,   1, 0.2  ,  0.5 ],
-                 "bet_z"  : [0,  50,  25  , 12.5 ],
-                 "bet_xy" : [0,  20,   1. ,  5.  ],
+                 "bet_z"  : [0 , 40,  20  ,  5   ],
+                 "bet_xy" : [0,   2,   1. ,  0.25],
                  "alpha"  : [0, 100,  10  ,  5.  ],
-                 "sig_eps": [0, 0.3, 0.15 ,  0.05],
+                 "sig_eps": [0, 0.2, 0.1  , 0.025],
                  "scale"  : [1, 2, 4, 8, 12      ]
                  }
 
-model_name           = 'JNet_190_x6_randomblur'
+model_name           = 'JNet_191_x6_randomblur'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
