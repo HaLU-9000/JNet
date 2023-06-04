@@ -5,6 +5,8 @@ import torch.distributions as dist
 from scipy.stats import lognorm
 import time
 
+from utils import tt
+
 class JNetBlock0(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -393,6 +395,12 @@ class ImagingProcess(nn.Module):
                  z, x, y, postmin=0., postmax=1.,
                  mode:str="train",):
         super().__init__()
+        self.device = device
+        self.z = z
+        self.x = x
+        self.y = y
+        self.postmin = postmin
+        self.postmax = postmax
         if mode == "train":
             self.mu_z    = torch.tensor(params["mu_z"  ])
             self.sig_z   = torch.tensor(params["sig_z" ])
@@ -426,6 +434,20 @@ class ImagingProcess(nn.Module):
         x = self.blur(x)
         x = self.noise.sample(x)
         x = self.preprocess(x)
+        return x
+    
+    def sample_from_params(self, x, params):
+        scale = [params["scale"], 1, 1]
+        emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
+        blur       = Blur(self.z, self.x, self.y,
+                          tt(params["bet_z"]), tt(params["bet_xy"]), tt(params["alpha"]),
+                          scale, self.device)
+        noise      = Noise(tt(params["sig_eps"]))
+        preprocess = PreProcess(min=self.postmin, max=self.postmax)
+        x = emission.sample(x)
+        x = blur(x)
+        x = noise.sample(x)
+        x = preprocess(x)
         return x
 
 

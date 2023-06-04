@@ -31,7 +31,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                device, path, savefig_path, model_name, partial=None,
                scheduler=None, es_patience=10,
                tau_init=1.0, tau_lb=0.1, tau_sche=0.9999,
-               reconstruct=False, check_middle=False, midloss_fn=None):
+               reconstruct=False, check_middle=False, midloss_fn=None, 
+               is_randomblur=False):
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = es_patience,
@@ -45,11 +46,14 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
         model.train()
         for train_data in train_loader:
             model.set_tau(tau)
-            image    = train_data[0].to(device = device)
-            label    = train_data[1].to(device = device)
-            if len(train_data) == 3:
-                params = train_data[2]
+            if is_randomblur:
+                label  = train_data[0].to(device = device)
+                params = train_data[1]
+                image  = model.image.sample_from_params(label, params).float()
                 model.set_upsample_rate(params["scale"])
+            else:
+                image    = train_data[0].to(device = device)
+                label    = train_data[1].to(device = device)
             o = model(image)
             if len(o) == 2:
                 out, rec = o
@@ -73,8 +77,14 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
         with torch.no_grad():
             for image, label in val_loader:
                 model.to(device)
-                image       = image.to(device = device)
-                label       = label.to(device = device)
+                if is_randomblur:
+                    label  = train_data[0].to(device = device)
+                    params = train_data[1]
+                    image  = model.image.sample_from_params(label, params).float()
+                    model.set_upsample_rate(params["scale"])
+                else:
+                    image    = train_data[0].to(device = device)
+                    label    = train_data[1].to(device = device)               
                 o = model(image)
                 if len(o) == 2:
                     out, rec = o

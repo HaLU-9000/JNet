@@ -249,3 +249,9 @@ def surround_mask_(image, surround_size):
     image = image[:, z : -z, x : -x, y : -y]
     image = F.pad(image, (y, y, x, x, z, z)) # see https://pytorch.org/docs/stable/generated/torch.nn.functional.pad.html
     return image
+
+def tt(x):
+    """
+    returns torch cuda tensor of x
+    """
+    return torch.tensor(x, requires_grad=False, device="cuda")
