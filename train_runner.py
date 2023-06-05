@@ -25,7 +25,7 @@ params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.2 ],
                  "scale"  : [1, 2, 4, 8, 12      ]
                  }
 
-model_name           = 'JNet_192_x6_randomblur'
+model_name           = 'JNet_193_x6_randomblur_low_noise'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
