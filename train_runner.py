@@ -16,16 +16,16 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.2 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.2 ],
-                 "bet_z"  : [0 , 40,  20  ,  3   ],
-                 "bet_xy" : [0,   2,   1. ,  0.25],
-                 "alpha"  : [0, 100,  10  ,  5.  ],
-                 "sig_eps": [0, 0.02, 0.01  , 0.0025],
-                 "scale"  : [1, 2, 4, 8, 12      ]
+params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.1 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.1 ],
+                 "bet_z"  : [0 , 40,  20  ,  0.1 ],
+                 "bet_xy" : [0,   2,   1. ,  0.1 ],
+                 "alpha"  : [0, 100,   1. ,  0.1 ],
+                 "sig_eps": [0, 0.02, 0.01,  0.0025],
+                 "scale"  : [1, 2, 4, 8, 12]
                  }
 
-model_name           = 'JNet_193_x6_randomblur_low_noise'
+model_name           = 'JNet_194_x6_randomblur_low_variance'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -64,7 +64,7 @@ midloss_fn           = nn.BCELoss()
 train_dataset = LabelandBlurParamsDataset(folderpath           = "newrandomdataset"                       ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240, 112, 112)                          ,
-                                          I                    = 200                                       ,
+                                          I                    = 200                                      ,
                                           low                  = 0                                        ,
                                           high                 = 16                                       ,
                                           imaging_function     = JNet.image                               ,
