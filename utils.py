@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pathlib import Path
 
-from metrics import jiffs
+#from metrics import jiffs
 
 class EarlyStopping():
     """
@@ -114,21 +114,21 @@ def create_mask_(h, w, center=None, radius=None):
     mask = mask * 1.0
     return mask
 
-def gen_jilist(model, model_name, val_dataset, device, partial=None):
-    model.load_state_dict(torch.load(f'model/{model_name}.pt'))
-    model.eval()
-    jis = []
-    for i in range(len(val_dataset)):
-        image, label = val_dataset[i]
-        if partial is not None:
-            label = label[:, partial[0]:partial[1], :, :].detach()
-        image   = image.to(device=device).unsqueeze(0)
-        pred, _ = model(image)
-        pred    = pred.to(device='cpu').squeeze(0)
-        if partial is not None:
-            pred = pred[:, partial[0]:partial[1], :, :].detach()
-        jis.append(jiffs(pred, label))
-    return jis
+#def gen_jilist(model, model_name, val_dataset, device, partial=None):
+#    model.load_state_dict(torch.load(f'model/{model_name}.pt'))
+#    model.eval()
+#    jis = []
+#    for i in range(len(val_dataset)):
+#        image, label = val_dataset[i]
+#        if partial is not None:
+#            label = label[:, partial[0]:partial[1], :, :].detach()
+#        image   = image.to(device=device).unsqueeze(0)
+#        pred, _ = model(image)
+#        pred    = pred.to(device='cpu').squeeze(0)
+#        if partial is not None:
+#            pred = pred[:, partial[0]:partial[1], :, :].detach()
+#        jis.append(jiffs(pred, label))
+#    return jis
 
 def gen_bcelist(model, model_name, val_dataset, device, partial=None):
     model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
