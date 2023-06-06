@@ -48,7 +48,7 @@ val_dataset_  = RealDensityDataset(folderpath      =  'spinerawdata0'  ,
                                    score           =  val_score        ,
                                   )
 
-model_name           = 'JNet_187_x6_vq'
+model_name           = 'JNet_185_x6_ez0'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -74,7 +74,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   params                = params               ,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
-                  apply_vq              = True                 ,
+                  apply_vq              = False                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
