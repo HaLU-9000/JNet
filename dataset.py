@@ -81,79 +81,7 @@ class Crop:
        return x[0 : , self.coord[0] : self.coord[0] + self.csize[0],
                       self.coord[1] : self.coord[1] + self.csize[1],
                       self.coord[2] : self.coord[2] + self.csize[2]].detach().clone()
-    
 
-class Blur(nn.Module):
-    def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, alpha, sig_eps, device):
-        super().__init__()
-        self.scale    = scale
-        self.z        = z
-        self.x        = x
-        self.y        = y
-        self.mu_z     = mu_z
-        self.sig_z    = sig_z
-        self.bet_xy   = bet_xy
-        self.bet_z    = bet_z
-        self.alpha    = alpha
-        self.sig_eps  = sig_eps
-        self.zd,      \
-        self.xd,      \
-        self.yd       = self.distance(z, x, y)
-        self.alf      = self.gen_alf().to(device)
-        self.sum_alf  = torch.sum(self.alf)
-        self.logn_ppf = lognorm.ppf([0.99], 1, loc=mu_z, scale=sig_z)[0] # normalize by init value
-        self.theomax  = self.sum_alf * self.logn_ppf
-
-    def distance(self, z, x, y):
-        [zd, xd, yd] = [torch.zeros(1, 1, z, x, y,) for _ in range(3)]
-        for k in range(-z // 2, z // 2 + 1):
-            zd[:, :, k + z // 2, :, :,] = k ** 2
-        for i in range(-x // 2, x // 2 + 1):
-            xd[:, :, :, i + x // 2, :,] = i ** 2
-        for j in range(-y // 2, y // 2 + 1):
-            yd[:, :, :, :, j + y // 2,] = j ** 2
-        return zd, xd, yd
-
-    def gen_alf(self):
-        d_2 = self.zd / self.bet_z ** 2 + (self.xd + self.yd) / self.bet_xy ** 2
-        alf = torch.exp(-d_2 / 2)
-        normterm = (self.bet_z * self.bet_xy ** 2) * (torch.pi * 2) ** 1.5
-        alf = alf / normterm 
-        alf  = torch.ones_like(alf) - torch.exp(-self.alpha * alf)
-        return alf
-
-    def forward(self, inp):
-        inp  = inp.unsqueeze(0)
-        pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(inp),
-                              scale = self.sig_z * torch.ones_like(inp),)       
-        rec  = inp * pz0.sample() # E[z0|mu_z, sig_z]
-        #z0   = z0 * torch.ones_like(inp, requires_grad=True)
-        rec  = rec * 3.3
-        #rec  = torch.clip(rec, min=0, max=self.logn_ppf)
-        rec  = F.conv3d(input   = rec                               ,
-                        weight  = self.alf                          ,
-                        stride  = (self.scale, 1, 1)                       ,
-                        padding = ((self.z - self.scale + 1) // 2  , 
-                                   (self.x) // 2                    , 
-                                   (self.y) // 2                    ,),)
-        rec  = rec / self.theomax
-        #rec  = (rec - rec.min()) / (rec.max() - rec.min())
-        prec = dist.Normal(loc   = rec         ,
-                           scale = self.sig_eps,)
-        rec  = prec.sample()
-        rec  = rec.squeeze(0)
-        rec  = torch.clip(rec, min=0, max=1)
-        rec  = rec.squeeze(0)
-        return rec
-
-class RandomBlur(Blur):
-    def __init__(self):
-        pass
-    
-    def forward(self, inp):
-        return super().forward(inp)
-    def gen_valid_params(self):
-        pass
 
 class RandomCutDataset(Dataset):
     '''
@@ -370,7 +298,7 @@ class RandomBlurDataset(Dataset):
                  z, x, y,
                  imaging_params_range:dict,
                  validation_params:dict,
-                 device, train=True, mask=True, 
+                 device, is_train=True, mask=True, 
                  mask_size=[10, 10, 10], mask_num=1,
                  surround=True, surround_size=[72, 8, 8],
                  seed=523):
@@ -384,7 +312,7 @@ class RandomBlurDataset(Dataset):
         self.size          = size
         self.labels        = list(sorted(Path(folderpath).glob(f'*_label.npy')))
         self.csize         = cropsize
-        self.is_train      = train
+        self.is_train      = is_train
         self.mask          = mask
         self.mask_size     = mask_size
         self.mask_num      = mask_num
@@ -395,7 +323,7 @@ class RandomBlurDataset(Dataset):
                                             z=z, x=x, y=y, mode="dataset")
         self.validation_scale = validation_params["scale"]
         self.device           = device
-        if train == False:
+        if is_train == False:
             np.random.seed(seed)
             self.indiceslist = gen_indices(I, low, high)
             self.coordslist  = gen_coords(I, size, cropsize)
@@ -420,7 +348,6 @@ class RandomBlurDataset(Dataset):
                              self.surround_size[1],
                              self.surround_size[2],]
             image = apply_surround_mask(self.surround, image, surround_size)
-
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             lcoords = self.coordslist[0][:, idx]
@@ -439,10 +366,154 @@ class RandomBlurDataset(Dataset):
 
     def __len__(self):
         return self.I
-    
+
+
+class RandomBlurbyModelDataset(Dataset):
+    '''
+    input  : 4d torch.tensor (large (like 768**3) size) (label)
+    output : 4d torch.tensor (small (like 128**3) size)
+             ([channels, z_size, x_size, y_size]) 
+             of randomly blurred/cropped/rotated image and label
+    :param folderpath : large data path ("randomdata" in this repo)
+    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
+    I : sample size. Returns I samples. (e.g. 200)
+    low, high : use [low]th ~ [high]th files in folderpath as data.
+    '''
+    def __init__(self, folderpath:str,
+                 size:list, cropsize:list, I:int, low:int, high:int,
+                 imaging_function,
+                 imaging_params_range:dict,
+                 validation_params:dict,
+                 device, is_train=True, mask=True, 
+                 mask_size=[10, 10, 10], mask_num=1,
+                 surround=True, surround_size=[72, 8, 8],
+                 seed=523):
+        self.I             = I
+        self.low           = low
+        self.high          = high
+        self.size          = size
+        self.labels        = list(sorted(Path(folderpath).glob(f'*_label.npy')))
+        self.csize         = cropsize
+        self.is_train      = is_train
+        self.mask          = mask
+        self.mask_size     = mask_size
+        self.mask_num      = mask_num
+        self.surround      = surround
+        self.surround_size = surround_size
+        self.params_range  = imaging_params_range
+        self.imaging       = imaging_function
+        self.valid_params = validation_params
+        self.device           = device
+        if is_train == False:
+            np.random.seed(seed)
+            self.indiceslist = gen_indices(I, low, high)
+            self.coordslist  = gen_coords(I, size, cropsize)
+
+    def __getitem__(self, idx):
+        if self.is_train:
+            idx     = gen_indices(1, self.low, self.high).item()
+            lcoords = gen_coords(1, self.size, self.csize,)
+            lcoords = lcoords[:, 0]
+            label, _, _      = Rotate()(
+                Crop(lcoords, self.csize)(
+                torch.from_numpy(np.load(self.labels[idx]))).float()
+                .to(self.device))
+            params = gen_imaging_parameters(self.params_range)
+            with torch.no_grad():
+                image = self.imaging.sample_from_params(label, params)
+            image = apply_mask(self.mask, image, self.mask_size, self.mask_num)
+            surround_size = [self.surround_size[0] // params["scale"],
+                             self.surround_size[1],
+                             self.surround_size[2],]
+            image = apply_surround_mask(self.surround, image, surround_size)
+        else:
+            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
+            lcoords = self.coordslist[0][:, idx]
+            label   = Crop(lcoords, self.csize)(
+                      torch.from_numpy(np.load(self.labels[_idx])).float()
+                      .to(self.device))
+            with torch.no_grad():
+                image = self.imaging.sample_from_params(label, self.valid_params)
+            surround_size = [self.surround_size[0] // self.valid_params["scale"],
+                             self.surround_size[1],
+                             self.surround_size[2],]
+            image   = apply_surround_mask(self.surround, image,
+                                          surround_size)
+
+        return image, label, params
+
+    def __len__(self):
+        return self.I
+
+
+class LabelandBlurParamsDataset(Dataset):
+    '''
+    input  : 4d torch.tensor (large (like 768**3) size) (label)
+    output : 4d torch.tensor (small (like 128**3) size)
+             ([channels, z_size, x_size, y_size]) 
+             of randomly blurred/cropped/rotated image and label
+    :param folderpath : large data path ("randomdata" in this repo)
+    labelname : "0001***.pt" `s "**" part. (e.g. "_label")
+    I : sample size. Returns I samples. (e.g. 200)
+    low, high : use [low]th ~ [high]th files in folderpath as data.
+    '''
+    def __init__(self, folderpath:str,
+                 size:list, cropsize:list, I:int, low:int, high:int,
+                 imaging_function,
+                 imaging_params_range:dict,
+                 validation_params:dict,
+                 device, is_train=True, mask=True, 
+                 mask_size=[10, 10, 10], mask_num=1,
+                 surround=True, surround_size=[72, 8, 8],
+                 seed=523):
+        self.I             = I
+        self.low           = low
+        self.high          = high
+        self.size          = size
+        self.labels        = list(sorted(Path(folderpath).glob(f'*_label.npy')))
+        self.csize         = cropsize
+        self.is_train      = is_train
+        self.mask          = mask
+        self.mask_size     = mask_size
+        self.mask_num      = mask_num
+        self.surround      = surround
+        self.surround_size = surround_size
+        self.params_range  = imaging_params_range
+        self.imaging       = imaging_function
+        self.valid_params = validation_params
+        self.device           = device
+        if is_train == False:
+            np.random.seed(seed)
+            self.indiceslist = gen_indices(I, low, high)
+            self.coordslist  = gen_coords(I, size, cropsize)
+
+    def __getitem__(self, idx):
+        if self.is_train:
+            idx     = gen_indices(1, self.low, self.high).item()
+            lcoords = gen_coords(1, self.size, self.csize,)
+            lcoords = lcoords[:, 0]
+            label, _, _      = Rotate()(
+                Crop(lcoords, self.csize)(
+                torch.from_numpy(np.load(self.labels[idx]))).float())
+            params = gen_imaging_parameters(self.params_range)
+        else:
+            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
+            lcoords = self.coordslist
+            lcoords = self.coordslist[:, idx]
+            label   = Crop(lcoords, self.csize)(
+                      torch.from_numpy(np.load(self.labels[_idx])).float())
+            params  = self.valid_params
+
+        return label, params
+
+    def __len__(self):
+        return self.I
+
+
 if __name__ == "__main__":
     device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
+
 
     params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.5 ],
                      "sig_z"  : [0,   1, 0.2  ,  0.5 ],
@@ -452,19 +523,18 @@ if __name__ == "__main__":
                      "sig_eps": [0, 0.3, 0.15 ,  0.05],
                      "scale"  : [1, 2, 4, 8, 12      ]
                      }
-
-    train_dataset = RandomBlurDataset(folderpath      = "newrandomdataset",
-                                      size            = (1200, 500, 500)  ,
-                                      cropsize        = ( 240, 112, 112)  ,
-                                      I               =  10               ,
-                                      low             =   0               ,
-                                      high            =  19               ,
-                                      z = 71,
-                                      x = 5,
-                                      y = 5,
-                                      imaging_params_range=params_ranges,
-                                      validation_params=gen_imaging_parameters(params_ranges),
-                                      device= device
+    validation_params = gen_imaging_parameters(params_ranges)
+    imageprocess = ImagingProcess(device, validation_params, z=71, x=3, y=3, mode="dataset")
+    train_dataset = RandomBlurbyModelDataset(folderpath = "newrandomdataset",
+                                      size              = (1200, 500, 500)  ,
+                                      cropsize          = ( 240, 112, 112)  ,
+                                      I                 =  10               ,
+                                      low               =   0               ,
+                                      high              =  19               ,
+                                      imaging_function  = imageprocess      ,
+                                      imaging_params_range = params_ranges  ,
+                                      validation_params = validation_params,
+                                      device = device
                                       )
     for i in range(10):
         print(train_dataset[i][0].mean(),
