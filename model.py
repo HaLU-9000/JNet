@@ -143,9 +143,11 @@ class VectolQuantizer(nn.Module):
 
 
 class JNetLayer(nn.Module):
-    def __init__(self, in_channels, hidden_channels_list, nblocks, dropout):
+    def __init__(self, in_channels, hidden_channels_list, attention_layer_list,
+                 nblocks, dropout):
         super().__init__()
         hidden_channels = hidden_channels_list.pop(0)
+        attention_layer = attention_layer_list.pop(0)
         self.pool = JNetPooling(in_channels  = in_channels    ,
                                 out_channels = hidden_channels,)
         self.conv = nn.Conv3d(in_channels    = hidden_channels,
@@ -157,8 +159,10 @@ class JNetLayer(nn.Module):
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
                                              ) for _ in range(nblocks)])
+        self.attn = Attention() if attention_layer else nn.Identity()
         self.mid  = JNetLayer(in_channels          = hidden_channels     ,
                               hidden_channels_list = hidden_channels_list,
+                              attention_layer_list = attention_layer_list,
                               nblocks              = nblocks             ,
                               dropout              = dropout             ,
                               ) if hidden_channels_list else nn.Identity()
@@ -174,6 +178,7 @@ class JNetLayer(nn.Module):
         d = self.conv(d)
         for f in self.prev:
             d = f(d)
+        d = self.attn(d)
         d = self.mid(d)
         for f in self.post:
             d = f(d)
@@ -181,6 +186,15 @@ class JNetLayer(nn.Module):
         x = x + d
         return x
 
+class Attention(nn.Module):
+    def __init__(self):
+        pass
+    def forward(self, x, c):
+        _b, _c, _z, _x, _y = x.shape
+        x = x.permute(0, 2, 3, 4, 1).view(_b, _z * _x * _y, _c)
+        x = self.attn(x)
+        
+        
 
 class Emission(nn.Module):
     def __init__(self, mu_z, sig_z,):
@@ -321,7 +335,7 @@ class Noise(nn.Module):
         super().__init__()
         self.sig_eps = sig_eps
 
-    def foward(self, x):
+    def forward(self, x):
         return x
     
     def sample(self, x):
