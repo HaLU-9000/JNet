@@ -131,6 +131,25 @@ class SuperResolutionBlock(nn.Module):
         return x
 
 
+class Attention(nn.Module):
+    def __init__(self):
+        pass
+    def forward(self, x, c):
+        if c is None:
+            c = x
+        _b, _c, _z, _x, _y = x.shape
+        x = x.permute(0, 2, 3, 4, 1).view(_b, _z *_x *_y, _c)
+        x = self.attn(x, c)
+        x = x.permute(0, 2, 3, 4, 1).view(_b, _z ,_x, _y, _c)
+        return x ## later
+
+class BlurParameterEstimator(nn.Module):
+    def __init__(self, x_dim, num_params):
+        pass
+    def forward(self, x):
+        
+        return p
+
 class VectolQuantizer(nn.Module):
     def __init__(self, device):
         super().__init__()
@@ -166,6 +185,12 @@ class JNetLayer(nn.Module):
                               nblocks              = nblocks             ,
                               dropout              = dropout             ,
                               ) if hidden_channels_list else nn.Identity()
+        # self.mid = nn.ModuleList([])
+        # if attention:
+        #     self.mid.append(Attention)
+        # if param_estimation:
+        #     self.mid.append(ParamEstimation)
+        # self.mid.append(JNetLayer[])
         self.post = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
@@ -173,26 +198,20 @@ class JNetLayer(nn.Module):
         self.unpool = JNetUnpooling(in_channels  = hidden_channels,
                                     out_channels = in_channels    ,)
     
-    def forward(self, x):
+    def forward(self, x, p):
         d = self.pool(x)
         d = self.conv(d)
         for f in self.prev:
             d = f(d)
-        d = self.attn(d)
+        p = self.param(d)
         d = self.mid(d)
         for f in self.post:
             d = f(d)
         d = self.unpool(d)
         x = x + d
-        return x
+        return x, p
 
-class Attention(nn.Module):
-    def __init__(self):
-        pass
-    def forward(self, x, c):
-        _b, _c, _z, _x, _y = x.shape
-        x = x.permute(0, 2, 3, 4, 1).view(_b, _z * _x * _y, _c)
-        x = self.attn(x)
+
         
         
 
@@ -492,18 +511,21 @@ class JNet(nn.Module):
         x = self.prev0(x)
         for f in self.prev:
             x = f(x)
-        x = self.mid(x)
+        x, p = self.mid(x)
         for f in self.post:
             x = f(x)
         x = self.post0(x)
-        x = F.softmax(input  = x / self.tau ,
-                      dim    = 1            ,)[:, :1,] # softmax with temperature
-        x, qloss = self.vq(x)
-        r = self.image(x) if self.reconstruct else x
+        x = F.softmax(input = x / self.tau, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
-            return x, r, qloss
-        else:
-            return x, r
+            x, qloss = self.vq(x)
+        r = self.image(x) if self.reconstruct else x
+        out = {"enhanced_image" : x,
+               "reconstruction" : r,
+               "blur_parameter" : p,}
+        if self.apply_vq:
+            vqd = {"quantized_loss" : qloss}
+            out = dict(**out, **vqd)
+        return out
 
 
 if __name__ == '__main__':
