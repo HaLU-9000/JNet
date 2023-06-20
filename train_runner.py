@@ -17,11 +17,11 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.1 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.1 ],
-                 "bet_z"  : [0 , 22,  20  ,  0.1 ],
-                 "bet_xy" : [0,   2,   1. ,  0.1 ],
-                 "alpha"  : [0,   2,   1. ,  0.1 ],
+params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.001 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.001 ],
+                 "bet_z"  : [0 , 22,  20  ,  0.001 ],
+                 "bet_xy" : [0,   2,   1. ,  0.001 ],
+                 "alpha"  : [0,   2,   1. ,  0.001 ],
                  "sig_eps": [0, 0.02, 0.01,  0.0025],
                  "scale"  : [6]
                  }
@@ -34,7 +34,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_198_x6_randomblur-verbose'
+model_name           = 'JNet_200_x6_randomblur-easy-partial-est'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2

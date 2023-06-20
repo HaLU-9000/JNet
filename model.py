@@ -147,6 +147,7 @@ class Attention(nn.Module):
 class BlurParameterEstimator(nn.Module):
     def __init__(self, x_dim, mid_dim, params_dim):
         super().__init__()
+        self.x_dim = x_dim
         self.layers = nn.ModuleList([nn.Linear(in_features  = x_dim     ,
                                                out_features = mid_dim   ,),
                                      nn.ReLU(inplace=False)               ,
@@ -158,7 +159,7 @@ class BlurParameterEstimator(nn.Module):
                                      nn.Sigmoid()                         ,
                                      ])
     def forward(self, x):
-        x = x.flatten()
+        x = x.flatten()[:self.x_dim]
         for f in self.layers:
             x = f(x)
         return x
@@ -483,7 +484,7 @@ class JNet(nn.Module):
         params_dim = int(len(params) - 2)
         scale_factor            = (params["scale"], 1, 1)
         hidden_channels_list    = hidden_channels_list.copy()
-        x_dim = 1
+        x_dim = 1 / 4
         for i in image_size:
             x_dim *= i
         x_dim_list = [int(x_dim * c / (2 ** (3 * i)))
@@ -574,7 +575,7 @@ if __name__ == '__main__':
                             "sig_eps": 0.01   ,
                             "scale"  : 10
                             }
-    image_size = (1, 1, 24, 112, 112)
+    image_size = (1, 1, 24, 96, 96)
     param_estimation_list = [False, False, False, False, True]
     model = JNet(hidden_channels_list  = hidden_channels_list ,
                  nblocks               = nblocks              ,
@@ -585,11 +586,11 @@ if __name__ == '__main__':
                  param_estimation_list = param_estimation_list,
                  image_size            = image_size           ,
                  reconstruct           = False                ,
-                 apply_vq              = False                ,
+                 apply_vq              = True                 ,
                  )
-    input_size = (1, 1, 24, 112, 112)
+    input_size = (1, 1, 24, 96, 96)
     model.to(device='cuda')
-#    print(model(torch.abs(torch.randn(*input_size)).to(device='cuda')))
+    print(model(torch.abs(torch.randn(*input_size)).to(device='cuda')))
     #a, b, c, d, e = [i for i in model.parameters()][-5:]
     #print(a.item())
     torchinfo.summary(model, input_size)
