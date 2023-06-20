@@ -34,7 +34,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_206_x6_randomblur-easy-est-param1-64'
+model_name           = 'JNet_208_x6_randomblur-easy-est-param1-64'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -69,13 +69,17 @@ JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
-optimizer            = optim.Adam(params, lr = 1e-4)
+
+warmup_func = 0
+
+optimizer            = optim.Adam(params, lr = 1e-5)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
+warmup_scheduler     = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath           = "newrandomdataset"                       ,
+train_dataset = LabelandBlurParamsDataset(folderpath           = "_newrandomdataset"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240,  96,  96)                          ,
                                           I                    = 200                                      ,
@@ -93,7 +97,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath           = "newrandomdatas
                                           surround_size        = surround_size                            ,
                                           seed                 = 907                                      ,
                                           )
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "newrandomdataset"                       ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "_newrandomdataset"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240,  96,  96)                          ,
                                           I                    = 10                                       ,

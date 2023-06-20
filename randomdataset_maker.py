@@ -11,7 +11,7 @@ print(f"Training on device {device}.")
 
 for i in range(0, 20):
     t1 = time.time()
-    inp     = make_beads_data(30 + 3000 * i, (1200, 500, 500))
+    inp     = make_beads_data(30 + 300 * i, (1200, 500, 500))
     t2 = time.time()
     print(f'{t2 - t1} s')
-    np.save(f'newrandomdataset/{str(i).zfill(4)}_label.npy', inp)
+    np.save(f'_newrandomdataset/{str(i).zfill(4)}_label.npy', inp)

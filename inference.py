@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from dataset import RandomCutDataset
+from dataset import LabelandBlurParamsDataset, gen_imaging_parameters
 import model
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -12,24 +12,8 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-val_dataset   = RandomCutDataset(folderpath  =  'spinelikedata0'   ,  ###
-                                 imagename   =  f'_x{scale}'       ,     ## scale
-                                 labelname   =  '_label'           ,
-                                 size        =  (1200, 500, 500)   ,
-                                 cropsize    =  ( 240, 112, 112)  ,
-                                 I             =  10               ,
-                                 low           =  16               ,
-                                 high          =  20               ,
-                                 scale         =  scale            ,   ## scale
-                                 train         =  False            ,
-                                 mask          =  False            ,
-                                 mask_num      =  0                ,
-                                 mask_size     =  [1, 10, 10]      ,
-                                 surround      =  surround         ,
-                                 surround_size =  surround_size    ,
-                                 seed          =  907              ,
-                                )
-model_name           = 'JNet_175_x6'
+
+model_name           = 'JNet_206_x6_randomblur-easy-est-param1-64'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -37,25 +21,64 @@ activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
 superres = True if scale > 1 else False
+
 params               = {"mu_z"   : 0.2    ,
                         "sig_z"  : 0.2    ,
-                        "bet_z"  : 23.5329,
-                        "bet_xy" : 1.00000,
-                        "alpha"  : 0.9544 ,
+                        "bet_z"  : 20.    ,
+                        "bet_xy" : 1.0    ,
+                        "alpha"  : 1.0    ,
                         "sig_eps": 0.01   ,
                         "scale"  : 6
                         }
+
+params_ranges = {"mu_z"   : [0,   1., 0.2,  0.001 ],
+                 "sig_z"  : [0,   1., 0.2 ,  0.001 ],
+                 "bet_z"  : [0 , 22.,  20.  ,  0.001 ],
+                 "bet_xy" : [0,   2.,   1. ,  0.001 ],
+                 "alpha"  : [0,   2.,   1. ,  0.001 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.001 ],
+                 "scale"  : [6]
+                 }
+
+param_scales = {"mu_z"   :  1,
+                "sig_z"  :  1,
+                "bet_z"  : 22,
+                "bet_xy" :  2,
+                "alpha"  :  2,}
+
+
+image_size = (1, 1, 240,  96,  96)
+param_estimation_list = [False, False, False, False, True]
 
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
+                  param_estimation_list = param_estimation_list,
+                  image_size            = image_size           ,
                   superres              = superres             ,
                   reconstruct           = False                ,
+                  apply_vq              = False                ,
                   )
 JNet = JNet.to(device = device)
-JNet.set_tau(0.1)
+
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "newrandomdataset"                       ,
+                                          size                 = (1200, 500, 500)                         ,
+                                          cropsize             = (240,  96,  96)                          ,
+                                          I                    = 10                                       ,
+                                          low                  = 2                                        ,
+                                          high                 = 3                                        ,
+                                          imaging_function     = JNet.image                               ,
+                                          imaging_params_range = params_ranges                            ,
+                                          validation_params    = gen_imaging_parameters(params_ranges)    ,
+                                          device               = device                                   ,
+                                          is_train             = False                                    ,
+                                          mask                 = False                                    ,
+                                          surround             = surround                                 ,
+                                          surround_size        = surround_size                            ,
+                                          seed                 = 907                                      ,
+                                          )
 j = 120
 i = 60
 j_s = j // scale
@@ -63,10 +86,17 @@ j_s = j // scale
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 for n in range(0,5):
-    image, label= val_dataset[n]
-    output, reconst= JNet(image.to("cuda").unsqueeze(0))
+    label  = val_dataset[n][0].to(device = device)
+    params = val_dataset[n][1]
+    image  = JNet.image.sample_from_params(label, params).float()
+    outdict= JNet(image.unsqueeze(0))
+    output = outdict["enhanced_image"]
+    reconst= outdict["reconstruction"]
+    qloss  = outdict["quantized_loss"]
+    est_params = outdict["blur_parameter"]
+    print("est_params: ", est_params)
     lossfunc = nn.BCELoss()
-    print(lossfunc(output.squeeze(0).detach().cpu(), label))
+    print(lossfunc(output.squeeze(0).detach().cpu(), label.detach().cpu()))
     output  = output.detach().cpu().numpy()
     reconst = reconst.squeeze(0).detach().cpu().numpy()
     fig = plt.figure(figsize=(25, 15))
@@ -129,5 +159,5 @@ for n in range(0,5):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(label[0, :, i, :].to(device='cpu'),
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_tau0_1_sim_result{n}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
     
