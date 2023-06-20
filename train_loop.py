@@ -94,7 +94,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 vloss, vmid_loss = branch_calc_loss(out, rec, image, label,
                                                     loss_fn,midloss_fn,partial,
                                                     reconstruct, check_middle)
-                vloss_sum += vloss.detach().item() + qloss.detach().item()
+                vloss_sum += vloss.detach().item()
+                if qloss is not None:
+                    vloss_sum += qloss.detach().item()
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
                 vparam_loss_sum += param_loss_fn(target_params, est_params).detach().item()

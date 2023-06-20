@@ -549,9 +549,8 @@ class JNet(nn.Module):
                "reconstruction" : r,
                "blur_parameter" : p,
                }
-        if self.apply_vq:
-            vqd = {"quantized_loss" : qloss}
-            out = dict(**out, **vqd)
+        vqd = {"quantized_loss" : qloss} if self.apply_vq else {"quantized_loss" : None}
+        out = dict(**out, **vqd)
         return out
 
 
