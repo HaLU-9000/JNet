@@ -34,7 +34,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_200_x6_randomblur-easy-partial-est'
+model_name           = 'JNet_201_x6_randomblur-easy-no-est'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -63,7 +63,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   image_size            = image_size           ,
                   superres              = superres             ,
                   reconstruct           = False                ,
-                  apply_vq              = True                 ,
+                  apply_vq              = False                ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
