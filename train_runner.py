@@ -34,7 +34,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_196_x6_randomblur-easy'
+model_name           = 'JNet_198_x6_randomblur-verbose'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2

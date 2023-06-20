@@ -625,7 +625,7 @@ class ParamScaler():
                 params.update(d)
             else:
                 print(sk, " unmatched with ", k)
-            return params
+        return params
     
     def denormalize(self, params):
         for (k, v), (sk, sv) in zip(params.items(), self.scales.items()):
@@ -635,4 +635,4 @@ class ParamScaler():
                 params.update(d)
             else:
                 print(sk, " unmatched with ", k)
-            return params
+        return params
