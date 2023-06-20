@@ -33,7 +33,7 @@ def apply_surround_mask(surround, image, surround_size):
 def sample_truncnorm(low, high, loc, scale):
     a = (low  - loc) / scale
     b = (high - loc) / scale
-    return truncnorm.rvs(a, b, loc, scale)
+    return truncnorm.rvs(a=a, b=b, loc=loc, scale=scale)
 
 def gen_imaging_parameters(params_ranges:dict
                            )->dict:

@@ -19,22 +19,22 @@ surround_size = [32, 4, 4]
 
 params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.1 ],
                  "sig_z"  : [0,   1, 0.2  ,  0.1 ],
-                 "bet_z"  : [0 , 40,  20  ,  0.1 ],
+                 "bet_z"  : [0 , 22,  20  ,  0.1 ],
                  "bet_xy" : [0,   2,   1. ,  0.1 ],
-                 "alpha"  : [0, 100,   1. ,  0.1 ],
+                 "alpha"  : [0,   2,   1. ,  0.1 ],
                  "sig_eps": [0, 0.02, 0.01,  0.0025],
-                 "scale"  : [1, 2, 4, 6, 8, 10, 12]
+                 "scale"  : [6]
                  }
 
 param_scales = {"mu_z"   :  1,
                 "sig_z"  :  1,
-                "bet_z"  : 40,
+                "bet_z"  : 22,
                 "bet_xy" :  2,
-                "alpha"  :100,}
+                "alpha"  :  2,}
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_196_x6_randomblur_estimation'
+model_name           = 'JNet_196_x6_randomblur-easy'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
