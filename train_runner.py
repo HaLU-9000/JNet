@@ -26,6 +26,15 @@ params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.001 ],
                  "scale"  : [6]
                  }
 
+params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.0001 ],
+                 "bet_z"  : [0 , 22,  20  ,  0.0001 ],
+                 "bet_xy" : [0,   2,   1. ,  0.0001 ],
+                 "alpha"  : [0,   2,   1. ,  0.0001 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.0001 ],
+                 "scale"  : [6]
+                 }
+
 param_scales = {"mu_z"   :  1,
                 "sig_z"  :  1,
                 "bet_z"  : 22,
@@ -34,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_208_x6_randomblur-easy-est-param1-64'
+model_name           = 'JNet_211_x6_beadslikedataset2-randomblur-easy-est-param1-64'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -42,12 +51,12 @@ activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
 superres = True if scale > 1 else False
-params               = {"mu_z"   : 0.2    ,
-                        "sig_z"  : 0.2    ,
-                        "bet_z"  : 23.5329,
-                        "bet_xy" : 1.00000,
-                        "alpha"  : 0.9544 ,
-                        "sig_eps": 0.01   ,
+params               = {"mu_z"   : 0.2  , 
+                        "sig_z"  : 0.2  , 
+                        "bet_z"  :  20. , 
+                        "bet_xy" :   1. , 
+                        "alpha"  :   1. , 
+                        "sig_eps":  0.01,
                         "scale"  : 6
                         }
 
@@ -70,16 +79,20 @@ JNet = JNet.to(device = device)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
 
-warmup_func = 0
+def warmup_func(epoch):
+    if epoch < 10:
+        return 0.1 + 0.1 * epoch
+    else:
+        return 1.0
 
-optimizer            = optim.Adam(params, lr = 1e-5)
+optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 warmup_scheduler     = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath           = "_newrandomdataset"                      ,
+train_dataset = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240,  96,  96)                          ,
                                           I                    = 200                                      ,
@@ -97,7 +110,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath           = "_newrandomdata
                                           surround_size        = surround_size                            ,
                                           seed                 = 907                                      ,
                                           )
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "_newrandomdataset"                      ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240,  96,  96)                          ,
                                           I                    = 10                                       ,
@@ -105,7 +118,7 @@ val_dataset   = LabelandBlurParamsDataset(folderpath           = "_newrandomdata
                                           high                 = 19                                       ,
                                           imaging_function     = JNet.image                               ,
                                           imaging_params_range = params_ranges                            ,
-                                          validation_params    = gen_imaging_parameters(params_ranges)    ,
+                                          validation_params    = gen_imaging_parameters(params_ranges_)   ,
                                           device               = device                                   ,
                                           is_train             = False                                    ,
                                           mask                 = False                                    ,

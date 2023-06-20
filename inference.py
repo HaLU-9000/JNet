@@ -13,7 +13,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_206_x6_randomblur-easy-est-param1-64'
+model_name           = 'JNet_208_x6_randomblur-easy-est-param1-64'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -63,7 +63,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   )
 JNet = JNet.to(device = device)
 
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "newrandomdataset"                       ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "_newrandomdataset"                       ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240,  96,  96)                          ,
                                           I                    = 10                                       ,
