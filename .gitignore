@@ -49,6 +49,8 @@ spinerawdata0/
 
 newrandomdataset/
 
+model/
+
 pathlib_test.py
 utils_test.py
 utils_test2.py

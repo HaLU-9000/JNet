@@ -612,3 +612,27 @@ if __name__ == "__main__":
         print(train_dataset[i][0].mean(),
               train_dataset[i][0].shape,
               train_dataset[i][2])
+
+
+class ParamScaler():
+    def __init__(self, scales):
+        self.scales = scales
+    def normalize(self, params):
+        for (k, v), (sk, sv) in zip(params.items(), self.scales.items()):
+            if k == sk:
+                v = v / sv
+                d = {k: v}
+                params.update(d)
+            else:
+                print(sk, " unmatched with ", k)
+            return params
+    
+    def denormalize(self, params):
+        for (k, v), (sk, sv) in zip(params.items(), self.scales.items()):
+            if k == sk:
+                v = v * sv
+                d = {k: v}
+                params.update(d)
+            else:
+                print(sk, " unmatched with ", k)
+            return params

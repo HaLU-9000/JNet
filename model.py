@@ -143,14 +143,28 @@ class Attention(nn.Module):
         x = x.permute(0, 2, 3, 4, 1).view(_b, _z ,_x, _y, _c)
         return x ## later
 
-class BlurParameterEstimator(nn.Module):
-    def __init__(self, x_dim, num_params):
-        pass
-    def forward(self, x):
-        
-        return p
 
-class VectolQuantizer(nn.Module):
+class BlurParameterEstimator(nn.Module):
+    def __init__(self, x_dim, mid_dim, params_dim):
+        super().__init__()
+        self.layers = nn.ModuleList([nn.Linear(in_features  = x_dim     ,
+                                               out_features = mid_dim   ,),
+                                     nn.ReLU(inplace=False)               ,
+                                     nn.Linear(in_features  = mid_dim   ,
+                                               out_features = mid_dim   ,),
+                                     nn.ReLU(inplace=False)               ,
+                                     nn.Linear(in_features  = mid_dim   ,
+                                               out_features = params_dim,),
+                                     nn.Sigmoid()                         ,
+                                     ])
+    def forward(self, x):
+        x = x.flatten()
+        for f in self.layers:
+            x = f(x)
+        return x
+
+
+class VectorQuantizer(nn.Module):
     def __init__(self, device):
         super().__init__()
         self.device = device
@@ -162,11 +176,14 @@ class VectolQuantizer(nn.Module):
 
 
 class JNetLayer(nn.Module):
-    def __init__(self, in_channels, hidden_channels_list, attention_layer_list,
-                 nblocks, dropout):
+    def __init__(self, in_channels, hidden_channels_list, param_estimation_list,
+                 x_dim_list, params_dim, nblocks, dropout):
         super().__init__()
+        self.last = hidden_channels_list[-1]
         hidden_channels = hidden_channels_list.pop(0)
-        attention_layer = attention_layer_list.pop(0)
+        self.hidden_channels = hidden_channels
+        self.is_param_estimation = param_estimation_list.pop(0)
+        x_dim = x_dim_list.pop(0)
         self.pool = JNetPooling(in_channels  = in_channels    ,
                                 out_channels = hidden_channels,)
         self.conv = nn.Conv3d(in_channels    = hidden_channels,
@@ -178,19 +195,18 @@ class JNetLayer(nn.Module):
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
                                              ) for _ in range(nblocks)])
-        self.attn = Attention() if attention_layer else nn.Identity()
-        self.mid  = JNetLayer(in_channels          = hidden_channels     ,
-                              hidden_channels_list = hidden_channels_list,
-                              attention_layer_list = attention_layer_list,
-                              nblocks              = nblocks             ,
-                              dropout              = dropout             ,
-                              ) if hidden_channels_list else nn.Identity()
-        # self.mid = nn.ModuleList([])
-        # if attention:
-        #     self.mid.append(Attention)
-        # if param_estimation:
-        #     self.mid.append(ParamEstimation)
-        # self.mid.append(JNetLayer[])
+        self.param = BlurParameterEstimator(x_dim      = x_dim     ,
+                                            mid_dim    = 1024      ,
+                                            params_dim = params_dim,
+                                            ) if self.is_param_estimation else nn.Identity()
+        self.mid = JNetLayer(in_channels           = hidden_channels      ,
+                             hidden_channels_list  = hidden_channels_list ,
+                             param_estimation_list = param_estimation_list,
+                             x_dim_list            = x_dim_list           ,
+                             params_dim            = params_dim           ,
+                             nblocks               = nblocks              ,
+                             dropout               = dropout              ,
+                             ) if hidden_channels_list else nn.Identity()
         self.post = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
@@ -198,22 +214,22 @@ class JNetLayer(nn.Module):
         self.unpool = JNetUnpooling(in_channels  = hidden_channels,
                                     out_channels = in_channels    ,)
     
-    def forward(self, x, p):
+    def forward(self, x):
         d = self.pool(x)
         d = self.conv(d)
         for f in self.prev:
             d = f(d)
-        p = self.param(d)
-        d = self.mid(d)
+        if self.hidden_channels == self.last:
+            d = self.mid(d)
+            p = self.param(d)
+        else:
+            d, p = self.mid(d)
         for f in self.post:
             d = f(d)
         d = self.unpool(d)
         x = x + d
         return x, p
 
-
-        
-        
 
 class Emission(nn.Module):
     def __init__(self, mu_z, sig_z,):
@@ -225,9 +241,10 @@ class Emission(nn.Module):
         self.sig_z_   = sig_z.item()
         self.logn_ppf = lognorm.ppf([0.99], 1,
                             loc=self.mu_z_, scale=self.sig_z_)[0]
+        
     def sample(self, x):
         pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(x),
-                              scale = self.sig_z * torch.ones_like(x),)    
+                              scale = self.sig_z * torch.ones_like(x),)
         x    = x * pz0.sample()
         x    = torch.clip(x, min=0, max=self.logn_ppf)
         x    = x / self.logn_ppf
@@ -457,24 +474,36 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
-                 dropout, params, superres:bool, reconstruct=False,
-                 apply_vq=False, device='cuda'):
+                 dropout, params, param_estimation_list, image_size,
+                 superres:bool, reconstruct=False, apply_vq=False,
+                 device='cuda'):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
-        scale_factor         = (params["scale"], 1, 1)
+        params_dim = int(len(params) - 2)
+        scale_factor            = (params["scale"], 1, 1)
         hidden_channels_list    = hidden_channels_list.copy()
-        hidden_channels         = hidden_channels_list.pop(0)
+        x_dim = 1
+        for i in image_size:
+            x_dim *= i
+        x_dim_list = [int(x_dim * c / (2 ** (3 * i)))
+                      for i, c in enumerate(hidden_channels_list)]
+        x_dim = x_dim_list.pop(0)
+        hidden_channels = hidden_channels_list.pop(0)
+        param_estimation = param_estimation_list.pop(0)#;print(x_dim_list)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
                                 out_channels = hidden_channels,)
         self.prev  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                               hidden_channels = hidden_channels,
                                               dropout         = dropout        ,
                                               ) for _ in range(nblocks)])
-        self.mid   = JNetLayer(in_channels          = hidden_channels     ,
-                               hidden_channels_list = hidden_channels_list,
-                               nblocks              = nblocks             ,
-                               dropout              = dropout             ,
+        self.mid   = JNetLayer(in_channels           = hidden_channels      ,
+                               hidden_channels_list  = hidden_channels_list ,
+                               param_estimation_list = param_estimation_list,
+                               x_dim_list            = x_dim_list           ,
+                               params_dim            = params_dim           ,
+                               nblocks               = nblocks              ,
+                               dropout               = dropout              ,
                                ) if hidden_channels_list else nn.Identity()
         self.post  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                               hidden_channels = hidden_channels,
@@ -494,13 +523,10 @@ class JNet(nn.Module):
         self.superres    = superres
         self.reconstruct = reconstruct
         self.apply_vq    = apply_vq
-        self.vq = VectolQuantizer(device=device)
+        self.vq = VectorQuantizer(device=device)
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
 
-    def set_tau(self, tau=0.1):
-        self.tau = tau
-    
     def set_upsample_rate(self, scale):
         scale_factor  = (scale, 1, 1)
         self.upsample = JNetUpsample(scale_factor = scale_factor)
@@ -515,13 +541,14 @@ class JNet(nn.Module):
         for f in self.post:
             x = f(x)
         x = self.post0(x)
-        x = F.softmax(input = x / self.tau, dim = 1)[:, :1,] # softmax with temperature
+        x = F.softmax(input = x, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
             x, qloss = self.vq(x)
         r = self.image(x) if self.reconstruct else x
         out = {"enhanced_image" : x,
                "reconstruction" : r,
-               "blur_parameter" : p,}
+               "blur_parameter" : p,
+               }
         if self.apply_vq:
             vqd = {"quantized_loss" : qloss}
             out = dict(**out, **vqd)
@@ -531,34 +558,39 @@ class JNet(nn.Module):
 if __name__ == '__main__':
     import torchinfo
     import torch.optim as optim
+    surround = False
+    surround_size = [32, 4, 4]
     hidden_channels_list = [16, 32, 64, 128, 256]
-    scale_factor         = (10, 1, 1)
     nblocks              = 2
+    s_nblocks            = 2
     activation           = nn.ReLU(inplace=True)
     dropout              = 0.5
-    tau                  = 1.
-    
-    model =  JNet(hidden_channels_list  = hidden_channels_list ,
-                  nblocks               = nblocks              ,
-                  activation            = activation           ,
-                  dropout               = dropout              ,
-                  scale_factor          = scale_factor         ,
-                  mu_z                  = 0.2                  ,
-                  sig_z                 = 0.2                  ,
-                  bet_xy                = 6.                   ,
-                  bet_z                 = 35.                  ,
-                  alpha                 = 1.                   ,
-                  superres              = True                 ,
-                  reconstruct           = True                 ,
-                  )
-    
-    model.set_tau(tau)
+    partial              = None #(56, 184)
+    superres = True
+    params               = {"mu_z"   : 0.2    ,
+                            "sig_z"  : 0.2    ,
+                            "bet_z"  : 23.5329,
+                            "bet_xy" : 1.00000,
+                            "alpha"  : 0.9544 ,
+                            "sig_eps": 0.01   ,
+                            "scale"  : 10
+                            }
+    image_size = (1, 1, 24, 112, 112)
+    param_estimation_list = [False, False, False, False, True]
+    model = JNet(hidden_channels_list  = hidden_channels_list ,
+                 nblocks               = nblocks              ,
+                 activation            = activation           ,
+                 dropout               = dropout              ,
+                 params                = params               ,
+                 superres              = superres             ,
+                 param_estimation_list = param_estimation_list,
+                 image_size            = image_size           ,
+                 reconstruct           = False                ,
+                 apply_vq              = False                ,
+                 )
     input_size = (1, 1, 24, 112, 112)
     model.to(device='cuda')
-    model.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
-    model(torch.abs(torch.randn(*input_size)).to(device='cuda'))
-    optimizer            = optim.Adam(model.parameters(), lr = 1e-4)
-
-    a, b, c, d = [i for i in model.parameters()][-4:]
-    print(a.item())
+#    print(model(torch.abs(torch.randn(*input_size)).to(device='cuda')))
+    #a, b, c, d, e = [i for i in model.parameters()][-5:]
+    #print(a.item())
     torchinfo.summary(model, input_size)

@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import model as model
 from dataset import LabelandBlurParamsDataset, gen_imaging_parameters
+from dataset import ParamScaler
 from train_loop import train_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -22,10 +23,18 @@ params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.1 ],
                  "bet_xy" : [0,   2,   1. ,  0.1 ],
                  "alpha"  : [0, 100,   1. ,  0.1 ],
                  "sig_eps": [0, 0.02, 0.01,  0.0025],
-                 "scale"  : [1, 2, 4, 8, 12]
+                 "scale"  : [1, 2, 4, 6, 8, 10, 12]
                  }
 
-model_name           = 'JNet_194_x6_randomblur_low_variance'
+param_scales = {"mu_z"   :  1,
+                "sig_z"  :  1,
+                "bet_z"  : 40,
+                "bet_xy" :  2,
+                "alpha"  :100,}
+
+paramscaler = ParamScaler(param_scales)
+
+model_name           = 'JNet_196_x6_randomblur_estimation'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -42,14 +51,19 @@ params               = {"mu_z"   : 0.2    ,
                         "scale"  : 6
                         }
 
+image_size = (1, 1, 240,  96,  96)
+param_estimation_list = [False, False, False, False, True]
+
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
+                  param_estimation_list = param_estimation_list,
+                  image_size            = image_size           ,
                   superres              = superres             ,
                   reconstruct           = False                ,
-                  apply_vq              = False                ,
+                  apply_vq              = True                 ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
@@ -59,11 +73,11 @@ optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
-
+param_loss_fn        = nn.MSELoss()
 
 train_dataset = LabelandBlurParamsDataset(folderpath           = "newrandomdataset"                       ,
                                           size                 = (1200, 500, 500)                         ,
-                                          cropsize             = (240, 112, 112)                          ,
+                                          cropsize             = (240,  96,  96)                          ,
                                           I                    = 200                                      ,
                                           low                  = 0                                        ,
                                           high                 = 16                                       ,
@@ -81,7 +95,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath           = "newrandomdatas
                                           )
 val_dataset   = LabelandBlurParamsDataset(folderpath           = "newrandomdataset"                       ,
                                           size                 = (1200, 500, 500)                         ,
-                                          cropsize             = (240, 112, 112)                          ,
+                                          cropsize             = (240,  96,  96)                          ,
                                           I                    = 10                                       ,
                                           low                  = 16                                       ,
                                           high                 = 19                                       ,
@@ -116,12 +130,14 @@ train_loop(
            optimizer    = optimizer  ,
            model        = JNet       ,
            loss_fn      = loss_fn    ,
+           param_loss_fn= param_loss_fn,
            train_loader = train_data ,
            val_loader   = val_data   ,
            device       = device     ,
            path         = 'model'    ,
            savefig_path = 'train'    ,
            model_name   = model_name ,
+           param_normalize=paramscaler.normalize,
            partial      = partial    ,
            scheduler    = scheduler  ,
            es_patience  = 15         ,
