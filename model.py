@@ -484,7 +484,7 @@ class JNet(nn.Module):
         params_dim = int(len(params) - 2)
         scale_factor            = (params["scale"], 1, 1)
         hidden_channels_list    = hidden_channels_list.copy()
-        x_dim = 1 / 4
+        x_dim = 1 / 64
         for i in image_size:
             x_dim *= i
         x_dim_list = [int(x_dim * c / (2 ** (3 * i)))

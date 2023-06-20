@@ -22,7 +22,7 @@ params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.001 ],
                  "bet_z"  : [0 , 22,  20  ,  0.001 ],
                  "bet_xy" : [0,   2,   1. ,  0.001 ],
                  "alpha"  : [0,   2,   1. ,  0.001 ],
-                 "sig_eps": [0, 0.02, 0.01,  0.0025],
+                 "sig_eps": [0, 0.012, 0.01, 0.001 ],
                  "scale"  : [6]
                  }
 
@@ -34,7 +34,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_201_x6_randomblur-easy-no-est'
+model_name           = 'JNet_206_x6_randomblur-easy-est-param1-64'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2

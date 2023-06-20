@@ -66,7 +66,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             #print("est", est_params, "target", target_params, "paramloss", paramloss, "loss", loss)
             if qloss is not None:
                 loss += qloss
-            #loss += paramloss / 10  ## which means paramloss = 0
+            loss += paramloss / 100  ## which means paramloss = 0
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
@@ -122,7 +122,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
             scheduler.step(vloss_sum / vnum)
-        earlystopping((vloss_sum / vnum), model)
+        earlystopping((vloss_sum / vnum), model, condition=True)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
