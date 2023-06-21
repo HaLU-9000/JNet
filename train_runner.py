@@ -17,12 +17,12 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.001 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.001 ],
-                 "bet_z"  : [0 , 22,  20  ,  0.001 ],
-                 "bet_xy" : [0,   2,   1. ,  0.001 ],
-                 "alpha"  : [0,   2,   1. ,  0.001 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.001 ],
+params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.0001 ],
+                 "bet_z"  : [0 , 22,  20  ,  0.0001 ],
+                 "bet_xy" : [0,   2,   1. ,  0.0001 ],
+                 "alpha"  : [0,   2,   1. ,  0.0001 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.0001 ],
                  "scale"  : [6]
                  }
 
@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_211_x6_beadslikedataset2-randomblur-easy-est-param1-64'
+model_name           = 'JNet_217_x6_checkpoint-memory-reduction-test'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -57,7 +57,7 @@ params               = {"mu_z"   : 0.2  ,
                         "bet_xy" :   1. , 
                         "alpha"  :   1. , 
                         "sig_eps":  0.01,
-                        "scale"  : 6
+                        "scale"  :  6
                         }
 
 image_size = (1, 1, 240,  96,  96)
@@ -95,7 +95,7 @@ param_loss_fn        = nn.MSELoss()
 train_dataset = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240,  96,  96)                          ,
-                                          I                    = 200                                      ,
+                                          I                    = 10                                       ,
                                           low                  = 0                                        ,
                                           high                 = 16                                       ,
                                           imaging_function     = JNet.image                               ,
@@ -128,13 +128,13 @@ val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedatas
                                           )
  
 train_data  = DataLoader(train_dataset                 ,
-                         batch_size  = 1               ,
+                         batch_size  = 2               ,
                          shuffle     = True            ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 val_data    = DataLoader(val_dataset                   ,
-                         batch_size  = 1               ,
+                         batch_size  = 2               ,
                          shuffle     = False           ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,

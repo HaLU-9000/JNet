@@ -62,18 +62,18 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             loss, midloss = branch_calc_loss(out, rec, image, label,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
-            paramloss = param_loss_fn(est_params, target_params)
+            #paramloss = param_loss_fn(est_params, target_params)
             #print("est", est_params, "target", target_params, "paramloss", paramloss, "loss", loss)
             if qloss is not None:
                 loss += qloss
-            loss += paramloss / 100  ## which means paramloss = 0
+            #loss += paramloss / 100  ## which means paramloss = 0
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
             loss_sum += loss.detach().item()
             if check_middle:
                 midloss_sum += midloss.detach().item()
-                
+        print("done for training")
         model.eval()
         with torch.no_grad():
             for image, label in val_loader:
@@ -100,7 +100,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     vloss_sum += qloss.detach().item()
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
-                vparam_loss_sum += param_loss_fn(target_params, est_params).detach().item()
+                #vparam_loss_sum += param_loss_fn(target_params, est_params).detach().item()
         num  = len(train_loader)
         vnum = len(val_loader)
         ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributions as dist
+from torch.utils.checkpoint import checkpoint
 from scipy.stats import lognorm
 import time
 
@@ -130,25 +131,24 @@ class SuperResolutionBlock(nn.Module):
             x = f(x)
         return x
 
-
-class Attention(nn.Module):
-    def __init__(self):
-        pass
-    def forward(self, x, c):
-        if c is None:
-            c = x
-        _b, _c, _z, _x, _y = x.shape
-        x = x.permute(0, 2, 3, 4, 1).view(_b, _z *_x *_y, _c)
-        x = self.attn(x, c)
-        x = x.permute(0, 2, 3, 4, 1).view(_b, _z ,_x, _y, _c)
-        return x ## later
-
+#class Attention(nn.Module):
+#    def __init__(self):
+#        self.to_a = 
+#    def forward(self, x):
+#
+#        return x ## later
 
 class BlurParameterEstimator(nn.Module):
-    def __init__(self, x_dim, mid_dim, params_dim):
+    def __init__(self, x_dim, z_dim, mid_dim, params_dim):
         super().__init__()
-        self.x_dim = x_dim
-        self.layers = nn.ModuleList([nn.Linear(in_features  = x_dim     ,
+        self.z_dim = z_dim
+        self.to_a = nn.Sequential(nn.Linear(in_features  = x_dim,
+                                            out_features = z_dim,),
+                                  nn.Softmax(dim=-1))
+        self.to_v = nn.Linear(in_features  = x_dim,
+                              out_features = z_dim,)
+
+        self.layers = nn.ModuleList([nn.Linear(in_features  = z_dim     ,
                                                out_features = mid_dim   ,),
                                      nn.ReLU(inplace=False)               ,
                                      nn.Linear(in_features  = mid_dim   ,
@@ -159,10 +159,14 @@ class BlurParameterEstimator(nn.Module):
                                      nn.Sigmoid()                         ,
                                      ])
     def forward(self, x):
-        x = x.flatten()[:self.x_dim]
+        x_shape = x.shape
+        x = x.reshape(-1, x_shape[1]) # (bczxy -> b'c) (b'=bzxy)
+        a = self.to_a(x).view(x_shape[0], -1, self.z_dim) # (b'c -> b'c' -> bhc') (h=zxy)
+        v = self.to_v(x).view(x_shape[0], -1, self.z_dim) # (b'c -> b'c' -> bhc') (h=zxy)
+        z = torch.einsum("bhc, bhc -> bc", a, v)
         for f in self.layers:
-            x = f(x)
-        return x
+            z = f(z)
+        return z
 
 
 class VectorQuantizer(nn.Module):
@@ -197,7 +201,8 @@ class JNetLayer(nn.Module):
                                              dropout         = dropout        ,
                                              ) for _ in range(nblocks)])
         self.param = BlurParameterEstimator(x_dim      = x_dim     ,
-                                            mid_dim    = 1024      ,
+                                            z_dim      = 16        ,
+                                            mid_dim    = 16        ,
                                             params_dim = params_dim,
                                             ) if self.is_param_estimation else nn.Identity()
         self.mid = JNetLayer(in_channels           = hidden_channels      ,
@@ -217,7 +222,7 @@ class JNetLayer(nn.Module):
     
     def forward(self, x):
         d = self.pool(x)
-        d = self.conv(d)
+        d = checkpoint(self.conv, d) # checkpoint
         for f in self.prev:
             d = f(d)
         if self.hidden_channels == self.last:
@@ -227,7 +232,7 @@ class JNetLayer(nn.Module):
             d, p = self.mid(d)
         for f in self.post:
             d = f(d)
-        d = self.unpool(d)
+        d = checkpoint(self.unpool, d) # checkpoint
         x = x + d
         return x, p
 
@@ -238,24 +243,25 @@ class Emission(nn.Module):
         self.mu_z     = mu_z
         self.sig_z    = sig_z
         self.ez0      = nn.Parameter(torch.exp(mu_z + 0.5 * sig_z ** 2), requires_grad=True)
-        self.mu_z_    = mu_z.item()
-        self.sig_z_   = sig_z.item()
-        self.logn_ppf = lognorm.ppf([0.99], 1,
-                            loc=self.mu_z_, scale=self.sig_z_)[0]
+        #self.mu_z_    = mu_z.item()
+        #self.sig_z_   = sig_z.item()
+        #self.logn_ppf = lognorm.ppf([0.99], 1,
+        #                    loc=self.mu_z_, scale=self.sig_z_)[0]
         
     def sample(self, x):
-        pz0  = dist.LogNormal(loc   = self.mu_z  * torch.ones_like(x),
-                              scale = self.sig_z * torch.ones_like(x),)
+        b = x.shape[0]
+        pz0  = dist.LogNormal(loc   = self.mu_z.view( b, 1, 1, 1, 1).expand(*x.shape),
+                              scale = self.sig_z.view(b, 1, 1, 1, 1).expand(*x.shape),)
         x    = x * pz0.sample()
-        x    = torch.clip(x, min=0, max=self.logn_ppf)
-        x    = x / self.logn_ppf
+        x    = torch.clip(x, min=0, max=1)
+        #x    = x / self.logn_ppf
         return x
 
     def forward(self, x):
         ez0 = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2)
         x   = x * ez0
-        x   = torch.clip(x, min=0, max=self.logn_ppf)
-        x   = x / self.logn_ppf
+        x   = torch.clip(x, min=0, max=1)
+        #x   = x / self.logn_ppf
         return x
 
 
@@ -316,15 +322,15 @@ class Blur(nn.Module):
         return x
 
     def gen_psf(self, bet_xy, bet_z, alpha):
-        psf_lateral = self.gen_2dnorm(self.dp, bet_xy).view(1, self.x, self.y)
-        psf_axial   = self.gen_1dnorm(self.zd, bet_z).view(self.z, 1, 1)
+        b = bet_xy.shape[0]
+        psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
+        psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
         psf  = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
         if self.mode == "gaussian":
             pass
         elif self.mode == "double_exp":
-            psf  = self.gen_double_exp_dist(psf, alpha,)
+            psf  = self.gen_double_exp_dist(psf, alpha[:, None, None, None, None],)
         psf /= torch.sum(psf)
-        psf  = self.dim_3dto5d(psf)
         return psf
 
     def _init_distance(self, length):
@@ -347,13 +353,17 @@ class Blur(nn.Module):
         dp = xp ** 2 + yp ** 2
         return dp
 
-    def gen_2dnorm(self, distance_plane, bet_xy):
+    def gen_2dnorm(self, distance_plane, bet_xy, b):
+        distance_plane = distance_plane.expand(b, *distance_plane.shape)
+        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
         d_2      =  distance_plane / bet_xy ** 2
         normterm = (torch.pi * 2) * (bet_xy ** 2)
         norm     = torch.exp(-d_2 / 2) / normterm
         return norm
 
-    def gen_1dnorm(self, distance, bet_z):
+    def gen_1dnorm(self, distance, bet_z, b):
+        distance = distance.expand(b, *distance.shape)
+        bet_z = bet_z.view(b, 1).expand(*distance.shape)
         d_2      =  distance ** 2 / bet_z ** 2
         normterm = (torch.pi * 2) ** 0.5 * bet_z
         norm     = torch.exp(-d_2 / 2) / normterm
@@ -362,9 +372,6 @@ class Blur(nn.Module):
     def gen_double_exp_dist(self, norm, alpha,):
         pdf  = 1. - torch.exp(-alpha * norm)
         return pdf
-
-    def dim_3dto5d(self, arr):
-        return arr.view(1, 1, self.z, self.x, self.y)
 
 
 class Noise(nn.Module):
@@ -376,8 +383,9 @@ class Noise(nn.Module):
         return x
     
     def sample(self, x):
+        b = x.shape[0]
         px = dist.Normal(loc   = x           ,
-                         scale = self.sig_eps,)
+                         scale = self.sig_eps.view(b, 1, 1, 1, 1).expand(*x.shape),)
         x  = px.rsample()
         x  = torch.clip(x, min=0, max=1)
         return x
@@ -421,17 +429,17 @@ class ImagingProcess(nn.Module):
         else:
             raise(NotImplementedError())
         scale = [params["scale"], 1, 1]
-        self.emission   = Emission(self.mu_z, self.sig_z)
-        self.blur       = Blur(z, x, y,
-                               self.bet_z, self.bet_xy, self.alpha,
-                               scale, device,)
-        self.noise      = Noise(params["sig_eps"])
-        self.preprocess = PreProcess(min=postmin, max=postmax)
+        #self.emission   = Emission(self.mu_z, self.sig_z)
+        #self.blur       = Blur(z, x, y,
+        #                       self.bet_z, self.bet_xy, self.alpha,
+        #                       scale, device,)
+        #self.noise      = Noise(params["sig_eps"])
+        #self.preprocess = PreProcess(min=postmin, max=postmax)
 
     def forward(self, x):
-        x = self.emission(x)
-        x = self.blur(x)
-        x = self.preprocess(x)
+        #x = self.emission(x) # rewrite to take (x, param)
+        #x = self.blur(x)
+        #x = self.preprocess(x)
         return x
 
     def sample(self, x):
@@ -442,7 +450,7 @@ class ImagingProcess(nn.Module):
         return x
     
     def sample_from_params(self, x, params):
-        scale = [params["scale"], 1, 1]
+        scale = [int(params["scale"][0]), 1, 1] ## use only one scale
         emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
         blur       = Blur(self.z, self.x, self.y,
                           tt(params["bet_z"]), tt(params["bet_xy"]), tt(params["alpha"]),
@@ -484,14 +492,9 @@ class JNet(nn.Module):
         params_dim = int(len(params) - 2)
         scale_factor            = (params["scale"], 1, 1)
         hidden_channels_list    = hidden_channels_list.copy()
-        x_dim = 1 / 64
-        for i in image_size:
-            x_dim *= i
-        x_dim_list = [int(x_dim * c / (2 ** (3 * i)))
-                      for i, c in enumerate(hidden_channels_list)]
-        x_dim = x_dim_list.pop(0)
         hidden_channels = hidden_channels_list.pop(0)
-        param_estimation = param_estimation_list.pop(0)#;print(x_dim_list)
+        x_dim_list = hidden_channels_list.copy() 
+        param_estimation = param_estimation_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
                                 out_channels = hidden_channels,)
         self.prev  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
