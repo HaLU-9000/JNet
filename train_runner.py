@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_217_x6_checkpoint-memory-reduction-test'
+model_name           = 'JNet_218_x6_checkpoint-memory-reduction-test'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -69,7 +69,6 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   dropout               = dropout              ,
                   params                = params               ,
                   param_estimation_list = param_estimation_list,
-                  image_size            = image_size           ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = False                ,
@@ -128,13 +127,13 @@ val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedatas
                                           )
  
 train_data  = DataLoader(train_dataset                 ,
-                         batch_size  = 2               ,
+                         batch_size  = 4               ,
                          shuffle     = True            ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 val_data    = DataLoader(val_dataset                   ,
-                         batch_size  = 2               ,
+                         batch_size  = 4               ,
                          shuffle     = False           ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,

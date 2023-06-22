@@ -47,10 +47,13 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 label  = train_data[0].to(device = device)
                 params = train_data[1]
                 image  = model.image.sample_from_params(label, params).float()
-                target_params = torch.Tensor(
-                    list(param_normalize(params).values())[:-2]).to(device)
-
-                model.set_upsample_rate(params["scale"])
+                b = image.shape[0]
+                plist = list(param_normalize(params).values())
+                target_params = torch.empty(b, len(params) - 2)
+                for i, p in enumerate(plist[:len(params) - 2]):
+                    target_params[:, i] == p
+                target_params = target_params.to(device)
+                model.set_upsample_rate(int(params["scale"][0]))
             else:
                 image    = train_data[0].to(device = device)
                 label    = train_data[1].to(device = device)
@@ -73,7 +76,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             loss_sum += loss.detach().item()
             if check_middle:
                 midloss_sum += midloss.detach().item()
-        print("done for training")
         model.eval()
         with torch.no_grad():
             for image, label in val_loader:
@@ -81,9 +83,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     label  = train_data[0].to(device = device)
                     params = train_data[1]
                     image  = model.image.sample_from_params(label, params).float()
-                    target_params = torch.Tensor(
-                    list(param_normalize(params).values())[:-2]).to(device)
-                    model.set_upsample_rate(params["scale"])
+                    target_params = torch.empty(b, len(params) - 2)
+                    for i, p in enumerate(plist[:len(params) - 2]):
+                        target_params[:, i] == p
+                    target_params = target_params.to(device)
+                    model.set_upsample_rate(params["scale"][0])
                 else:
                     image    = train_data[0].to(device = device)
                     label    = train_data[1].to(device = device)               
@@ -113,10 +117,10 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
         writer.add_scalar('val loss', vloss_sum / vnum, epoch)
         writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
         writer.add_scalar('val middle loss', vmidloss_sum / vnum, epoch) if check_middle else 0
-        writer.add_scalar('bet_xy', bet_xy.item(), epoch)
-        writer.add_scalar('bet_z' , bet_z.item() , epoch)
-        writer.add_scalar('alpha' , alpha.item() , epoch)
-        writer.add_scalar('ez0'   , ez0.item()   , epoch)
+        #writer.add_scalar('bet_xy', bet_xy.item(), epoch)
+        #writer.add_scalar('bet_z' , bet_z.item() , epoch)
+        #writer.add_scalar('alpha' , alpha.item() , epoch)
+        #writer.add_scalar('ez0'   , ez0.item()   , epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')

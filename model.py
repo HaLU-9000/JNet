@@ -224,14 +224,14 @@ class JNetLayer(nn.Module):
         d = self.pool(x)
         d = checkpoint(self.conv, d) # checkpoint
         for f in self.prev:
-            d = f(d)
+            d = checkpoint(f, d)
         if self.hidden_channels == self.last:
             d = self.mid(d)
             p = self.param(d)
         else:
             d, p = self.mid(d)
         for f in self.post:
-            d = f(d)
+            d = checkpoint(f, d)
         d = checkpoint(self.unpool, d) # checkpoint
         x = x + d
         return x, p
@@ -313,12 +313,17 @@ class Blur(nn.Module):
         self.stride  = (self.zscale, self.xscale, self.yscale)
     
     def forward(self, x):
+        x_shape = x.shape
         psf = self.gen_psf(self.bet_xy, self.bet_z, self.alpha
                            ).to(self.device)
-        x   = F.conv3d(input   = x                                    ,
-                       weight  = psf                                  ,
-                       stride  = self.stride                          ,
-                       padding = (self.z_pad, self.x_pad, self.y_pad,),)
+        _x   = F.conv3d(input   = x                                    ,
+                        weight  = psf                                  ,
+                        stride  = self.stride                          ,
+                        padding = (self.z_pad, self.x_pad, self.y_pad,),)
+        batch = _x.shape[0]
+        x = torch.empty(size=(*x_shape[:2], *_x.shape[2:])).to(self.device)
+        for b in range(batch):
+                x[b, 0] = _x[b, b]
         return x
 
     def gen_psf(self, bet_xy, bet_z, alpha):
@@ -483,7 +488,7 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
-                 dropout, params, param_estimation_list, image_size,
+                 dropout, params, param_estimation_list,
                  superres:bool, reconstruct=False, apply_vq=False,
                  device='cuda'):
         super().__init__()
@@ -540,11 +545,11 @@ class JNet(nn.Module):
             x = self.upsample(x)
         x = self.prev0(x)
         for f in self.prev:
-            x = f(x)
+            x = checkpoint(f, x)
         x, p = self.mid(x)
         for f in self.post:
-            x = f(x)
-        x = self.post0(x)
+            x = checkpoint(f, x)
+        x = checkpoint(self.post0, x)
         x = F.softmax(input = x, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
             x, qloss = self.vq(x)
