@@ -5,8 +5,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import model as model
-from dataset import LabelandBlurParamsDataset, gen_imaging_parameters
-from dataset import ParamScaler
+from dataset import LabelandBlurParamsDataset, RandomBlurbyModelDataset, gen_imaging_parameters
+from dataset import ParamScaler, Augmentation
 from train_loop import train_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -91,7 +91,7 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
+train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = (240,  96,  96)                          ,
                                           I                    = 10                                       ,
@@ -125,7 +125,16 @@ val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedatas
                                           surround_size        = surround_size                            ,
                                           seed                 = 907                                      ,
                                           )
- 
+
+augment_param     = {"mask"          : True         , 
+                     "mask_size"     : [1, 10, 10]  , 
+                     "mask_num"      : 30           , 
+                     "surround"      : surround     , 
+                     "surround_size" : surround_size,}
+augment     = Augmentation(augment_param)
+augment_param.update(mask=False)
+val_augment = Augmentation(augment_param)
+
 train_data  = DataLoader(train_dataset                 ,
                          batch_size  = 4               ,
                          shuffle     = True            ,
@@ -154,14 +163,13 @@ train_loop(
            savefig_path = 'train'    ,
            model_name   = model_name ,
            param_normalize=paramscaler.normalize,
+           augment      = augment    ,
+           val_augment  = val_augment,
            partial      = partial    ,
            scheduler    = scheduler  ,
            es_patience  = 15         ,
-           tau_init     = 1          ,
-           tau_lb       = 1          , 
-           tau_sche     = 1          ,
            reconstruct  = False      ,
            check_middle = False      ,
            midloss_fn   = midloss_fn ,
-           is_randomblur=True        ,
+           is_randomblur= True       ,
            )

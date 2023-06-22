@@ -1,5 +1,6 @@
 from pathlib import Path
 import random
+from typing import Any
 import numpy as np
 import torch
 import torch.nn as nn
@@ -56,8 +57,6 @@ def gen_imaging_parameters(params_ranges:dict
         else:
             params[param] = sample_truncnorm(*params_ranges[param])
     return params
-
-
 
 class Rotate:
     def __init__(self, i=None, j=None):
@@ -146,14 +145,30 @@ class Blur(nn.Module):
         rec  = rec.squeeze(0)
         return rec
 
-class RandomBlur(Blur):
-    def __init__(self):
-        pass
     
-    def forward(self, inp):
-        return super().forward(inp)
-    def gen_valid_params(self):
-        pass
+class Augmentation():
+    def __init__(self, params):
+        self.mask          = params["mask"]
+        self.mask_size     = params["mask_size"]
+        self.mask_num      = params["mask_num"]
+        self.surround      = params["surround"]
+        self.surround_size = params["surround_size"]
+
+    def apply_mask(self, mask, image, mask_size, mask_num):
+        if mask:
+            image = mask_(image, mask_size, mask_num)
+        return image
+
+    def apply_surround_mask(self, surround, image, surround_size):
+        if surround:
+            image = surround_mask_(image, surround_size)
+        return image
+
+    def __call__(self, image):
+        image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
+        image = self.apply_surround_mask(self.surround, image, self.surround_size)
+        return image
+ 
 
 class RandomCutDataset(Dataset):
     '''
@@ -582,6 +597,30 @@ class LabelandBlurParamsDataset(Dataset):
         return self.I
 
 
+class ParamScaler():
+    def __init__(self, scales):
+        self.scales = scales
+    def normalize(self, params):
+        for (k, v), (sk, sv) in zip(params.items(), self.scales.items()):
+            if k == sk:
+                v = v / sv
+                d = {k: v}
+                params.update(d)
+            else:
+                print(sk, " unmatched with ", k)
+        return params
+    
+    def denormalize(self, params):
+        for (k, v), (sk, sv) in zip(params.items(), self.scales.items()):
+            if k == sk:
+                v = v * sv
+                d = {k: v}
+                params.update(d)
+            else:
+                print(sk, " unmatched with ", k)
+        return params
+
+
 if __name__ == "__main__":
     device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -613,26 +652,3 @@ if __name__ == "__main__":
               train_dataset[i][0].shape,
               train_dataset[i][2])
 
-
-class ParamScaler():
-    def __init__(self, scales):
-        self.scales = scales
-    def normalize(self, params):
-        for (k, v), (sk, sv) in zip(params.items(), self.scales.items()):
-            if k == sk:
-                v = v / sv
-                d = {k: v}
-                params.update(d)
-            else:
-                print(sk, " unmatched with ", k)
-        return params
-    
-    def denormalize(self, params):
-        for (k, v), (sk, sv) in zip(params.items(), self.scales.items()):
-            if k == sk:
-                v = v * sv
-                d = {k: v}
-                params.update(d)
-            else:
-                print(sk, " unmatched with ", k)
-        return params

@@ -220,34 +220,46 @@ def gen_bcelg2lists_ctrls(model, model_names, val_datasets, device, taus, partia
 
 def mask_(image, mask_size, mask_num):
     """
-    image     : 4d tensor
+    image     : 4d/5d tensor
     mask_size : list with 3 elements (z, x, y)
     mask_num  : number of masks (default=1)
-    out       : 4d tensor (randomly masked)
+    out       : 4d/5d tensor (randomly masked)
     """
     for i in range(mask_num):
-        _c, _z, _x, _y = image.shape
-        mask = torch.zeros((_c, *mask_size))
-        _, mz, mx, my = mask.shape
+        image_is_4d = False
+        if len(image.shape) == 4:
+            image_is_4d = True
+            image = image.unsqueeze(0)
+        _b, _c, _z, _x, _y = image.shape
+        mask = torch.zeros((_b, _c, *mask_size)).to(device=image.device)
+        _, _, mz, mx, my = mask.shape
         z = np.random.randint(0, _z)
         x = np.random.randint(0, _x)
         y = np.random.randint(0, _y)
         z_max = min(z + mz, _z)
         x_max = min(x + mx, _x)
         y_max = min(y + my, _y)
-        image[:, z : z + mz, x : x + mx, y : y + my] \
-        = mask[:, 0 : z_max - z, 0 : x_max - x, 0 : y_max - y]
+        image[:, :, z : z + mz, x : x + mx, y : y + my] \
+        = mask[:, :, 0 : z_max - z, 0 : x_max - x, 0 : y_max - y]
+        if image_is_4d:
+            image = image.squeeze(0)
     return image
 
 def surround_mask_(image, surround_size):
     """
-    image     : 4d tensor
+    image     : 4d/5d tensor
     mask_size : list with 3 elements (z, x, y > 0)
-    out       : 4d tensor (surround masked)
+    out       : 4d/5d tensor (surround masked)
     """
+    image_is_4d = False
+    if len(image.shape) == 4:
+        image_is_4d = True
+        image = image.unsqueeze(0)
     z, x, y = surround_size
-    image = image[:, z : -z, x : -x, y : -y]
+    image = image[:, :, z : -z, x : -x, y : -y]
     image = F.pad(image, (y, y, x, x, z, z)) # see https://pytorch.org/docs/stable/generated/torch.nn.functional.pad.html
+    if image_is_4d:
+            image = image.squeeze(0)
     return image
 
 def tt(x):

@@ -4,6 +4,8 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
+from dataset import Augmentation
+
 
 def divide(x, partial):
     if partial is not None:
@@ -27,10 +29,12 @@ def branch_calc_loss(out, rec, image, label, loss_function, midloss_function,
         midloss = torch.tensor(0)
     return loss, midloss
 
+def preprocess():
+    pass
+
 def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader, val_loader,
-               device, path, savefig_path, model_name, param_normalize, partial=None,
+               device, path, savefig_path, model_name, param_normalize, augment, val_augment, partial=None,
                scheduler=None, es_patience=10,
-               tau_init=1.0, tau_lb=0.1, tau_sche=0.9999,
                reconstruct=False, check_middle=False, midloss_fn=None, 
                is_randomblur=False):
     earlystopping = EarlyStopping(name     = model_name ,
@@ -43,7 +47,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
         loss_sum, midloss_sum, vloss_sum, vmidloss_sum, vparam_loss_sum = 0., 0., 0., 0., 0.
         model.train()
         for train_data in train_loader:
-            if is_randomblur:
+            if is_randomblur: # from here
                 label  = train_data[0].to(device = device)
                 params = train_data[1]
                 image  = model.image.sample_from_params(label, params).float()
@@ -56,7 +60,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 model.set_upsample_rate(int(params["scale"][0]))
             else:
                 image    = train_data[0].to(device = device)
-                label    = train_data[1].to(device = device)
+                label    = train_data[1].to(device = device) # to here -> 'preprocess'
+            image = augment(image)
             outdict = model(image)
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
@@ -90,7 +95,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     model.set_upsample_rate(params["scale"][0])
                 else:
                     image    = train_data[0].to(device = device)
-                    label    = train_data[1].to(device = device)               
+                    label    = train_data[1].to(device = device)
+                image = val_augment(image)
                 outdict = model(image)
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
