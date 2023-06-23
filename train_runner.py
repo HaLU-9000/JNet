@@ -61,6 +61,7 @@ params               = {"mu_z"   : 0.2  ,
                         }
 
 image_size = (1, 1, 240,  96,  96)
+original_cropsize = [360, 120, 120]
 param_estimation_list = [False, False, False, False, True]
 
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
@@ -91,9 +92,9 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedataset2"                      ,
+train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedataset2"                     ,
                                           size                 = (1200, 500, 500)                         ,
-                                          cropsize             = (240,  96,  96)                          ,
+                                          cropsize             = original_cropsize                        ,
                                           I                    = 10                                       ,
                                           low                  = 0                                        ,
                                           high                 = 16                                       ,
@@ -111,7 +112,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedata
                                           )
 val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
-                                          cropsize             = (240,  96,  96)                          ,
+                                          cropsize             = original_cropsize                        ,
                                           I                    = 10                                       ,
                                           low                  = 16                                       ,
                                           high                 = 19                                       ,
@@ -126,11 +127,13 @@ val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedatas
                                           seed                 = 907                                      ,
                                           )
 
-augment_param     = {"mask"          : True         , 
-                     "mask_size"     : [1, 10, 10]  , 
-                     "mask_num"      : 30           , 
-                     "surround"      : surround     , 
-                     "surround_size" : surround_size,}
+augment_param     = {"mask"          : True             , 
+                     "mask_size"     : [1, 10, 10]      , 
+                     "mask_num"      : 30               , 
+                     "surround"      : surround         , 
+                     "surround_size" : surround_size    ,
+                     "original_size" : original_cropsize,
+                     "cropsize"      : image_size[2:]   ,}
 augment     = Augmentation(augment_param)
 augment_param.update(mask=False)
 val_augment = Augmentation(augment_param)

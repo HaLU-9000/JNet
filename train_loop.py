@@ -61,6 +61,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             else:
                 image    = train_data[0].to(device = device)
                 label    = train_data[1].to(device = device) # to here -> 'preprocess'
+            image, label = augment.crop(image, label)
             image = augment(image)
             outdict = model(image)
             out   = outdict["enhanced_image"]
@@ -96,6 +97,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 else:
                     image    = train_data[0].to(device = device)
                     label    = train_data[1].to(device = device)
+                image, label = val_augment.crop(image, label)
                 image = val_augment(image)
                 outdict = model(image)
                 out   = outdict["enhanced_image"]

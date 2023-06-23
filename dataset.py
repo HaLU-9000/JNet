@@ -21,6 +21,12 @@ def gen_coords(I, size, cropsize, scale=None, label=None):
     ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
     return np.array([zcoord, xcoord, ycoord])
 
+def gen_image_label_coords(I, size, cropsize, scale):
+    zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
+    xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
+    ycoord = np.random.randint(0, size[2]-cropsize[2], (I,))
+    return np.array([zcoord, xcoord, ycoord]), np.array([zcoord // scale, xcoord, ycoord])
+
 def apply_mask( mask, image, mask_size, mask_num):
     if mask:
         image = mask_(image, mask_size, mask_num)
@@ -77,10 +83,17 @@ class Crop:
         self.coord = coord
         self.csize = cropsize
     def __call__(self,x:torch.Tensor):
-       return x[0 : , self.coord[0] : self.coord[0] + self.csize[0],
+        x_is_4d = False
+        if len(x.shape) == 4:
+            x_is_4d = True
+            x = x.unsqueeze(0)
+        x = x[:,  :,  self.coord[0] : self.coord[0] + self.csize[0],
                       self.coord[1] : self.coord[1] + self.csize[1],
                       self.coord[2] : self.coord[2] + self.csize[2]].detach().clone()
-    
+        if x_is_4d:
+            x = x.squeeze(0)
+        return x
+
 
 class Blur(nn.Module):
     def __init__(self, scale, z, x, y, mu_z, sig_z, bet_xy, bet_z, alpha, sig_eps, device):
@@ -153,6 +166,8 @@ class Augmentation():
         self.mask_num      = params["mask_num"]
         self.surround      = params["surround"]
         self.surround_size = params["surround_size"]
+        self.original_size = params["original_size"]
+        self.cropsize      = params["cropsize"]
 
     def apply_mask(self, mask, image, mask_size, mask_num):
         if mask:
@@ -168,7 +183,17 @@ class Augmentation():
         image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
         image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image
- 
+
+    def crop(self, image, label):
+        scale = label.shape[2] // image.shape[2]
+        scaled_cropsize  = [self.cropsize[0] // scale, *self.cropsize[1:]]
+        lcoords, icoords = gen_image_label_coords(1, self.original_size, self.cropsize, scale)
+        lcoords, icoords = lcoords[:, 0], icoords[:, 0]
+        
+        label = Crop(lcoords, self.cropsize)(label)
+        image = Crop(icoords, scaled_cropsize)(image)
+        
+        return image, label
 
 class RandomCutDataset(Dataset):
     '''
