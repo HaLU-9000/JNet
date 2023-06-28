@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from dataset import LabelandBlurParamsDataset, gen_imaging_parameters
+from dataset import LabelandBlurParamsDataset, gen_imaging_parameters, Augmentation
 import model
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -13,7 +13,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_211_x6_beadslikedataset2-randomblur-easy-est-param1-64'
+model_name           = 'JNet_219_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -48,6 +48,7 @@ param_scales = {"mu_z"   :  1,
 
 
 image_size = (1, 1, 240,  96,  96)
+original_cropsize = [360, 120, 120]
 param_estimation_list = [False, False, False, False, True]
 
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
@@ -56,19 +57,18 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   dropout               = dropout              ,
                   params                = params               ,
                   param_estimation_list = param_estimation_list,
-                  image_size            = image_size           ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = False                ,
                   )
 JNet = JNet.to(device = device)
 
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset"                  ,
                                           size                 = (1200, 500, 500)                         ,
-                                          cropsize             = (240,  96,  96)                          ,
+                                          cropsize             = original_cropsize                        ,
                                           I                    = 10                                       ,
-                                          low                  = 2                                        ,
-                                          high                 = 3                                        ,
+                                          low                  = 16                                       ,
+                                          high                 = 19                                       ,
                                           imaging_function     = JNet.image                               ,
                                           imaging_params_range = params_ranges                            ,
                                           validation_params    = gen_imaging_parameters(params_ranges)    ,
@@ -83,21 +83,35 @@ j = 120
 i = 60
 j_s = j // scale
 
+augment_param     = {"mask"          : False            , 
+                     "mask_size"     : [1, 10, 10]      , 
+                     "mask_num"      : 30               , 
+                     "surround"      : surround         , 
+                     "surround_size" : surround_size    ,
+                     "original_size" : original_cropsize,
+                     "cropsize"      : image_size[2:]   ,}
+
+val_augment = Augmentation(augment_param)
+
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 for n in range(0,5):
     label  = val_dataset[n][0].to(device = device)
     params = val_dataset[n][1]
+    label = label.unsqueeze(0)
     image  = JNet.image.sample_from_params(label, params).float()
-    outdict= JNet(image.unsqueeze(0))
+    image, label = val_augment.crop(image, label)
+    outdict= JNet(image)
     output = outdict["enhanced_image"]
     reconst= outdict["reconstruction"]
     qloss  = outdict["quantized_loss"]
     est_params = outdict["blur_parameter"]
-    print("est_params: ", est_params)
     lossfunc = nn.BCELoss()
-    print(lossfunc(output.squeeze(0).detach().cpu(), label.detach().cpu()))
-    output  = output.detach().cpu().numpy()
+    print(lossfunc(output.detach().cpu(), label.detach().cpu()))
+    
+    image   = image.squeeze(0).detach().cpu().numpy()
+    label   = label.squeeze(0).detach().cpu().numpy()
+    output  = output.squeeze(0).detach().cpu().numpy()
     reconst = reconst.squeeze(0).detach().cpu().numpy()
     fig = plt.figure(figsize=(25, 15))
     ax1 = fig.add_subplot(231)
@@ -145,19 +159,19 @@ for n in range(0,5):
     else:
         #ax1.imshow(reconst[0, j_s, :, :],
         #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax1.imshow(image[0, j_s, :, :].to(device='cpu'),
+        ax1.imshow(image[0, j_s, :, :],
                 cmap='gray', vmin=0.0, aspect=1)
-        ax2.imshow(output[0, 0, j, :, :],
+        ax2.imshow(output[0, j, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax3.imshow(label[0, j, :, :].to(device='cpu'),
+        ax3.imshow(label[0, j, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         #ax5.imshow(reconst[0, :, i, :],
         #        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        ax4.imshow(image[0, :, i, :].to(device='cpu'),
+        ax4.imshow(image[0, :, i, :],
                 cmap='gray', vmin=0.0, aspect=scale)
-        ax5.imshow(output[0, 0, :, i, :],
+        ax5.imshow(output[0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax6.imshow(label[0, :, i, :].to(device='cpu'),
+        ax6.imshow(label[0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
     plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
     

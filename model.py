@@ -327,13 +327,18 @@ class Blur(nn.Module):
         return x
 
     def gen_psf(self, bet_xy, bet_z, alpha):
-        b = bet_xy.shape[0]
+        if bet_xy.shape:
+            b = bet_xy.shape[0]
+        else:
+            b = 1
         psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
         psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
         psf  = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
         if self.mode == "gaussian":
             pass
         elif self.mode == "double_exp":
+            if not alpha.shape:
+                alpha = alpha.unsqueeze(0)
             psf  = self.gen_double_exp_dist(psf, alpha[:, None, None, None, None],)
         psf /= torch.sum(psf)
         return psf
@@ -455,7 +460,11 @@ class ImagingProcess(nn.Module):
         return x
     
     def sample_from_params(self, x, params):
-        scale = [int(params["scale"][0]), 1, 1] ## use only one scale
+        if isinstance(params["scale"], torch.Tensor):
+            z = int(params["scale"][0])
+        else:
+            z = params["scale"]
+        scale = [z, 1, 1] ## use only one scale
         emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
         blur       = Blur(self.z, self.x, self.y,
                           tt(params["bet_z"]), tt(params["bet_xy"]), tt(params["alpha"]),

@@ -9,9 +9,20 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-for i in range(0, 20):
+dataset_name = "_var_num_beadsdataset"
+
+for i in range(0, 16):
     t1 = time.time()
-    inp     = make_beads_data(30 + 300 * i, (1200, 500, 500))
+    inp     = make_beads_data(4800 - i * 300, (1200, 500, 500))
     t2 = time.time()
     print(f'{t2 - t1} s')
-    np.save(f'_newrandomdataset/{str(i).zfill(4)}_label.npy', inp)
+    np.save(f'{dataset_name}/{str(i).zfill(4)}_label.npy', inp)
+
+
+# testdata
+for i in range(0, 4):
+    t1 = time.time()
+    inp     = make_beads_data(4800 - (i + 6) * 300, (1200, 500, 500))
+    t2 = time.time()
+    print(f'{t2 - t1} s')
+    np.save(f'{dataset_name}/{str(i+16).zfill(4)}_label.npy', inp)

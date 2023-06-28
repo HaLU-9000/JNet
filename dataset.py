@@ -53,7 +53,7 @@ def gen_imaging_parameters(params_ranges:dict
      "bet_xy" : [0,  20,   1. ,  5.  ],\n
      "alpha"  : [0, 100,  10  ,  5.  ],\n
      "sig_eps": [0, 0.3, 0.15 ,  0.05],\n
-     "scale"  : [1, 2, 4, 8, 12      ]\n
+     "scale"  : [1, 2, 4, 8, 12      ] \n
      } 
     """
     params = {}
