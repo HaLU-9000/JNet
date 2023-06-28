@@ -55,7 +55,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 plist = list(param_normalize(params).values())
                 target_params = torch.empty(b, len(params) - 2)
                 for i, p in enumerate(plist[:len(params) - 2]):
-                    target_params[:, i] == p
+                    target_params[:, i] = p
                 target_params = target_params.to(device)
                 model.set_upsample_rate(int(params["scale"][0]))
             else:

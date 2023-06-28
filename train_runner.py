@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_223_x6_param_est_1'
+model_name           = 'JNet_224_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -75,7 +75,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   apply_vq              = False                ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_219_x6.pt'), strict=False)
+#JNet.load_state_dict(torch.load('model/JNet_219_x6.pt'), strict=False)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
 
@@ -92,10 +92,10 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath            = "_var_num_beadsdataset"                 ,
+train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedataset2"                     ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
-                                          I                    = 8                                      ,
+                                          I                    = 200                                      ,
                                           low                  = 0                                        ,
                                           high                 = 16                                       ,
                                           imaging_function     = JNet.image                               ,
@@ -110,7 +110,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath            = "_var_num_bead
                                           surround_size        = surround_size                            ,
                                           seed                 = 907                                      ,
                                           )
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset"                  ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
                                           I                    = 20                                       ,

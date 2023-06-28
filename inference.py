@@ -65,12 +65,12 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset"                  ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                  ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
                                           I                    = 20                                       ,
-                                          low                  = 16                                       ,
-                                          high                 = 20                                       ,
+                                          low                  = 0                                       ,
+                                          high                 = 1                                       ,
                                           imaging_function     = JNet.image                               ,
                                           imaging_params_range = params_ranges                            ,
                                           validation_params    = gen_imaging_parameters(params_ranges)    ,
@@ -104,6 +104,7 @@ val_loader  = DataLoader(val_dataset                   ,
 
 JNet.eval()
 count = 0
+figure = False
 for val_data in val_loader:
     
     label  = val_data[0].to(device = device)
@@ -119,7 +120,6 @@ for val_data in val_loader:
     lossfunc = nn.BCELoss()
     print(lossfunc(output.detach().cpu(), label.detach().cpu()))
     num = image.shape[0]
-    print(image.shape)
     for n in range(num):
         _image   = image[n].detach().cpu().numpy()
         _label   = label[n].detach().cpu().numpy()
@@ -151,39 +151,40 @@ for val_data in val_loader:
         #ax7.set_title('depth\nsegmentation result')
         #ax8.set_title('depth\nlabel')
         plt.subplots_adjust(hspace=-0.0)
-        if partial is not None:
-            ax1.imshow(_reconst[0, partial[0]+j_s, :, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax2.imshow(_image[0, partial[0]+j_s, :, :].to(device='cpu'),
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax3.imshow(_output[0, 0, partial[0]+j_s, :, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax4.imshow(_label[0, partial[0]+j, :, :].to(device='cpu'),
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax5.imshow(_reconst[0, partial[0]:partial[1], i, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-            ax6.imshow(_image[0, partial[0]:partial[1], i, :].to(device='cpu'),
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-            #ax7.imshow(output[0, 0, partial[0]:partial[1], i, :],
-            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            #ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
-            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        else:
-            #ax1.imshow(reconst[0, j_s, :, :],
-            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax1.imshow(_image[0, j_s, :, :],
-                    cmap='gray', vmin=0.0, aspect=1)
-            ax2.imshow(_output[0, j, :, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax3.imshow(_label[0, j, :, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            #ax5.imshow(reconst[0, :, i, :],
-            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-            ax4.imshow(_image[0, :, i, :],
-                    cmap='gray', vmin=0.0, aspect=scale)
-            ax5.imshow(_output[0, :, i, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            ax6.imshow(_label[0, :, i, :],
-                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        plt.savefig(f'result/{model_name}_result{count}_{n}.png', format='png', dpi=250)
-    count += 1
+        if figure:
+            if partial is not None:
+                ax1.imshow(_reconst[0, partial[0]+j_s, :, :],
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                ax2.imshow(_image[0, partial[0]+j_s, :, :].to(device='cpu'),
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                ax3.imshow(_output[0, 0, partial[0]+j_s, :, :],
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                ax4.imshow(_label[0, partial[0]+j, :, :].to(device='cpu'),
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                ax5.imshow(_reconst[0, partial[0]:partial[1], i, :],
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+                ax6.imshow(_image[0, partial[0]:partial[1], i, :].to(device='cpu'),
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+                #ax7.imshow(output[0, 0, partial[0]:partial[1], i, :],
+                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                #ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
+                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            else:
+                #ax1.imshow(reconst[0, j_s, :, :],
+                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                ax1.imshow(_image[0, j_s, :, :],
+                        cmap='gray', vmin=0.0, aspect=1)
+                ax2.imshow(_output[0, j, :, :],
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                ax3.imshow(_label[0, j, :, :],
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                #ax5.imshow(reconst[0, :, i, :],
+                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+                ax4.imshow(_image[0, :, i, :],
+                        cmap='gray', vmin=0.0, aspect=scale)
+                ax5.imshow(_output[0, :, i, :],
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+                ax6.imshow(_label[0, :, i, :],
+                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            plt.savefig(f'result/{model_name}_train0result_{n}.png', format='png', dpi=250)
+        count += 1
