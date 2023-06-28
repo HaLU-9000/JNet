@@ -72,7 +72,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
             paramloss = param_loss_fn(est_params, target_params)
-            print("est", est_params, "target", target_params, "paramloss", paramloss, "loss", loss)
             if qloss is not None:
                 loss += qloss
             loss += paramloss / 1
