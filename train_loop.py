@@ -71,22 +71,23 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             loss, midloss = branch_calc_loss(out, rec, image, label,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
-            paramloss = param_loss_fn(est_params, target_params)
+            #paramloss = param_loss_fn(est_params, target_params)
             if qloss is not None:
                 loss += qloss
-            loss += paramloss / 1
+            #print(paramloss, est_params, target_params)
+            #loss += paramloss / 1
             optimizer.zero_grad()
-            loss.backward(retain_graph=True)
+            loss.backward(retain_graph=False)
             optimizer.step()
             loss_sum += loss.detach().item()
             if check_middle:
                 midloss_sum += midloss.detach().item()
         model.eval()
         with torch.no_grad():
-            for image, label in val_loader:
+            for val_data in val_loader:
                 if is_randomblur:
-                    label  = train_data[0].to(device = device)
-                    params = train_data[1]
+                    label  = val_data[0].to(device = device)
+                    params = val_data[1]
                     image  = model.image.sample_from_params(label, params).float()
                     target_params = torch.empty(b, len(params) - 2)
                     for i, p in enumerate(plist[:len(params) - 2]):
@@ -94,8 +95,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     target_params = target_params.to(device)
                     model.set_upsample_rate(params["scale"][0])
                 else:
-                    image    = train_data[0].to(device = device)
-                    label    = train_data[1].to(device = device)
+                    image    = val_data[0].to(device = device)
+                    label    = val_data[1].to(device = device)
                 image, label = val_augment.crop(image, label)
                 image = val_augment(image)
                 outdict = model(image)

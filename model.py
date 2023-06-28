@@ -156,7 +156,6 @@ class BlurParameterEstimator(nn.Module):
                                      nn.ReLU(inplace=False)               ,
                                      nn.Linear(in_features  = mid_dim   ,
                                                out_features = params_dim,),
-                                     nn.Sigmoid()                         ,
                                      ])
     def forward(self, x):
         x_shape = x.shape

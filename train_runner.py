@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_221_x6_param_est_1'
+model_name           = 'JNet_223_x6_param_est_1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -75,7 +75,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   apply_vq              = False                ,
                   )
 JNet = JNet.to(device = device)
-#JNet.load_state_dict(torch.load('model/JNet_83_x1_partial.pt'), strict=False)
+JNet.load_state_dict(torch.load('model/JNet_219_x6.pt'), strict=False)
 params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
 
@@ -95,7 +95,7 @@ param_loss_fn        = nn.MSELoss()
 train_dataset = LabelandBlurParamsDataset(folderpath            = "_var_num_beadsdataset"                 ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
-                                          I                    = 200                                      ,
+                                          I                    = 8                                      ,
                                           low                  = 0                                        ,
                                           high                 = 16                                       ,
                                           imaging_function     = JNet.image                               ,
@@ -113,7 +113,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath            = "_var_num_bead
 val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset"                  ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
-                                          I                    = 10                                       ,
+                                          I                    = 20                                       ,
                                           low                  = 16                                       ,
                                           high                 = 19                                       ,
                                           imaging_function     = JNet.image                               ,

@@ -1,5 +1,7 @@
+import os
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from dataset import LabelandBlurParamsDataset, gen_imaging_parameters, Augmentation
 import model
@@ -31,12 +33,12 @@ params               = {"mu_z"   : 0.2    ,
                         "scale"  : 6
                         }
 
-params_ranges = {"mu_z"   : [0,   1., 0.2,  0.001 ],
-                 "sig_z"  : [0,   1., 0.2 ,  0.001 ],
-                 "bet_z"  : [0 , 22.,  20.  ,  0.001 ],
-                 "bet_xy" : [0,   2.,   1. ,  0.001 ],
-                 "alpha"  : [0,   2.,   1. ,  0.001 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.001 ],
+params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.0001 ],
+                 "bet_z"  : [0 , 22,  20  ,  0.0001 ],
+                 "bet_xy" : [0,   2,   1. ,  0.0001 ],
+                 "alpha"  : [0,   2,   1. ,  0.0001 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.0001 ],
                  "scale"  : [6]
                  }
 
@@ -45,7 +47,6 @@ param_scales = {"mu_z"   :  1,
                 "bet_z"  : 22,
                 "bet_xy" :  2,
                 "alpha"  :  2,}
-
 
 image_size = (1, 1, 240,  96,  96)
 original_cropsize = [360, 120, 120]
@@ -62,13 +63,14 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   apply_vq              = False                ,
                   )
 JNet = JNet.to(device = device)
+JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
 val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset"                  ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
-                                          I                    = 10                                       ,
+                                          I                    = 20                                       ,
                                           low                  = 16                                       ,
-                                          high                 = 19                                       ,
+                                          high                 = 20                                       ,
                                           imaging_function     = JNet.image                               ,
                                           imaging_params_range = params_ranges                            ,
                                           validation_params    = gen_imaging_parameters(params_ranges)    ,
@@ -93,14 +95,22 @@ augment_param     = {"mask"          : False            ,
 
 val_augment = Augmentation(augment_param)
 
-JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
+val_loader  = DataLoader(val_dataset                   ,
+                         batch_size  = 4               ,
+                         shuffle     = False           ,
+                         pin_memory  = True            ,
+                         num_workers = os.cpu_count()  ,
+                         )
+
 JNet.eval()
-for n in range(0,5):
-    label  = val_dataset[n][0].to(device = device)
-    params = val_dataset[n][1]
-    label = label.unsqueeze(0)
+count = 0
+for val_data in val_loader:
+    
+    label  = val_data[0].to(device = device)
+    params = val_data[1]
     image  = JNet.image.sample_from_params(label, params).float()
     image, label = val_augment.crop(image, label)
+    JNet.set_upsample_rate(params["scale"][0])
     outdict= JNet(image)
     output = outdict["enhanced_image"]
     reconst= outdict["reconstruction"]
@@ -108,70 +118,72 @@ for n in range(0,5):
     est_params = outdict["blur_parameter"]
     lossfunc = nn.BCELoss()
     print(lossfunc(output.detach().cpu(), label.detach().cpu()))
-    
-    image   = image.squeeze(0).detach().cpu().numpy()
-    label   = label.squeeze(0).detach().cpu().numpy()
-    output  = output.squeeze(0).detach().cpu().numpy()
-    reconst = reconst.squeeze(0).detach().cpu().numpy()
-    fig = plt.figure(figsize=(25, 15))
-    ax1 = fig.add_subplot(231)
-    ax2 = fig.add_subplot(232)
-    ax3 = fig.add_subplot(233)
-    ax4 = fig.add_subplot(234)
-    ax5 = fig.add_subplot(235)
-    ax6 = fig.add_subplot(236)
-    #ax7 = fig.add_subplot(247)
-    #ax8 = fig.add_subplot(248)
-    ax1.set_axis_off()
-    ax2.set_axis_off()
-    ax3.set_axis_off()
-    ax4.set_axis_off()
-    ax5.set_axis_off()
-    ax6.set_axis_off()
-    #ax7.set_axis_off()
-    #ax8.set_axis_off()
-    #ax1.set_title('plain\nreconstruct image')
-    #ax2.set_title('plain\noriginal image')
-    #ax3.set_title('plain\nsegmentation result')
-    #ax4.set_title('plain\nlabel')
-    #ax5.set_title('depth\nreconstruct')
-    #ax6.set_title('depth\noriginal image')
-    #ax7.set_title('depth\nsegmentation result')
-    #ax8.set_title('depth\nlabel')
-    plt.subplots_adjust(hspace=-0.0)
-    if partial is not None:
-        ax1.imshow(reconst[0, partial[0]+j_s, :, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax2.imshow(image[0, partial[0]+j_s, :, :].to(device='cpu'),
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax3.imshow(output[0, 0, partial[0]+j_s, :, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax4.imshow(label[0, partial[0]+j, :, :].to(device='cpu'),
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax5.imshow(reconst[0, partial[0]:partial[1], i, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        ax6.imshow(image[0, partial[0]:partial[1], i, :].to(device='cpu'),
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        #ax7.imshow(output[0, 0, partial[0]:partial[1], i, :],
-        #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        #ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
-        #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    else:
-        #ax1.imshow(reconst[0, j_s, :, :],
-        #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax1.imshow(image[0, j_s, :, :],
-                cmap='gray', vmin=0.0, aspect=1)
-        ax2.imshow(output[0, j, :, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax3.imshow(label[0, j, :, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        #ax5.imshow(reconst[0, :, i, :],
-        #        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-        ax4.imshow(image[0, :, i, :],
-                cmap='gray', vmin=0.0, aspect=scale)
-        ax5.imshow(output[0, :, i, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        ax6.imshow(label[0, :, i, :],
-                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_result{n}.png', format='png', dpi=250)
-    
+    num = image.shape[0]
+    print(image.shape)
+    for n in range(num):
+        _image   = image[n].detach().cpu().numpy()
+        _label   = label[n].detach().cpu().numpy()
+        _output  = output[n].detach().cpu().numpy()
+        _reconst = reconst[n].detach().cpu().numpy()
+        fig = plt.figure(figsize=(25, 15))
+        ax1 = fig.add_subplot(231)
+        ax2 = fig.add_subplot(232)
+        ax3 = fig.add_subplot(233)
+        ax4 = fig.add_subplot(234)
+        ax5 = fig.add_subplot(235)
+        ax6 = fig.add_subplot(236)
+        #ax7 = fig.add_subplot(247)
+        #ax8 = fig.add_subplot(248)
+        ax1.set_axis_off()
+        ax2.set_axis_off()
+        ax3.set_axis_off()
+        ax4.set_axis_off()
+        ax5.set_axis_off()
+        ax6.set_axis_off()
+        #ax7.set_axis_off()
+        #ax8.set_axis_off()
+        #ax1.set_title('plain\nreconstruct image')
+        #ax2.set_title('plain\noriginal image')
+        #ax3.set_title('plain\nsegmentation result')
+        #ax4.set_title('plain\nlabel')
+        #ax5.set_title('depth\nreconstruct')
+        #ax6.set_title('depth\noriginal image')
+        #ax7.set_title('depth\nsegmentation result')
+        #ax8.set_title('depth\nlabel')
+        plt.subplots_adjust(hspace=-0.0)
+        if partial is not None:
+            ax1.imshow(_reconst[0, partial[0]+j_s, :, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax2.imshow(_image[0, partial[0]+j_s, :, :].to(device='cpu'),
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax3.imshow(_output[0, 0, partial[0]+j_s, :, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax4.imshow(_label[0, partial[0]+j, :, :].to(device='cpu'),
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax5.imshow(_reconst[0, partial[0]:partial[1], i, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+            ax6.imshow(_image[0, partial[0]:partial[1], i, :].to(device='cpu'),
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+            #ax7.imshow(output[0, 0, partial[0]:partial[1], i, :],
+            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            #ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
+            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        else:
+            #ax1.imshow(reconst[0, j_s, :, :],
+            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax1.imshow(_image[0, j_s, :, :],
+                    cmap='gray', vmin=0.0, aspect=1)
+            ax2.imshow(_output[0, j, :, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax3.imshow(_label[0, j, :, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            #ax5.imshow(reconst[0, :, i, :],
+            #        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+            ax4.imshow(_image[0, :, i, :],
+                    cmap='gray', vmin=0.0, aspect=scale)
+            ax5.imshow(_output[0, :, i, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+            ax6.imshow(_label[0, :, i, :],
+                    cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        plt.savefig(f'result/{model_name}_result{count}_{n}.png', format='png', dpi=250)
+    count += 1
