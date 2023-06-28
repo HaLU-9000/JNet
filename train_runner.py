@@ -26,12 +26,12 @@ params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
                  "scale"  : [6]
                  }
 
-params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.0001 ],
-                 "bet_z"  : [0 , 22,  20  ,  0.0001 ],
-                 "bet_xy" : [0,   2,   1. ,  0.0001 ],
-                 "alpha"  : [0,   2,   1. ,  0.0001 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.0001 ],
+params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.01 ],
+                 "bet_z"  : [0 , 22,  20  ,  0.01 ],
+                 "bet_xy" : [0,   2,   1. ,  0.01 ],
+                 "alpha"  : [0,   2,   1. ,  0.01 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.01 ],
                  "scale"  : [6]
                  }
 
@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_224_x6'
+model_name           = 'JNet_225_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
