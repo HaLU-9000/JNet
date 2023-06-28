@@ -17,12 +17,12 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.0001 ],
-                 "bet_z"  : [0 , 22,  20  ,  0.0001 ],
-                 "bet_xy" : [0,   2,   1. ,  0.0001 ],
-                 "alpha"  : [0,   2,   1. ,  0.0001 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.0001 ],
+params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.01 ],
+                 "bet_z"  : [0 , 22,  20  ,  0.01 ],
+                 "bet_xy" : [0,   2,   1. ,  0.01 ],
+                 "alpha"  : [0,   2,   1. ,  0.01 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.01 ],
                  "scale"  : [6]
                  }
 
@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_218_x6_checkpoint-memory-reduction-test'
+model_name           = 'JNet_221_x6_param_est_1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -92,10 +92,10 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedataset2"                     ,
+train_dataset = LabelandBlurParamsDataset(folderpath            = "_var_num_beadsdataset"                 ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
-                                          I                    = 10                                       ,
+                                          I                    = 200                                      ,
                                           low                  = 0                                        ,
                                           high                 = 16                                       ,
                                           imaging_function     = JNet.image                               ,
@@ -110,7 +110,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedata
                                           surround_size        = surround_size                            ,
                                           seed                 = 907                                      ,
                                           )
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset"                  ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
                                           I                    = 10                                       ,

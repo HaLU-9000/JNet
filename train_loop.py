@@ -71,11 +71,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             loss, midloss = branch_calc_loss(out, rec, image, label,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
-            #paramloss = param_loss_fn(est_params, target_params)
-            #print("est", est_params, "target", target_params, "paramloss", paramloss, "loss", loss)
+            paramloss = param_loss_fn(est_params, target_params)
+            print("est", est_params, "target", target_params, "paramloss", paramloss, "loss", loss)
             if qloss is not None:
                 loss += qloss
-            #loss += paramloss / 100  ## which means paramloss = 0
+            loss += paramloss / 1
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
