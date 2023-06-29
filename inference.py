@@ -15,7 +15,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_226_x6'
+model_name           = 'JNet_229_x6_vq'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -60,7 +60,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
-                  apply_vq              = False                ,
+                  apply_vq              = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -117,8 +117,9 @@ for val_data in val_loader:
     reconst= outdict["reconstruction"]
     qloss  = outdict["quantized_loss"]
     est_params = outdict["blur_parameter"]
-    lossfunc = nn.BCELoss()
+    lossfunc = nn.MSELoss()
     print(lossfunc(output.detach().cpu(), label.detach().cpu()))
+    print(qloss)
     print(est_params)
     num = image.shape[0]
     for n in range(num):
