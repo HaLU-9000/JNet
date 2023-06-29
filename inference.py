@@ -65,12 +65,12 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                  ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
-                                          I                    = 20                                       ,
-                                          low                  = 0                                       ,
-                                          high                 = 1                                       ,
+                                          I                    = 4                                        ,
+                                          low                  = 16                                       ,
+                                          high                 = 17                                       ,
                                           imaging_function     = JNet.image                               ,
                                           imaging_params_range = params_ranges                            ,
                                           validation_params    = gen_imaging_parameters(params_ranges)    ,
@@ -187,5 +187,5 @@ for val_data in val_loader:
                         cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
                 ax6.imshow(_label[0, :, i, :],
                         cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            plt.savefig(f'result/{model_name}_train0result_{n}.png', format='png', dpi=250)
+            plt.savefig(f'result/{model_name}_result_{n}.png', format='png', dpi=250)
         count += 1

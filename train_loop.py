@@ -72,7 +72,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
             paramloss = param_loss_fn(est_params, target_params)
-            print(paramloss)
             if qloss is not None:
                 loss += qloss
             loss += paramloss
@@ -113,7 +112,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
                 vparam_loss_sum += param_loss_fn(target_params, est_params).detach().item()
-                print(vparam_loss_sum)
         num  = len(train_loader)
         vnum = len(val_loader)
         ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]
