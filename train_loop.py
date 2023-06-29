@@ -75,7 +75,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             print(paramloss)
             if qloss is not None:
                 loss += qloss
-            loss += paramloss / 10
+            loss += paramloss
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             optimizer.step()

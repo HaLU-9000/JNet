@@ -19,7 +19,7 @@ surround_size = [32, 4, 4]
 
 params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
                  "sig_z"  : [0,   1, 0.2  ,  0.01 ],
-                 "bet_z"  : [0 , 22,  20  ,  2. ],
+                 "bet_z"  : [0 , 25,  20  ,  2. ],
                  "bet_xy" : [0,   2,   1. ,  1. ],
                  "alpha"  : [0,   2,   1. ,  0.01 ],
                  "sig_eps": [0, 0.012, 0.01, 0.01 ],
@@ -37,13 +37,13 @@ params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
 
 param_scales = {"mu_z"   :  1,
                 "sig_z"  :  1,
-                "bet_z"  : 22,
+                "bet_z"  : 25,
                 "bet_xy" :  2,
                 "alpha"  :  2,}
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_226_x6'
+model_name           = 'JNet_227_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -80,10 +80,7 @@ params = [i for i in JNet.parameters()][:-4]
 #params = JNet.parameters()
 
 def warmup_func(epoch):
-    if epoch < 10:
-        return 0.1 + 0.1 * epoch
-    else:
-        return 1.0
+    return min(0.1 + 0.1 * epoch, 1.0)
 
 optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
@@ -92,7 +89,7 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath            = "beadslikedataset2"                     ,
+train_dataset = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
                                           I                    = 200                                      ,
