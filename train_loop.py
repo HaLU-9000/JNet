@@ -72,6 +72,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
             paramloss = param_loss_fn(est_params, target_params)
+            print(paramloss)
             if qloss is not None:
                 loss += qloss
             loss += paramloss / 10
@@ -90,7 +91,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     image  = model.image.sample_from_params(label, params).float()
                     target_params = torch.empty(b, len(params) - 2)
                     for i, p in enumerate(plist[:len(params) - 2]):
-                        target_params[:, i] == p
+                        target_params[:, i] = p
                     target_params = target_params.to(device)
                     model.set_upsample_rate(params["scale"][0])
                 else:
@@ -112,6 +113,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
                 vparam_loss_sum += param_loss_fn(target_params, est_params).detach().item()
+                print(vparam_loss_sum)
         num  = len(train_loader)
         vnum = len(val_loader)
         ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]

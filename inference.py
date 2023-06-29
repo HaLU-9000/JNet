@@ -15,7 +15,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_219_x6'
+model_name           = 'JNet_226_x6'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -104,7 +104,7 @@ val_loader  = DataLoader(val_dataset                   ,
 
 JNet.eval()
 count = 0
-figure = False
+figure = True
 for val_data in val_loader:
     
     label  = val_data[0].to(device = device)
@@ -119,6 +119,7 @@ for val_data in val_loader:
     est_params = outdict["blur_parameter"]
     lossfunc = nn.BCELoss()
     print(lossfunc(output.detach().cpu(), label.detach().cpu()))
+    print(est_params)
     num = image.shape[0]
     for n in range(num):
         _image   = image[n].detach().cpu().numpy()
