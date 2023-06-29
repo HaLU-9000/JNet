@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_227_x6'
+model_name           = 'JNet_228_x6_vq'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -72,7 +72,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
-                  apply_vq              = False                ,
+                  apply_vq              = True                ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_219_x6.pt'), strict=False)
@@ -85,7 +85,7 @@ def warmup_func(epoch):
 optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 warmup_scheduler     = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
-loss_fn              = nn.BCELoss()
+loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
