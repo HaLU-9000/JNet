@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_228_x6_vq'
+model_name           = 'JNet_229_x6_vq'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -83,8 +83,8 @@ def warmup_func(epoch):
     return min(0.1 + 0.1 * epoch, 1.0)
 
 optimizer            = optim.Adam(params, lr = 1e-4)
-scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
-warmup_scheduler     = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
+#scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
+scheduler     = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
