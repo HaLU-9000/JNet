@@ -131,12 +131,120 @@ class SuperResolutionBlock(nn.Module):
             x = f(x)
         return x
 
-#class Attention(nn.Module):
-#    def __init__(self):
-#        self.to_a = 
-#    def forward(self, x):
-#
-#        return x ## later
+
+class CrossAttentionBlock(nn.Module):
+    """
+    ### Transformer Layer
+    """
+
+    def __init__(self, channels: int, n_heads: int, d_cond: int):
+        """
+        :param d_model: is the input embedding size
+        :param n_heads: is the number of attention heads
+        :param d_head: is the size of a attention head
+        :param d_cond: is the size of the conditional embeddings
+        """
+        super().__init__()
+        self.attn = CrossAttention(d_model = channels,
+                                   d_cond  = d_cond,
+                                   n_heads = n_heads,
+                                   d_head  = channels // n_heads,)
+        self.norm = nn.LayerNorm(normalized_shape = channels,)
+
+    def forward(self, x: torch.Tensor):
+        """
+        :param x: are the input embeddings of shape `[batch_size, height * width, d_model]`
+        :param cond: is the conditional embeddings of shape `[batch_size,  n_cond, d_cond]`
+        """
+        b, c, d, h, w = x.shape
+        x = x.permute(0, 2, 3, 4, 1).view(b, d * h * w, c)
+        x = self.attn(self.norm(x)) + x
+        x = x.view(b, d, h, w, c).permute(0, 4, 1, 2, 3)
+        return x
+
+
+class CrossAttention(nn.Module):
+    """
+    ### Cross Attention Layer
+    This falls-back to self-attention when conditional embeddings are not specified.
+    """
+
+    def __init__(self, d_model: int, d_cond: int, n_heads: int, d_head: int, is_inplace: bool = True):
+        """
+        :param d_model: is the input embedding size
+        :param n_heads: is the number of attention heads
+        :param d_head: is the size of a attention head
+        :param d_cond: is the size of the conditional embeddings
+        :param is_inplace: specifies whether to perform the attention softmax computation inplace to
+            save memory
+        """
+        super().__init__()
+
+        self.is_inplace = is_inplace
+        self.n_heads    = n_heads
+        self.d_head     = d_head
+
+        # Attention scaling factor
+        self.scale = d_head ** -0.5
+        # Query, key and value mappings
+        d_attn = d_head * n_heads
+        self.to_q = nn.Linear(in_features  = d_model ,
+                              out_features = d_attn  ,
+                              bias         = False   ,)
+        
+        self.to_k = nn.Linear(in_features  = d_cond  ,
+                              out_features = d_attn  ,
+                              bias         = False   ,)
+        
+        self.to_v = nn.Linear(in_features  = d_cond  ,
+                              out_features = d_attn  ,
+                              bias         = False   ,)
+        # Final linear layer
+        self.to_out = nn.Sequential(
+                                        nn.Linear(in_features  = d_attn ,
+                                                  out_features = d_model,),
+                                    )
+
+    def forward(self, x: torch.Tensor, cond=None):
+        """
+        :param x: are the input embeddings of shape `[batch_size, height * width, d_model]`
+        :param cond: is the conditional embeddings of shape `[batch_size, n_cond, d_cond]`
+        """
+
+        has_cond = cond is not None
+        if not has_cond:
+            cond = x
+        q = self.to_q(x)
+        k = self.to_k(cond)
+        v = self.to_v(cond)
+
+        return self.normal_attention(q, k, v)
+    
+    def normal_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor):
+        """
+        #### Normal Attention
+        :param q: `[batch_size, seq, d_attn]`
+        :param k: `[batch_size, seq, d_attn]`
+        :param v: `[batch_size, seq, d_attn]`
+        """
+
+        q = q.view(*q.shape[:2], self.n_heads, -1)
+        k = k.view(*k.shape[:2], self.n_heads, -1)
+        v = v.view(*v.shape[:2], self.n_heads, -1)
+        attn = torch.einsum('bihd,bjhd->bhij', q, k) * self.scale
+
+        if self.is_inplace:
+            half = attn.shape[0] // 2
+            attn[half:] = attn[half:].softmax(dim=-1)
+            attn[:half] = attn[:half].softmax(dim=-1)
+        else:
+            attn = attn.softmax(dim=-1)
+
+        out = torch.einsum('bhij,bjhd->bihd', attn, v)
+        # Reshape to `[batch_size, height * width * depth, n_heads * d_head]`
+        out = out.reshape(*out.shape[:2], -1)
+        # Map to `[batch_size, height * width, d_model]` with a linear layer
+        return self.to_out(out)
 
 class BlurParameterEstimator(nn.Module):
     def __init__(self, x_dim, z_dim, mid_dim, params_dim):
@@ -213,6 +321,9 @@ class JNetLayer(nn.Module):
                              nblocks               = nblocks              ,
                              dropout               = dropout              ,
                              ) if hidden_channels_list else nn.Identity()
+        self.attn = CrossAttentionBlock(channels = hidden_channels ,
+                                        n_heads  = 8               ,
+                                        d_cond   = hidden_channels ,)
         self.post = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
@@ -228,6 +339,7 @@ class JNetLayer(nn.Module):
         if self.hidden_channels == self.last:
             d = self.mid(d)
             p = self.param(d)
+            d = self.attn(d)
         else:
             d, p = self.mid(d)
         for f in self.post:
@@ -594,17 +706,16 @@ if __name__ == '__main__':
                             }
     image_size = (1, 1, 24, 96, 96)
     param_estimation_list = [False, False, False, False, True]
-    model = JNet(hidden_channels_list  = hidden_channels_list ,
-                 nblocks               = nblocks              ,
-                 activation            = activation           ,
-                 dropout               = dropout              ,
-                 params                = params               ,
-                 superres              = superres             ,
-                 param_estimation_list = param_estimation_list,
-                 image_size            = image_size           ,
-                 reconstruct           = False                ,
-                 apply_vq              = True                 ,
-                 )
+    model =  JNet(hidden_channels_list  = hidden_channels_list ,
+                  nblocks               = nblocks              ,
+                  activation            = activation           ,
+                  dropout               = dropout              ,
+                  params                = params               ,
+                  param_estimation_list = param_estimation_list,
+                  superres              = superres             ,
+                  reconstruct           = False                ,
+                  apply_vq              = True                 ,
+                  )
     input_size = (1, 1, 24, 96, 96)
     model.to(device='cuda')
     print(model(torch.abs(torch.randn(*input_size)).to(device='cuda')))
