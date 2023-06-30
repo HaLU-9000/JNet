@@ -73,7 +73,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              reconstruct, check_middle)
             #paramloss = param_loss_fn(est_params, target_params)
             if qloss is not None:
-                loss += qloss /10
+                loss += qloss
             #loss += paramloss / 10
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
@@ -108,7 +108,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                                     reconstruct, check_middle)
                 vloss_sum += vloss.detach().item()
                 if qloss is not None:
-                    vloss_sum += qloss.detach().item() / 10
+                    vloss_sum += qloss.detach().item()
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
                 #vparam_loss = param_loss_fn(target_params, est_params).detach().item()
