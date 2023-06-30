@@ -15,7 +15,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_235_x6_vq_loss_cross_attn'
+model_name           = 'JNet_236_x6_mse_q_loss'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -61,6 +61,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = True                 ,
+                  use_x_quantized       = False                ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
