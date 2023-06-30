@@ -15,7 +15,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_233_x6_vq_loss_1_10_var_num'
+model_name           = 'JNet_234_x6_vq_loss_1_100_var_num'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
