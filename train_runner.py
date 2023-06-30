@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_234_x6_vq_loss_1_100_var_num'
+model_name           = 'JNet_236_x6_mse_q_loss'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -72,7 +72,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
-                  apply_vq              = True                ,
+                  apply_vq              = True                 ,
+                  use_x_quantized       = False                ,
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_219_x6.pt'), strict=False)
@@ -151,25 +152,27 @@ val_data    = DataLoader(val_dataset                   ,
 print(f"============= model {model_name} train started =============")
 
 train_loop(
-           n_epochs     = 500        , ####
-           optimizer    = optimizer  ,
-           model        = JNet       ,
-           loss_fn      = loss_fn    ,
-           param_loss_fn= param_loss_fn,
-           train_loader = train_data ,
-           val_loader   = val_data   ,
-           device       = device     ,
-           path         = 'model'    ,
-           savefig_path = 'train'    ,
-           model_name   = model_name ,
-           param_normalize=paramscaler.normalize,
-           augment      = augment    ,
-           val_augment  = val_augment,
-           partial      = partial    ,
-           scheduler    = scheduler  ,
-           es_patience  = 15         ,
-           reconstruct  = False      ,
-           check_middle = False      ,
-           midloss_fn   = midloss_fn ,
-           is_randomblur= True       ,
+           n_epochs         = 500                  , ####
+           optimizer        = optimizer            ,
+           model            = JNet                 ,
+           loss_fn          = loss_fn              ,
+           param_loss_fn    = param_loss_fn        ,
+           train_loader     = train_data           ,
+           val_loader       = val_data             ,
+           device           = device               ,
+           path             = 'model'              ,
+           savefig_path     = 'train'              ,
+           model_name       = model_name           ,
+           param_normalize  = paramscaler.normalize,
+           augment          = augment              ,
+           val_augment      = val_augment          ,
+           partial          = partial              ,
+           scheduler        = scheduler            ,
+           es_patience      = 15                   ,
+           reconstruct      = False                ,
+           check_middle     = False                ,
+           midloss_fn       = midloss_fn           ,
+           is_randomblur    = True                 ,
+           qloss_weight     = 1 / 10               ,
+           paramloss_weight = 1 / 10               ,
            )

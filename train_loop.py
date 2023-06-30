@@ -36,8 +36,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                device, path, savefig_path, model_name, param_normalize, augment, val_augment, partial=None,
                scheduler=None, es_patience=10,
                reconstruct=False, check_middle=False, midloss_fn=None, 
-               is_randomblur=False):
-    qloss_weight = 1 / 100
+               is_randomblur=False, qloss_weight = 1 / 100, paramloss_weight = 1 / 10):
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = es_patience,
@@ -45,7 +44,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
     writer = SummaryWriter(f'runs/{model_name}')
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     for epoch in range(1, n_epochs + 1):
-        loss_sum, midloss_sum, vloss_sum, vmidloss_sum, vparam_loss_sum = 0., 0., 0., 0., 0.
+        loss_sum, midloss_sum, vloss_sum, vqloss_sum, vmidloss_sum, \
+        vparam_loss_sum = 0., 0., 0., 0., 0., 0.
         model.train()
         for train_data in train_loader:
             if is_randomblur: # from here
@@ -75,7 +75,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             paramloss = param_loss_fn(est_params, target_params)
             if qloss is not None:
                 loss += qloss * qloss_weight
-            loss += paramloss / 10
+            loss += paramloss * paramloss_weight
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             optimizer.step()
@@ -109,12 +109,14 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                                     reconstruct, check_middle)
                 vloss_sum += vloss.detach().item()
                 if qloss is not None:
-                    vloss_sum += qloss.detach().item() * qloss_weight
+                    qloss = qloss.detach().item() * qloss_weight
+                    vloss_sum += qloss
+                    vqloss_sum += qloss
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
                 vparam_loss = param_loss_fn(target_params, est_params).detach().item()
                 vparam_loss_sum += vparam_loss
-                vloss_sum += vparam_loss / 10
+                vloss_sum += vparam_loss * paramloss_weight
         num  = len(train_loader)
         vnum = len(val_loader)
         ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]
@@ -127,6 +129,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
         writer.add_scalar('val loss', vloss_sum / vnum, epoch)
         writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
         writer.add_scalar('val middle loss', vmidloss_sum / vnum, epoch) if check_middle else 0
+        writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
         #writer.add_scalar('bet_xy', bet_xy.item(), epoch)
         #writer.add_scalar('bet_z' , bet_z.item() , epoch)
         #writer.add_scalar('alpha' , alpha.item() , epoch)

@@ -339,7 +339,7 @@ class JNetLayer(nn.Module):
         if self.hidden_channels == self.last:
             d = self.mid(d)
             p = self.param(d)
-            d = self.attn(d)
+            #d = self.attn(d)
         else:
             d, p = self.mid(d)
         for f in self.post:
@@ -611,7 +611,7 @@ class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
                  dropout, params, param_estimation_list,
                  superres:bool, reconstruct=False, apply_vq=False,
-                 device='cuda'):
+                 use_x_quantized=True, device='cuda'):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
@@ -656,6 +656,7 @@ class JNet(nn.Module):
         self.vq = VectorQuantizer(device=device)
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
+        self.use_x_quantized = use_x_quantized
 
     def set_upsample_rate(self, scale):
         scale_factor  = (scale, 1, 1)
@@ -673,7 +674,10 @@ class JNet(nn.Module):
         x = checkpoint(self.post0, x)
         x = F.softmax(input = x, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
-            x, qloss = self.vq(x)
+            if self.use_x_quantized:
+                x, qloss = self.vq(x)
+            else:
+                _, qloss = self.vq(x)
         r = self.image(x) if self.reconstruct else x
         out = {"enhanced_image" : x,
                "reconstruction" : r,
