@@ -37,6 +37,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                scheduler=None, es_patience=10,
                reconstruct=False, check_middle=False, midloss_fn=None, 
                is_randomblur=False):
+    qloss_weight = 1 / 100
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = es_patience,
@@ -73,7 +74,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              reconstruct, check_middle)
             paramloss = param_loss_fn(est_params, target_params)
             if qloss is not None:
-                loss += qloss / 100
+                loss += qloss * qloss_weight
             loss += paramloss / 10
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
@@ -108,12 +109,12 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                                     reconstruct, check_middle)
                 vloss_sum += vloss.detach().item()
                 if qloss is not None:
-                    vloss_sum += qloss.detach().item() / 10
+                    vloss_sum += qloss.detach().item() * qloss_weight
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
                 vparam_loss = param_loss_fn(target_params, est_params).detach().item()
                 vparam_loss_sum += vparam_loss
-                vloss_sum += vparam_loss / 100
+                vloss_sum += vparam_loss / 10
         num  = len(train_loader)
         vnum = len(val_loader)
         ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]
