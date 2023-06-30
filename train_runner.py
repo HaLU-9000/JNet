@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_232_x6_vq_loss_bce'
+model_name           = 'JNet_233_x6_vq_loss_1_10_var_num'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -84,12 +84,12 @@ def warmup_func(epoch):
 
 optimizer            = optim.Adam(params, lr = 1e-4)
 #scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
-scheduler     = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
-loss_fn              = nn.BCELoss()
+scheduler            = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
+loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = nn.MSELoss()
 
-train_dataset = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
+train_dataset = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset2"                 ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
                                           I                    = 200                                      ,
@@ -107,7 +107,7 @@ train_dataset = LabelandBlurParamsDataset(folderpath           = "beadslikedatas
                                           surround_size        = surround_size                            ,
                                           seed                 = 907                                      ,
                                           )
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
+val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset2"                 ,
                                           size                 = (1200, 500, 500)                         ,
                                           cropsize             = original_cropsize                        ,
                                           I                    = 20                                       ,
