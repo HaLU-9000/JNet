@@ -109,7 +109,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 vloss, vmid_loss = branch_calc_loss(out, rec, image, label,
                                                     loss_fn,midloss_fn,partial,
                                                     reconstruct, check_middle)
-                vloss_sum += vloss.detach().item()
+                vloss_sum += vloss.detach().item() * loss_weight
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss

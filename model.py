@@ -577,10 +577,11 @@ class ImagingProcess(nn.Module):
         else:
             z = params["scale"]
         scale = [z, 1, 1] ## use only one scale
+        print("bet_z", tt(params["bet_z"])) #############################
         emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
         blur       = Blur(self.z, self.x, self.y,
-                          tt(params["bet_z"]), tt(params["bet_xy"]), tt(params["alpha"]),
-                          scale, self.device)
+                          tt(params["bet_z"]), tt(params["bet_xy"]),
+                          tt(params["alpha"]), scale, self.device)
         noise      = Noise(tt(params["sig_eps"]))
         preprocess = PreProcess(min=self.postmin, max=self.postmax)
         x = emission.sample(x)

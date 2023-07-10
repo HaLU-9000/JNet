@@ -17,21 +17,21 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.01 ],
-                 "bet_z"  : [0 , 25,  20  ,  2. ],
-                 "bet_xy" : [0,   2,   1. ,  1. ],
-                 "alpha"  : [0,   2,   1. ,  0.01 ],
+params_ranges = {"mu_z"   : [0,   1, 0.2   , 0.01 ],
+                 "sig_z"  : [0,   1, 0.2   , 0.01 ],
+                 "bet_z"  : [0 , 25,  20   , 2.   ],
+                 "bet_xy" : [0,   2,   1.  , 1.   ],
+                 "alpha"  : [0,   2,   1.  , 0.01 ],
                  "sig_eps": [0, 0.012, 0.01, 0.01 ],
                  "scale"  : [6]
                  }
 
-params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.0001 ],
-                 "bet_z"  : [0 , 22,  20  ,  0.0001 ],
-                 "bet_xy" : [0,   2,   1. ,  0.0001 ],
-                 "alpha"  : [0,   2,   1. ,  0.0001 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.0001 ],
+params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
+                 "sig_z"  : [0,   1, 0.2  ,  0.01 ],
+                 "bet_z"  : [0 , 25,  20  ,  2.   ],
+                 "bet_xy" : [0,   2,   1. ,  1.   ],
+                 "alpha"  : [0,   2,   1. ,  0.01 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.01 ],
                  "scale"  : [6]
                  }
 
@@ -152,7 +152,7 @@ val_data    = DataLoader(val_dataset                   ,
 print(f"============= model {model_name} train started =============")
 
 train_loop(
-           n_epochs         = 500                  , ####
+           n_epochs         = 100                  , ####
            optimizer        = optimizer            ,
            model            = JNet                 ,
            loss_fn          = loss_fn              ,
@@ -168,7 +168,7 @@ train_loop(
            val_augment      = val_augment          ,
            partial          = partial              ,
            scheduler        = scheduler            ,
-           es_patience      = 15                   ,
+           es_patience      = 100                  ,
            reconstruct      = False                ,
            check_middle     = False                ,
            midloss_fn       = midloss_fn           ,
