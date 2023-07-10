@@ -338,8 +338,8 @@ class JNetLayer(nn.Module):
             d = checkpoint(f, d)
         if self.hidden_channels == self.last:
             d = self.mid(d)
+            d = self.attn(d)
             p = self.param(d)
-            #d = self.attn(d)
         else:
             d, p = self.mid(d)
         for f in self.post:
@@ -577,7 +577,6 @@ class ImagingProcess(nn.Module):
         else:
             z = params["scale"]
         scale = [z, 1, 1] ## use only one scale
-        print("bet_z", tt(params["bet_z"])) #############################
         emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
         blur       = Blur(self.z, self.x, self.y,
                           tt(params["bet_z"]), tt(params["bet_xy"]),
