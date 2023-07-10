@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_237_x6_mse_q_loss_1'
+model_name           = 'JNet_238_x6_paramloss-only'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -137,13 +137,13 @@ augment_param.update(mask=False)
 val_augment = Augmentation(augment_param)
 
 train_data  = DataLoader(train_dataset                 ,
-                         batch_size  = 4               ,
+                         batch_size  = 1               ,
                          shuffle     = True            ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 val_data    = DataLoader(val_dataset                   ,
-                         batch_size  = 4               ,
+                         batch_size  = 1               ,
                          shuffle     = False           ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
@@ -173,6 +173,7 @@ train_loop(
            check_middle     = False                ,
            midloss_fn       = midloss_fn           ,
            is_randomblur    = True                 ,
-           qloss_weight     = 1                    ,
-           paramloss_weight = 1 / 10               ,
+           loss_weight      = 0                    ,
+           qloss_weight     = 0                    ,
+           paramloss_weight = 1                    ,
            )
