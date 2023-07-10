@@ -15,7 +15,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_236_x6_mse_q_loss'
+model_name           = 'JNet_237_x6_mse_q_loss_1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -121,6 +121,7 @@ for val_data in val_loader:
     lossfunc = nn.MSELoss()
     print(lossfunc(output.detach().cpu(), label.detach().cpu()))
     print(qloss)
+    print(params)
     print(est_params)
     num = image.shape[0]
     for n in range(num):

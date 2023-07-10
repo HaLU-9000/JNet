@@ -36,7 +36,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                device, path, savefig_path, model_name, param_normalize, augment, val_augment, partial=None,
                scheduler=None, es_patience=10,
                reconstruct=False, check_middle=False, midloss_fn=None, 
-               is_randomblur=False, qloss_weight = 1 / 100, paramloss_weight = 1 / 10):
+               is_randomblur=False, 
+               loss_weight=1, qloss_weight = 1/100, paramloss_weight = 1/10):
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = es_patience,
@@ -73,6 +74,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
             paramloss = param_loss_fn(est_params, target_params)
+            loss *= loss_weight
             if qloss is not None:
                 loss += qloss * qloss_weight
             loss += paramloss * paramloss_weight
