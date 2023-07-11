@@ -19,8 +19,8 @@ surround_size = [32, 4, 4]
 
 params_ranges = {"mu_z"   : [0,   1, 0.2   , 0.01 ],
                  "sig_z"  : [0,   1, 0.2   , 0.01 ],
-                 "bet_z"  : [0 , 25,  20   , 2.   ],
-                 "bet_xy" : [0,   2,   1.  , 1.   ],
+                 "bet_z"  : [0 , 25,  12.5 , 5.   ],
+                 "bet_xy" : [0,   2,   1.  , 0.01 ],
                  "alpha"  : [0,   2,   1.  , 0.01 ],
                  "sig_eps": [0, 0.012, 0.01, 0.01 ],
                  "scale"  : [6]
@@ -28,8 +28,8 @@ params_ranges = {"mu_z"   : [0,   1, 0.2   , 0.01 ],
 
 params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
                  "sig_z"  : [0,   1, 0.2  ,  0.01 ],
-                 "bet_z"  : [0 , 25,  20  ,  2.   ],
-                 "bet_xy" : [0,   2,   1. ,  1.   ],
+                 "bet_z"  : [0 , 25,  12.5 , 5.   ],
+                 "bet_xy" : [0,   2,   1. ,  0.01 ],
                  "alpha"  : [0,   2,   1. ,  0.01 ],
                  "sig_eps": [0, 0.012, 0.01, 0.01 ],
                  "scale"  : [6]
@@ -43,7 +43,7 @@ param_scales = {"mu_z"   :  1,
 
 paramscaler = ParamScaler(param_scales)
 
-model_name           = 'JNet_239_x6_param_cross_attention'
+model_name           = 'JNet_240_x6_paramonly_no-cross-attn'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2

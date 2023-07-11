@@ -338,7 +338,7 @@ class JNetLayer(nn.Module):
             d = checkpoint(f, d)
         if self.hidden_channels == self.last:
             d = self.mid(d)
-            d = self.attn(d)
+            #d = self.attn(d)
             p = self.param(d)
         else:
             d, p = self.mid(d)

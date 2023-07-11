@@ -15,7 +15,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_237_x6_mse_q_loss_1'
+model_name           = 'JNet_240_x6_paramonly_no-cross-attn'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -33,12 +33,12 @@ params               = {"mu_z"   : 0.2    ,
                         "scale"  : 6
                         }
 
-params_ranges = {"mu_z"   : [0,   1, 0.2  ,  0.0001 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.0001 ],
-                 "bet_z"  : [0 , 22,  20  ,  0.0001 ],
-                 "bet_xy" : [0,   2,   1. ,  0.0001 ],
-                 "alpha"  : [0,   2,   1. ,  0.0001 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.0001 ],
+params_ranges = {"mu_z"   : [0,   1,   0.2 , 0.01 ],
+                 "sig_z"  : [0,   1,   0.2 , 0.01 ],
+                 "bet_z"  : [0 , 25,   5.0 , 0.01 ],
+                 "bet_xy" : [0,   2,   1.  , 0.01 ],
+                 "alpha"  : [0,   2,   1.  , 0.01 ],
+                 "sig_eps": [0, 0.012, 0.01, 0.01 ],
                  "scale"  : [6]
                  }
 
@@ -119,10 +119,10 @@ for val_data in val_loader:
     qloss  = outdict["quantized_loss"]
     est_params = outdict["blur_parameter"]
     lossfunc = nn.MSELoss()
-    print(lossfunc(output.detach().cpu(), label.detach().cpu()))
-    print(qloss)
-    print(params)
-    print(est_params)
+    #print(lossfunc(output.detach().cpu(), label.detach().cpu()))
+    #print(qloss)
+    #print(params)
+    #print(est_params)
     num = image.shape[0]
     for n in range(num):
         _image   = image[n].detach().cpu().numpy()
@@ -190,5 +190,6 @@ for val_data in val_loader:
                         cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
                 ax6.imshow(_label[0, :, i, :],
                         cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            plt.savefig(f'result/{model_name}_trainresult_{n}.png', format='png', dpi=250)
+            plt.savefig(f'result/{model_name}_bet_z_5_0__result_{n}.png',
+                        format='png', dpi=250)
         count += 1

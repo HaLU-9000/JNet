@@ -141,7 +141,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
             scheduler.step(vloss_sum / vnum)
-        earlystopping((vloss_sum / vnum), model, condition=True)
+        earlystopping((vloss_sum / vnum), model, condition=False)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
