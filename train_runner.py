@@ -57,7 +57,7 @@ params = [i for i in JNet.parameters()][:-4]
 def warmup_func(epoch):
     return min(0.1 + 0.1 * epoch, 1.0)
 
-optimizer            = optim.Adam(params, lr = 1e-4)
+optimizer            = optim.Adam(params, lr = 1e-3)
 #scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 scheduler            = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
 loss_fn              = nn.BCELoss()
@@ -111,7 +111,7 @@ val_data    = DataLoader(val_dataset                   ,
 print(f"============= model {model_name} train started =============")
 
 train_loop(
-           n_epochs         = 10                   , ####
+           n_epochs         = 100                  , ####
            optimizer        = optimizer            ,
            model            = JNet                 ,
            loss_fn          = loss_fn              ,
@@ -127,7 +127,7 @@ train_loop(
            val_augment      = None                 ,
            partial          = partial              ,
            scheduler        = scheduler            ,
-           es_patience      = 10                   ,
+           es_patience      = 15                   ,
            reconstruct      = False                ,
            check_middle     = False                ,
            midloss_fn       = midloss_fn           ,
