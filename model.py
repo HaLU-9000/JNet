@@ -364,7 +364,7 @@ class Emission(nn.Module):
         b = x.shape[0]
         pz0  = dist.LogNormal(loc   = self.mu_z.view( b, 1, 1, 1, 1).expand(*x.shape),
                               scale = self.sig_z.view(b, 1, 1, 1, 1).expand(*x.shape),)
-        x    = x * pz0.sample()
+        x    = x * pz0.sample().to(x.device)
         x    = torch.clip(x, min=0, max=1)
         #x    = x / self.logn_ppf
         return x
@@ -404,9 +404,9 @@ class Blur(nn.Module):
     def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, device,
                  psf_mode:str="double_exp"):
         super().__init__()
-        self.bet_z   = bet_z
-        self.bet_xy  = bet_xy
-        self.alpha   = alpha
+        self.bet_z   = bet_z.to(device)
+        self.bet_xy  = bet_xy.to(device)
+        self.alpha   = alpha.to(device)
         self.zscale, \
         self.xscale, \
         self.yscale  = scale
@@ -473,7 +473,7 @@ class Blur(nn.Module):
         xp = xd.expand(ylen, xlen)
         yp = yd.expand(xlen, ylen).transpose(1, 0)
         dp = xp ** 2 + yp ** 2
-        return dp
+        return dp.to(self.device)
 
     def gen_2dnorm(self, distance_plane, bet_xy, b):
         distance_plane = distance_plane.expand(b, *distance_plane.shape)
@@ -507,7 +507,7 @@ class Noise(nn.Module):
     def sample(self, x):
         b = x.shape[0]
         px = dist.Normal(loc   = x           ,
-                         scale = self.sig_eps.view(b, 1, 1, 1, 1).expand(*x.shape),)
+                         scale = self.sig_eps.view(b, 1, 1, 1, 1).expand(*x.shape).to(x.device))
         x  = px.rsample()
         x  = torch.clip(x, min=0, max=1)
         return x
@@ -551,17 +551,17 @@ class ImagingProcess(nn.Module):
         else:
             raise(NotImplementedError())
         scale = [params["scale"], 1, 1]
-        #self.emission   = Emission(self.mu_z, self.sig_z)
-        #self.blur       = Blur(z, x, y,
-        #                       self.bet_z, self.bet_xy, self.alpha,
-        #                       scale, device,)
-        #self.noise      = Noise(params["sig_eps"])
-        #self.preprocess = PreProcess(min=postmin, max=postmax)
+        self.emission   = Emission(self.mu_z, self.sig_z)
+        self.blur       = Blur(z, x, y,
+                               self.bet_z, self.bet_xy, self.alpha,
+                               scale, device,)
+        self.noise      = Noise(torch.tensor(params["sig_eps"]))
+        self.preprocess = PreProcess(min=postmin, max=postmax)
 
     def forward(self, x):
-        #x = self.emission(x) # rewrite to take (x, param)
-        #x = self.blur(x)
-        #x = self.preprocess(x)
+        x = self.emission(x) # rewrite to take (x, param)
+        x = self.blur(x)
+        x = self.preprocess(x)
         return x
 
     def sample(self, x):

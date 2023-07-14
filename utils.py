@@ -89,11 +89,11 @@ def save_dataset(model, folderpath, outfolderpath, labelname, outlabelname, scal
     flist = list(sorted(Path(folderpath).glob(f'*{labelname}.npy')))
     model = model.to(device)
     for i, label in enumerate(flist[I:]):
-        label = torch.from_numpy(np.load(label))
+        label = torch.from_numpy(np.load(label)).unsqueeze(0)
 #        if not Path(f'{outfolderpath}/{str(i+I).zfill(4)}{outlabelname}.pt').is_file():
         torch.save(label.float(),  f'{outfolderpath}/{str(i+I).zfill(4)}{outlabelname}.pt')
         blur = model.sample(label.to(device))
-        blur = blur.detach().to('cpu')#.numpy()
+        blur = blur.detach().to('cpu').squeeze(0)#.numpy()
         #blur = torch.from_numpy(blur) #2022/12/10 changed
         torch.save(blur, f'{outfolderpath}/{str(i+I).zfill(4)}_x{scale}.pt')
 
