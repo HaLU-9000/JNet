@@ -60,11 +60,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     target_params[:, i] = p
                 target_params = target_params.to(device)
                 model.set_upsample_rate(int(params["scale"][0]))
+                image, label = augment.crop(image, label)
+                image = augment(image)
             else:
                 image    = train_data[0].to(device = device)
                 label    = train_data[1].to(device = device) # to here -> 'preprocess'
-            image, label = augment.crop(image, label)
-            image = augment(image)
             outdict = model(image)
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
@@ -73,11 +73,12 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             loss, midloss = branch_calc_loss(out, rec, image, label,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
-            paramloss = param_loss_fn(est_params, target_params)
+            if param_loss_fn is not None:
+                paramloss = param_loss_fn(est_params, target_params)
+                loss += paramloss * paramloss_weight
             loss *= loss_weight
             if qloss is not None:
                 loss += qloss * qloss_weight
-            loss += paramloss * paramloss_weight
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             optimizer.step()
@@ -96,11 +97,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                         target_params[:, i] = p
                     target_params = target_params.to(device)
                     model.set_upsample_rate(params["scale"][0])
+                    image, label = val_augment.crop(image, label)
+                    image = val_augment(image)
                 else:
                     image    = val_data[0].to(device = device)
                     label    = val_data[1].to(device = device)
-                image, label = val_augment.crop(image, label)
-                image = val_augment(image)
                 outdict = model(image)
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
@@ -116,9 +117,10 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     vqloss_sum += qloss
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
-                vparam_loss = param_loss_fn(target_params, est_params).detach().item()
-                vparam_loss_sum += vparam_loss
-                vloss_sum += vparam_loss * paramloss_weight
+                if param_loss_fn is not None:
+                    vparam_loss = param_loss_fn(target_params, est_params).detach().item()
+                    vparam_loss_sum += vparam_loss
+                    vloss_sum += vparam_loss * paramloss_weight
         num  = len(train_loader)
         vnum = len(val_loader)
         ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]

@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import model as model
-from dataset import LabelandBlurParamsDataset, RandomBlurbyModelDataset, gen_imaging_parameters
+from dataset import RandomCutDataset
 from dataset import ParamScaler, Augmentation
 from train_loop import train_loop
 
@@ -17,33 +17,7 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-params_ranges = {"mu_z"   : [0,   1, 0.2   , 0.01 ],
-                 "sig_z"  : [0,   1, 0.2   , 0.01 ],
-                 "bet_z"  : [0 , 25,  12.5 , 5.   ],
-                 "bet_xy" : [0,   2,   1.  , 0.01 ],
-                 "alpha"  : [0,   2,   1.  , 0.01 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.01 ],
-                 "scale"  : [6]
-                 }
-
-params_ranges_= {"mu_z"   : [0,   1, 0.2  ,  0.01 ],
-                 "sig_z"  : [0,   1, 0.2  ,  0.01 ],
-                 "bet_z"  : [0 , 25,  12.5 , 5.   ],
-                 "bet_xy" : [0,   2,   1. ,  0.01 ],
-                 "alpha"  : [0,   2,   1. ,  0.01 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.01 ],
-                 "scale"  : [6]
-                 }
-
-param_scales = {"mu_z"   :  1,
-                "sig_z"  :  1,
-                "bet_z"  : 25,
-                "bet_xy" :  2,
-                "alpha"  :  2,}
-
-paramscaler = ParamScaler(param_scales)
-
-model_name           = 'JNet_240_x6_paramonly_no-cross-attn'
+model_name           = 'JNet_241_x6_largeblur-pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -86,55 +60,40 @@ def warmup_func(epoch):
 optimizer            = optim.Adam(params, lr = 1e-4)
 #scheduler            = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 scheduler            = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
-loss_fn              = nn.MSELoss()
+loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
-param_loss_fn        = nn.MSELoss()
+param_loss_fn        = None
 
-train_dataset = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset2"                 ,
-                                          size                 = (1200, 500, 500)                         ,
-                                          cropsize             = original_cropsize                        ,
-                                          I                    = 200                                      ,
-                                          low                  = 0                                        ,
-                                          high                 = 16                                       ,
-                                          imaging_function     = JNet.image                               ,
-                                          imaging_params_range = params_ranges                            ,
-                                          validation_params    = gen_imaging_parameters(params_ranges)    ,
-                                          device               = device                                   ,
-                                          is_train             = True                                     ,
-                                          mask                 = True                                     ,
-                                          mask_size            = [1, 10, 10]                              ,
-                                          mask_num             = 30                                       ,
-                                          surround             = surround                                 ,
-                                          surround_size        = surround_size                            ,
-                                          seed                 = 907                                      ,
-                                          )
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "_var_num_beadsdataset2"                 ,
-                                          size                 = (1200, 500, 500)                         ,
-                                          cropsize             = original_cropsize                        ,
-                                          I                    = 20                                       ,
-                                          low                  = 16                                       ,
-                                          high                 = 19                                       ,
-                                          imaging_function     = JNet.image                               ,
-                                          imaging_params_range = params_ranges                            ,
-                                          validation_params    = gen_imaging_parameters(params_ranges_)   ,
-                                          device               = device                                   ,
-                                          is_train             = False                                    ,
-                                          mask                 = False                                    ,
-                                          surround             = surround                                 ,
-                                          surround_size        = surround_size                            ,
-                                          seed                 = 907                                      ,
-                                          )
-
-augment_param     = {"mask"          : True             , 
-                     "mask_size"     : [1, 10, 10]      , 
-                     "mask_num"      : 30               , 
-                     "surround"      : surround         , 
-                     "surround_size" : surround_size    ,
-                     "original_size" : original_cropsize,
-                     "cropsize"      : image_size[2:]   ,}
-augment     = Augmentation(augment_param)
-augment_param.update(mask=False)
-val_augment = Augmentation(augment_param)
+train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2' ,  ###
+                                 imagename   =  f'_x{scale}'          , 
+                                 labelname   =  '_label'              ,
+                                 size        =  (1200, 500, 500)      ,
+                                 cropsize    =  ( 240, 112, 112)      , 
+                                 I             = 200                  ,
+                                 low           =   0                  ,
+                                 high          =  16                  ,
+                                 scale         =  scale               ,  ## scale
+                                 mask          =  True                ,
+                                 mask_size     =  [ 1, 10, 10]        ,
+                                 mask_num      =  30                  ,  #( 1% of image)
+                                 surround      =  surround            ,
+                                 surround_size =  surround_size       ,
+                                 )
+val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2'   ,  ###
+                                 imagename   =  f'_x{scale}'            ,     ## scale
+                                 labelname   =  '_label'                ,
+                                 size        =  (1200, 500, 500)        ,
+                                 cropsize    =  ( 240, 112, 112)        ,
+                                 I             =  20                    ,
+                                 low           =  16                    ,
+                                 high          =  20                    ,
+                                 scale         =  scale                 ,   ## scale
+                                 train         =  False                 ,
+                                 mask          =  False                 ,
+                                 surround      =  surround              ,
+                                 surround_size =  surround_size         ,
+                                 seed          =  907                   ,
+                                )       
 
 train_data  = DataLoader(train_dataset                 ,
                          batch_size  = 1               ,
@@ -152,7 +111,7 @@ val_data    = DataLoader(val_dataset                   ,
 print(f"============= model {model_name} train started =============")
 
 train_loop(
-           n_epochs         = 100                  , ####
+           n_epochs         = 10                   , ####
            optimizer        = optimizer            ,
            model            = JNet                 ,
            loss_fn          = loss_fn              ,
@@ -163,17 +122,17 @@ train_loop(
            path             = 'model'              ,
            savefig_path     = 'train'              ,
            model_name       = model_name           ,
-           param_normalize  = paramscaler.normalize,
-           augment          = augment              ,
-           val_augment      = val_augment          ,
+           param_normalize  = None                 ,
+           augment          = None                 ,
+           val_augment      = None                 ,
            partial          = partial              ,
            scheduler        = scheduler            ,
-           es_patience      = 100                  ,
+           es_patience      = 10                   ,
            reconstruct      = False                ,
            check_middle     = False                ,
            midloss_fn       = midloss_fn           ,
-           is_randomblur    = True                 ,
-           loss_weight      = 0                    ,
+           is_randomblur    = False                ,
+           loss_weight      = 1                    ,
            qloss_weight     = 0                    ,
-           paramloss_weight = 1                    ,
+           paramloss_weight = 0                    ,
            )
