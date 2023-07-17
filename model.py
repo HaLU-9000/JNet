@@ -401,7 +401,7 @@ class Intensity(nn.Module):
 
 
 class Blur(nn.Module):
-    def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, device,
+    def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, coeff_bet_z, device,
                  psf_mode:str="double_exp"):
         super().__init__()
         self.bet_z   = bet_z.to(device)
@@ -423,11 +423,12 @@ class Blur(nn.Module):
         self.x_pad   = (x - self.xscale + 1) // 2
         self.y_pad   = (y - self.yscale + 1) // 2
         self.stride  = (self.zscale, self.xscale, self.yscale)
+        self.coeff_bet_z = coeff_bet_z
     
     def forward(self, x):
         x_shape = x.shape
-        psf = self.gen_psf(self.bet_xy, self.bet_z, self.alpha
-                           ).to(self.device)
+        psf = self.gen_psf(self.bet_xy, self.bet_z * self.coeff_bet_z,
+                           self.alpha).to(self.device)
         _x   = F.conv3d(input   = x                                    ,
                         weight  = psf                                  ,
                         stride  = self.stride                          ,
@@ -527,7 +528,7 @@ class PreProcess(nn.Module):
 
 class ImagingProcess(nn.Module):
     def __init__(self, device, params,
-                 z, x, y, postmin=0., postmax=1.,
+                 z, x, y, coeff_bet_z, postmin=0., postmax=1.,
                  mode:str="train",):
         super().__init__()
         self.device = device
@@ -551,10 +552,17 @@ class ImagingProcess(nn.Module):
         else:
             raise(NotImplementedError())
         scale = [params["scale"], 1, 1]
-        self.emission   = Emission(self.mu_z, self.sig_z)
-        self.blur       = Blur(z, x, y,
-                               self.bet_z, self.bet_xy, self.alpha,
-                               scale, device,)
+        self.emission   = Emission(mu_z  = self.mu_z,
+                                   sig_z = self.sig_z)
+        self.blur       = Blur(z           = z          ,
+                               x           = x          ,
+                               y           = y          ,
+                               bet_z       = self.bet_z ,
+                               bet_xy      = self.bet_xy,
+                               alpha       = self.alpha ,
+                               scale       = scale      ,
+                               coeff_bet_z = coeff_bet_z,
+                               device      = device     ,)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
@@ -609,7 +617,7 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
-                 dropout, params, param_estimation_list,
+                 dropout, params, coeff_bet_z, param_estimation_list,
                  superres:bool, reconstruct=False, apply_vq=False,
                  use_x_quantized=True, device='cuda'):
         super().__init__()
@@ -646,6 +654,7 @@ class JNet(nn.Module):
                                     z            = 161              ,
                                     x            = 3                ,
                                     y            = 3                ,
+                                    coeff_bet_z  = coeff_bet_z      ,
                                     mode         = "train"          ,
                                     )
         self.upsample    = JNetUpsample(scale_factor = scale_factor)

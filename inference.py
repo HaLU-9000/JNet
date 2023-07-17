@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-from dataset import LabelandBlurParamsDataset, gen_imaging_parameters, Augmentation
+from dataset import RandomCutDataset
 import model
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -15,7 +15,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_240_x6_paramonly_no-cross-attn'
+model_name           = 'JNet_241_x6_largeblur-pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -32,21 +32,6 @@ params               = {"mu_z"   : 0.2    ,
                         "sig_eps": 0.01   ,
                         "scale"  : 6
                         }
-
-params_ranges = {"mu_z"   : [0,   1,   0.2 , 0.01 ],
-                 "sig_z"  : [0,   1,   0.2 , 0.01 ],
-                 "bet_z"  : [0 , 25,   5.0 , 0.01 ],
-                 "bet_xy" : [0,   2,   1.  , 0.01 ],
-                 "alpha"  : [0,   2,   1.  , 0.01 ],
-                 "sig_eps": [0, 0.012, 0.01, 0.01 ],
-                 "scale"  : [6]
-                 }
-
-param_scales = {"mu_z"   :  1,
-                "sig_z"  :  1,
-                "bet_z"  : 22,
-                "bet_xy" :  2,
-                "alpha"  :  2,}
 
 image_size = (1, 1, 240,  96,  96)
 original_cropsize = [360, 120, 120]
@@ -66,130 +51,74 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
-val_dataset   = LabelandBlurParamsDataset(folderpath           = "beadslikedataset2"                      ,
-                                          size                 = (1200, 500, 500)                         ,
-                                          cropsize             = original_cropsize                        ,
-                                          I                    = 4                                        ,
-                                          low                  = 10                                       ,
-                                          high                 = 11                                       ,
-                                          imaging_function     = JNet.image                               ,
-                                          imaging_params_range = params_ranges                            ,
-                                          validation_params    = gen_imaging_parameters(params_ranges)    ,
-                                          device               = device                                   ,
-                                          is_train             = False                                    ,
-                                          mask                 = False                                    ,
-                                          surround             = surround                                 ,
-                                          surround_size        = surround_size                            ,
-                                          seed                 = 907                                      ,
-                                          )
+val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2'   ,  ###
+                                 imagename   =  f'_x{scale}'            ,     ## scale
+                                 labelname   =  '_label'                ,
+                                 size        =  (1200, 500, 500)        ,
+                                 cropsize    =  ( 240, 112, 112)        ,
+                                 I             =  20                    ,
+                                 low           =  16                    ,
+                                 high          =  20                    ,
+                                 scale         =  scale                 ,   ## scale
+                                 train         =  False                 ,
+                                 mask          =  False                 ,
+                                 surround      =  surround              ,
+                                 surround_size =  surround_size         ,
+                                 seed          =  907                   ,
+                                ) 
 j = 120
 i = 60
 j_s = j // scale
 
-augment_param     = {"mask"          : False            , 
-                     "mask_size"     : [1, 10, 10]      , 
-                     "mask_num"      : 30               , 
-                     "surround"      : surround         , 
-                     "surround_size" : surround_size    ,
-                     "original_size" : original_cropsize,
-                     "cropsize"      : image_size[2:]   ,}
-
-val_augment = Augmentation(augment_param)
-
 val_loader  = DataLoader(val_dataset                   ,
-                         batch_size  = 4               ,
+                         batch_size  = 1               ,
                          shuffle     = False           ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 
 JNet.eval()
-count = 0
 figure = True
-for val_data in val_loader:
-    
-    label  = val_data[0].to(device = device)
-    params = val_data[1]
-    image  = JNet.image.sample_from_params(label, params).float()
-    image, label = val_augment.crop(image, label)
-    JNet.set_upsample_rate(params["scale"][0])
-    outdict= JNet(image)
-    output = outdict["enhanced_image"]
-    reconst= outdict["reconstruction"]
-    qloss  = outdict["quantized_loss"]
+for n, val_data in enumerate(val_loader):
+    if n >= 5:
+        break
+    image = val_data[0].to(device = device)
+    label = val_data[1].to(device = device)
+    JNet.set_upsample_rate(params["scale"])
+    outdict = JNet(image)
+    output  = outdict["enhanced_image"]
+    reconst = outdict["reconstruction"]
+    qloss   = outdict["quantized_loss"]
     est_params = outdict["blur_parameter"]
-    lossfunc = nn.MSELoss()
-    #print(lossfunc(output.detach().cpu(), label.detach().cpu()))
-    #print(qloss)
-    #print(params)
-    #print(est_params)
-    num = image.shape[0]
-    for n in range(num):
-        _image   = image[n].detach().cpu().numpy()
-        _label   = label[n].detach().cpu().numpy()
-        _output  = output[n].detach().cpu().numpy()
-        _reconst = reconst[n].detach().cpu().numpy()
-        fig = plt.figure(figsize=(25, 15))
-        ax1 = fig.add_subplot(231)
-        ax2 = fig.add_subplot(232)
-        ax3 = fig.add_subplot(233)
-        ax4 = fig.add_subplot(234)
-        ax5 = fig.add_subplot(235)
-        ax6 = fig.add_subplot(236)
-        #ax7 = fig.add_subplot(247)
-        #ax8 = fig.add_subplot(248)
-        ax1.set_axis_off()
-        ax2.set_axis_off()
-        ax3.set_axis_off()
-        ax4.set_axis_off()
-        ax5.set_axis_off()
-        ax6.set_axis_off()
-        #ax7.set_axis_off()
-        #ax8.set_axis_off()
-        #ax1.set_title('plain\nreconstruct image')
-        #ax2.set_title('plain\noriginal image')
-        #ax3.set_title('plain\nsegmentation result')
-        #ax4.set_title('plain\nlabel')
-        #ax5.set_title('depth\nreconstruct')
-        #ax6.set_title('depth\noriginal image')
-        #ax7.set_title('depth\nsegmentation result')
-        #ax8.set_title('depth\nlabel')
-        plt.subplots_adjust(hspace=-0.0)
-        if figure:
-            if partial is not None:
-                ax1.imshow(_reconst[0, partial[0]+j_s, :, :],
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                ax2.imshow(_image[0, partial[0]+j_s, :, :].to(device='cpu'),
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                ax3.imshow(_output[0, 0, partial[0]+j_s, :, :],
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                ax4.imshow(_label[0, partial[0]+j, :, :].to(device='cpu'),
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                ax5.imshow(_reconst[0, partial[0]:partial[1], i, :],
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-                ax6.imshow(_image[0, partial[0]:partial[1], i, :].to(device='cpu'),
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-                #ax7.imshow(output[0, 0, partial[0]:partial[1], i, :],
-                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                #ax8.imshow(label[0, partial[0]:partial[1], i, :].to(device='cpu'),
-                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            else:
-                #ax1.imshow(reconst[0, j_s, :, :],
-                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                ax1.imshow(_image[0, j_s, :, :],
-                        cmap='gray', vmin=0.0, aspect=1)
-                ax2.imshow(_output[0, j, :, :],
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                ax3.imshow(_label[0, j, :, :],
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                #ax5.imshow(reconst[0, :, i, :],
-                #        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-                ax4.imshow(_image[0, :, i, :],
-                        cmap='gray', vmin=0.0, aspect=scale)
-                ax5.imshow(_output[0, :, i, :],
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-                ax6.imshow(_label[0, :, i, :],
-                        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-            plt.savefig(f'result/{model_name}_bet_z_5_0__result_{n}.png',
-                        format='png', dpi=250)
-        count += 1
+    _image  = image[0].detach().cpu().numpy()
+    _label  = label[0].detach().cpu().numpy()
+    _output = output[0].detach().cpu().numpy()
+    fig = plt.figure(figsize=(25, 15))
+    ax1 = fig.add_subplot(231)
+    ax2 = fig.add_subplot(232)
+    ax3 = fig.add_subplot(233)
+    ax4 = fig.add_subplot(234)
+    ax5 = fig.add_subplot(235)
+    ax6 = fig.add_subplot(236)
+    ax1.set_axis_off()
+    ax2.set_axis_off()
+    ax3.set_axis_off()
+    ax4.set_axis_off()
+    ax5.set_axis_off()
+    ax6.set_axis_off()
+    plt.subplots_adjust(hspace=-0.0)
+    if figure:
+        ax1.imshow(_image[0, j_s, :, :],
+                cmap='gray', vmin=0.0, aspect=1)
+        ax2.imshow(_output[0, j, :, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax3.imshow(_label[0, j, :, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax4.imshow(_image[0, :, i, :],
+                cmap='gray', vmin=0.0, aspect=scale)
+        ax5.imshow(_output[0, :, i, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        ax6.imshow(_label[0, :, i, :],
+                cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+        plt.savefig(f'result/{model_name}_result_{n}.png',
+                    format='png', dpi=250)
