@@ -123,7 +123,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     vloss_sum += vparam_loss * paramloss_weight
         num  = len(train_loader)
         vnum = len(val_loader)
-        ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]
+        bet_z, bet_xy, alpha, ez0 = [i for i in model.parameters()][-4:]
         loss_list.append(loss_sum / num)
         midloss_list.append(midloss_sum / num) if check_middle else 0
         vloss_list.append(vloss_sum / vnum)

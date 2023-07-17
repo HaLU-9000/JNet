@@ -404,9 +404,9 @@ class Blur(nn.Module):
     def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, coeff_bet_z, device,
                  psf_mode:str="double_exp"):
         super().__init__()
-        self.bet_z   = bet_z.to(device)
-        self.bet_xy  = bet_xy.to(device)
-        self.alpha   = alpha.to(device)
+        self.bet_z   = bet_z
+        self.bet_xy  = bet_xy
+        self.alpha   = alpha
         self.zscale, \
         self.xscale, \
         self.yscale  = scale
@@ -540,9 +540,9 @@ class ImagingProcess(nn.Module):
         if mode == "train":
             self.mu_z    = torch.tensor(params["mu_z"  ])
             self.sig_z   = torch.tensor(params["sig_z" ])
-            self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]), requires_grad=True)
-            self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]), requires_grad=True)
-            self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]), requires_grad=True)
+            self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]).to(device), requires_grad=True)
+            self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]).to(device), requires_grad=True)
+            self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]).to(device), requires_grad=True)
         elif mode == "dataset":
             self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=False)
             self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=False)
@@ -567,7 +567,7 @@ class ImagingProcess(nn.Module):
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
     def forward(self, x):
-        x = self.emission(x) # rewrite to take (x, param)
+        x = self.emission(x)
         x = self.blur(x)
         x = self.preprocess(x)
         return x

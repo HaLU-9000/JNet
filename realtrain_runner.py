@@ -61,7 +61,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_244_finetuning'
+model_name           = 'JNet_246_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -98,12 +98,9 @@ JNet.load_state_dict(torch.load('model/JNet_241_x6_largeblur-pretrain.pt'),
 
 JNet.image.mu_z    = torch.tensor(params["mu_z"] )
 JNet.image.sig_z   = torch.tensor(params["sig_z"])
-JNet.image.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"],
-                                               requires_grad=True))
-JNet.image.bet_z   = nn.Parameter(torch.tensor(params["bet_z"]/coeff_bet_z,
-                                               requires_grad=True))
-JNet.image.alpha   = nn.Parameter(torch.tensor(params["alpha"],
-                                               requires_grad=True))
+JNet.image.blur.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]           ).to(device), requires_grad=True)
+JNet.image.blur.bet_z   = nn.Parameter(torch.tensor(params["bet_z"]/coeff_bet_z).to(device), requires_grad=True)
+JNet.image.blur.alpha   = nn.Parameter(torch.tensor(params["alpha"]            ).to(device), requires_grad=True)
 print([i for i in JNet.parameters()][-4:])
 
 params = JNet.parameters()
