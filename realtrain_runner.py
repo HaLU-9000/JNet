@@ -61,7 +61,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_243_finetuning'
+model_name           = 'JNet_244_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -108,7 +108,7 @@ print([i for i in JNet.parameters()][-4:])
 
 params = JNet.parameters()
 
-optimizer            = optim.Adam(params, lr = 1e-3)
+optimizer            = optim.Adam(params, lr = 1e-4)
 scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
@@ -135,6 +135,6 @@ train_loop(
     check_middle     = False       ,
     midloss_fn       = midloss_fn  ,
     loss_weight      = 1           ,
-    qloss_weight     = 0           ,
+    qloss_weight     = 0.1         ,
     paramloss_weight = 0           ,
     )
