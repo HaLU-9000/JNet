@@ -61,7 +61,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_246_finetuning'
+model_name           = 'JNet_247_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -132,6 +132,6 @@ train_loop(
     check_middle     = False       ,
     midloss_fn       = midloss_fn  ,
     loss_weight      = 1           ,
-    qloss_weight     = 0.1         ,
+    qloss_weight     = 1           ,
     paramloss_weight = 0           ,
     )
