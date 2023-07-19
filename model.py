@@ -350,11 +350,11 @@ class JNetLayer(nn.Module):
 
 
 class Emission(nn.Module):
-    def __init__(self, mu_z, sig_z,):
+    def __init__(self, mu_z, sig_z, ez0):
         super().__init__()
         self.mu_z     = mu_z
         self.sig_z    = sig_z
-        self.ez0      = nn.Parameter(torch.exp(mu_z + 0.5 * sig_z ** 2), requires_grad=True)
+        self.ez0      = ez0
         #self.mu_z_    = mu_z.item()
         #self.sig_z_   = sig_z.item()
         #self.logn_ppf = lognorm.ppf([0.99], 1,
@@ -370,9 +370,8 @@ class Emission(nn.Module):
         return x
 
     def forward(self, x):
-        ez0 = torch.exp(self.mu_z + 0.5 * self.sig_z ** 2)
-        x   = x * ez0
-        x   = torch.clip(x, min=0, max=1)
+        x = x * self.ez0
+        x = torch.clip(x, min=0, max=1)
         #x   = x / self.logn_ppf
         return x
 
@@ -538,8 +537,10 @@ class ImagingProcess(nn.Module):
         self.postmin = postmin
         self.postmax = postmax
         if mode == "train":
-            self.mu_z    = torch.tensor(params["mu_z"  ])
-            self.sig_z   = torch.tensor(params["sig_z" ])
+            self.mu_z    = torch.tensor(params["mu_z"])
+            self.sig_z   = torch.tensor(params["sig_z"])
+            self.ez0     = nn.Parameter(torch.exp(torch.tensor(params["mu_z"]) + 0.5 \
+                         * torch.tensor(params["sig_z"]) ** 2).to(device), requires_grad=True)
             self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]).to(device), requires_grad=True)
             self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]).to(device), requires_grad=True)
             self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]).to(device), requires_grad=True)
@@ -552,8 +553,9 @@ class ImagingProcess(nn.Module):
         else:
             raise(NotImplementedError())
         scale = [params["scale"], 1, 1]
-        self.emission   = Emission(mu_z  = self.mu_z,
-                                   sig_z = self.sig_z)
+        self.emission   = Emission(mu_z  = self.mu_z ,
+                                   sig_z = self.sig_z,
+                                   ez0   = self.ez0  ,)
         self.blur       = Blur(z           = z          ,
                                x           = x          ,
                                y           = y          ,

@@ -48,7 +48,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = False                ,
+                  use_x_quantized       = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -81,7 +81,7 @@ val_loader  = DataLoader(val_dataset                   ,
 
 JNet.eval()
 print([i for i in JNet.parameters()][-4:])
-figure = True
+figure = False
 for n, val_data in enumerate(val_loader):
     if n >= 5:
         break

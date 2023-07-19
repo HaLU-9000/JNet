@@ -37,7 +37,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                scheduler=None, es_patience=10,
                reconstruct=False, check_middle=False, midloss_fn=None, 
                is_randomblur=False, 
-               loss_weight=1, qloss_weight = 1/100, paramloss_weight = 1/10):
+               loss_weight=1, qloss_weight = 1/100, paramloss_weight = 1/10,
+               verbose=False):
     earlystopping = EarlyStopping(name     = model_name ,
                                   path     = path       ,
                                   patience = es_patience,
@@ -123,7 +124,10 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     vloss_sum += vparam_loss * paramloss_weight
         num  = len(train_loader)
         vnum = len(val_loader)
-        bet_z, bet_xy, alpha, ez0 = [i for i in model.parameters()][-4:]
+        ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]
+        if verbose:
+            print([i for i in model.state_dict()][-4:])
+            print(bet_z, bet_xy, alpha, ez0)
         loss_list.append(loss_sum / num)
         midloss_list.append(midloss_sum / num) if check_middle else 0
         vloss_list.append(vloss_sum / vnum)
@@ -134,10 +138,10 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
         writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
         writer.add_scalar('val middle loss', vmidloss_sum / vnum, epoch) if check_middle else 0
         writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
-        #writer.add_scalar('bet_xy', bet_xy.item(), epoch)
-        #writer.add_scalar('bet_z' , bet_z.item() , epoch)
-        #writer.add_scalar('alpha' , alpha.item() , epoch)
-        #writer.add_scalar('ez0'   , ez0.item()   , epoch)
+        writer.add_scalar('bet_xy', bet_xy.item(), epoch)
+        writer.add_scalar('bet_z' , bet_z.item() , epoch)
+        writer.add_scalar('alpha' , alpha.item() , epoch)
+        writer.add_scalar('ez0'   , ez0.item()   , epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')

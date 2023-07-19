@@ -22,7 +22,7 @@ train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_20' ,  ###
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
                                  cropsize    =  ( 240, 112, 112)      , 
-                                 I             = 200                  ,
+                                 I             =   2                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
                                  scale         =  scale               ,  ## scale
@@ -37,7 +37,7 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_20'   ,  ##
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  20                    ,
+                                 I             =   2                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
@@ -61,7 +61,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_247_finetuning'
+model_name           = 'JNet_250_ez0updatecheck'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -95,17 +95,17 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_241_x6_largeblur-pretrain.pt'),
                      strict=False)
-
-JNet.image.mu_z    = torch.tensor(params["mu_z"] )
-JNet.image.sig_z   = torch.tensor(params["sig_z"])
-JNet.image.blur.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]           ).to(device), requires_grad=True)
-JNet.image.blur.bet_z   = nn.Parameter(torch.tensor(params["bet_z"]/coeff_bet_z).to(device), requires_grad=True)
-JNet.image.blur.alpha   = nn.Parameter(torch.tensor(params["alpha"]            ).to(device), requires_grad=True)
+init_ez0 = torch.exp(torch.tensor(params["mu_z"]) + 0.5 \
+                     * torch.tensor(params["sig_z"]) ** 2)
+JNet.image.emission.ez0.data =  init_ez0
+JNet.image.blur.bet_xy.data  =  torch.tensor(params["bet_xy"]).to(device)
+JNet.image.blur.bet_z.data   =  torch.tensor(params["bet_z"]/coeff_bet_z).to(device)
+JNet.image.blur.alpha.data   =  torch.tensor(params["alpha"]).to(device)
 print([i for i in JNet.parameters()][-4:])
 
 params = JNet.parameters()
 
-optimizer            = optim.Adam(params, lr = 1e-4)
+optimizer            = optim.Adam(params, lr = 1e-2)
 scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
@@ -134,4 +134,5 @@ train_loop(
     loss_weight      = 1           ,
     qloss_weight     = 1           ,
     paramloss_weight = 0           ,
+    verbose          = True        ,
     )
