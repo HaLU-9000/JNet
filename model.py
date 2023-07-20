@@ -350,11 +350,11 @@ class JNetLayer(nn.Module):
 
 
 class Emission(nn.Module):
-    def __init__(self, mu_z, sig_z, ez0):
+    def __init__(self, mu_z, sig_z, log_ez0):
         super().__init__()
         self.mu_z     = mu_z
         self.sig_z    = sig_z
-        self.ez0      = ez0
+        self.log_ez0  = log_ez0
         #self.mu_z_    = mu_z.item()
         #self.sig_z_   = sig_z.item()
         #self.logn_ppf = lognorm.ppf([0.99], 1,
@@ -370,7 +370,7 @@ class Emission(nn.Module):
         return x
 
     def forward(self, x):
-        x = x * self.ez0
+        x = x * torch.exp(self.log_ez0)
         x = torch.clip(x, min=0, max=1)
         #x   = x / self.logn_ppf
         return x
@@ -400,12 +400,12 @@ class Intensity(nn.Module):
 
 
 class Blur(nn.Module):
-    def __init__(self, z, x, y, bet_z, bet_xy, alpha, scale, coeff_bet_z, device,
+    def __init__(self, z, x, y, log_bet_z, log_bet_xy, log_alpha, scale, device,
                  psf_mode:str="double_exp"):
         super().__init__()
-        self.bet_z   = bet_z
-        self.bet_xy  = bet_xy
-        self.alpha   = alpha
+        self.log_bet_z   = log_bet_z
+        self.log_bet_xy  = log_bet_xy
+        self.log_alpha   = log_alpha
         self.zscale, \
         self.xscale, \
         self.yscale  = scale
@@ -422,12 +422,13 @@ class Blur(nn.Module):
         self.x_pad   = (x - self.xscale + 1) // 2
         self.y_pad   = (y - self.yscale + 1) // 2
         self.stride  = (self.zscale, self.xscale, self.yscale)
-        self.coeff_bet_z = coeff_bet_z
     
     def forward(self, x):
         x_shape = x.shape
-        psf = self.gen_psf(self.bet_xy, self.bet_z * self.coeff_bet_z,
-                           self.alpha).to(self.device)
+        bet_xy  = torch.exp(self.log_bet_xy)
+        bet_z   = torch.exp(self.log_bet_z )
+        alpha   = torch.exp(self.log_alpha )
+        psf = self.gen_psf(bet_xy, bet_z, alpha).to(self.device)
         _x   = F.conv3d(input   = x                                    ,
                         weight  = psf                                  ,
                         stride  = self.stride                          ,
@@ -527,7 +528,7 @@ class PreProcess(nn.Module):
 
 class ImagingProcess(nn.Module):
     def __init__(self, device, params,
-                 z, x, y, coeff_bet_z, postmin=0., postmax=1.,
+                 z, x, y, postmin=0., postmax=1.,
                  mode:str="train",):
         super().__init__()
         self.device = device
@@ -537,34 +538,32 @@ class ImagingProcess(nn.Module):
         self.postmin = postmin
         self.postmax = postmax
         if mode == "train":
-            self.mu_z    = torch.tensor(params["mu_z"])
-            self.sig_z   = torch.tensor(params["sig_z"])
-            self.ez0     = nn.Parameter(torch.exp(torch.tensor(params["mu_z"]) + 0.5 \
-                         * torch.tensor(params["sig_z"]) ** 2).to(device), requires_grad=True)
-            self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]).to(device), requires_grad=True)
-            self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]).to(device), requires_grad=True)
-            self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]).to(device), requires_grad=True)
+            self.mu_z   = torch.tensor(params["mu_z"])
+            self.sig_z  = torch.tensor(params["sig_z"])
+            self.log_ez0 = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(device), requires_grad=True)
+            self.log_bet_z  = nn.Parameter(torch.tensor(params["log_bet_z" ]).to(device), requires_grad=True)
+            self.log_bet_xy = nn.Parameter(torch.tensor(params["log_bet_xy"]).to(device), requires_grad=True)
+            self.log_alpha  = nn.Parameter(torch.tensor(params["log_alpha" ]).to(device), requires_grad=True)
         elif mode == "dataset":
             self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=False)
             self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=False)
-            self.bet_z   = nn.Parameter(torch.tensor(params["bet_z" ]), requires_grad=False)
-            self.bet_xy  = nn.Parameter(torch.tensor(params["bet_xy"]), requires_grad=False)
-            self.alpha   = nn.Parameter(torch.tensor(params["alpha" ]), requires_grad=False)
+            self.log_bet_z   = nn.Parameter(torch.tensor(params["log_bet_z" ]), requires_grad=False)
+            self.log_bet_xy  = nn.Parameter(torch.tensor(params["log_bet_xy"]), requires_grad=False)
+            self.log_alpha   = nn.Parameter(torch.tensor(params["log_alpha" ]), requires_grad=False)
         else:
             raise(NotImplementedError())
         scale = [params["scale"], 1, 1]
-        self.emission   = Emission(mu_z  = self.mu_z ,
-                                   sig_z = self.sig_z,
-                                   ez0   = self.ez0  ,)
-        self.blur       = Blur(z           = z          ,
-                               x           = x          ,
-                               y           = y          ,
-                               bet_z       = self.bet_z ,
-                               bet_xy      = self.bet_xy,
-                               alpha       = self.alpha ,
-                               scale       = scale      ,
-                               coeff_bet_z = coeff_bet_z,
-                               device      = device     ,)
+        self.emission   = Emission(mu_z    = self.mu_z ,
+                                   sig_z   = self.sig_z,
+                                   log_ez0 = self.log_ez0,)
+        self.blur       = Blur(z           = z              ,
+                               x           = x              ,
+                               y           = y              ,
+                               log_bet_z   = self.log_bet_z ,
+                               log_bet_xy  = self.log_bet_xy,
+                               log_alpha   = self.log_alpha ,
+                               scale       = scale          ,
+                               device      = device         ,)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
@@ -589,8 +588,8 @@ class ImagingProcess(nn.Module):
         scale = [z, 1, 1] ## use only one scale
         emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
         blur       = Blur(self.z, self.x, self.y,
-                          tt(params["bet_z"]), tt(params["bet_xy"]),
-                          tt(params["alpha"]), scale, self.device)
+                          tt(params["log_bet_z"]), tt(params["log_bet_xy"]),
+                          tt(params["log_alpha"]), scale, self.device)
         noise      = Noise(tt(params["sig_eps"]))
         preprocess = PreProcess(min=self.postmin, max=self.postmax)
         x = emission.sample(x)
@@ -619,7 +618,7 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
-                 dropout, params, coeff_bet_z, param_estimation_list,
+                 dropout, params, param_estimation_list,
                  superres:bool, reconstruct=False, apply_vq=False,
                  use_x_quantized=True, device='cuda'):
         super().__init__()
@@ -656,7 +655,6 @@ class JNet(nn.Module):
                                     z            = 161              ,
                                     x            = 3                ,
                                     y            = 3                ,
-                                    coeff_bet_z  = coeff_bet_z      ,
                                     mode         = "train"          ,
                                     )
         self.upsample    = JNetUpsample(scale_factor = scale_factor)

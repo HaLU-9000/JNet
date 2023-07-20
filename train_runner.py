@@ -17,7 +17,7 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-model_name           = 'JNet_241_x6_largeblur-pretrain'
+model_name           = 'JNet_252_bet_z_10'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -65,7 +65,7 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = None
 
-train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2' ,  ###
+train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_10' ,  ###
                                  imagename   =  f'_x{scale}'          , 
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
@@ -80,7 +80,7 @@ train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2' ,  ###
                                  surround      =  surround            ,
                                  surround_size =  surround_size       ,
                                  )
-val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_10'   ,  ###
                                  imagename   =  f'_x{scale}'            ,     ## scale
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
@@ -136,4 +136,5 @@ train_loop(
            loss_weight      = 1                    ,
            qloss_weight     = 0                    ,
            paramloss_weight = 0                    ,
+           verbose          = False                ,
            )
