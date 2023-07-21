@@ -416,8 +416,10 @@ class Blur(nn.Module):
         self.zd      = self.distance(z)
         self.dp      = self.gen_distance_plane(xlen=x, ylen=y)
         self.mode    = psf_mode
-        self.psf     = self.gen_psf(self.bet_xy, self.bet_z, self.alpha
-                                    ).to(device)
+        bet_xy       = torch.exp(self.log_bet_xy)
+        bet_z        = torch.exp(self.log_bet_z )
+        alpha        = torch.exp(self.log_alpha )
+        self.psf     = self.gen_psf(bet_xy, bet_z, alpha).to(device)
         self.z_pad   = (z - self.zscale + 1) // 2
         self.x_pad   = (x - self.xscale + 1) // 2
         self.y_pad   = (y - self.yscale + 1) // 2
