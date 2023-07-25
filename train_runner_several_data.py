@@ -17,7 +17,7 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-model_name           = 'JNet_253_bet_z_several_102030'
+model_name           = 'JNet_255_bet_z_several'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
