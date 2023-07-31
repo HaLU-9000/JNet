@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -10,14 +11,33 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Inference on device {device}.")
 
-scale    = 6
+scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-val_score     = torch.load('./spinescore0/020_score.pt') 
-val_dataset   = RealDensityDataset(folderpath      =  'spinedata0'     ,
-                                   scorefolderpath =  'spinescore0'    ,
-                                   imagename       =  '020'            ,
-                                   size            =  ( 282, 512, 512) , # size after segmentation
+train_score   = torch.load('./beadsscore4/002_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = torch.load('./beadsscore4/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+
+train_dataset = RealDensityDataset(folderpath      =  'beadsdata4' ,
+                                   scorefolderpath =  'beadsscore4',
+                                   imagename       =  '002'            ,
+                                   size            =  ( 650, 512, 512) , # size after segmentation
+                                   cropsize        =  ( 240, 112, 112) , # size after segmentation
+                                   I               = 200               ,
+                                   low             =   0               ,
+                                   high            =   1               ,
+                                   scale           =  scale            ,   ## scale
+                                   train           =  True             ,
+                                   mask            =  True             ,
+                                   mask_num        =  10               ,
+                                   mask_size       =  [1, 10, 10]      ,
+                                   surround        =  surround         ,
+                                   surround_size   =  surround_size    ,
+                                   score           =  train_score      ,
+                                  )
+val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4' ,
+                                   scorefolderpath =  'beadsscore4',
+                                   imagename       =  '002'            ,
+                                   size            =  ( 650, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) ,
                                    I               =  10               ,
                                    low             =   0               ,
@@ -26,29 +46,13 @@ val_dataset   = RealDensityDataset(folderpath      =  'spinedata0'     ,
                                    train           =  False            ,
                                    mask            =  False            ,
                                    surround        =  False            ,
-                                   surround_size   =  surround_size    ,
+                                   surround_size   =  [64, 8, 8]       ,
                                    seed            =  1204             ,
                                    score           =  val_score        ,
                                   )
 
-val_dataset_  = RealDensityDataset(folderpath      =  'spinerawdata0'  ,
-                                   scorefolderpath =  'spinescore0'    ,
-                                   imagename       =  '020'            ,
-                                   size            =  ( 282, 512, 512) , # size after segmentation
-                                   cropsize        =  ( 240, 112, 112) ,
-                                   I               =  10               ,
-                                   low             =   0               ,
-                                   high            =   1               ,
-                                   scale           =  scale            ,
-                                   train           =  False            ,
-                                   mask            =  False            ,
-                                   surround        =  False            ,
-                                   surround_size   =  surround_size    ,
-                                   seed            =  1204             ,
-                                   score           =  val_score        ,
-                                  )
 
-model_name           = 'JNet_185_x6_ez0'
+model_name           = 'JNet_259_30_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -58,27 +62,30 @@ dropout              = 0.5
 partial              = None #(56, 184)
 superres             = True if scale > 1 else False
 reconstruct          = True
-params               = {"mu_z"   : 0.2    ,
-                        "sig_z"  : 0.2    ,
-                        "bet_z"  : 23.5329,
-                        "bet_xy" : 1.00000,
-                        "alpha"  : 0.9544 ,
-                        "sig_eps": 0.01   ,
-                        "scale"  : 6
-                        }                   
+params               = {"mu_z"       : 0.2               ,
+                        "sig_z"      : 0.2               ,
+                        "log_bet_z"  : np.log(30.).item(),
+                        "log_bet_xy" : np.log(1.).item() ,
+                        "log_alpha"  : np.log(1.).item() ,
+                        "sig_eps": 0.01                  ,
+                        "scale"  : 6                     ,
+                        }             
 reconstruct = True
+param_estimation_list = [False, False, False, False, True]
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
+                  param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
-                  apply_vq              = False                 ,
+                  apply_vq              = True                 ,
+                  use_x_quantized       = True                 ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
-JNet.set_tau(0.1)
+
 j   = 12
 j_s = j // scale
 i = 70
@@ -88,13 +95,14 @@ JNet.eval()
 if vis_mseloss == False:
     for n in range(0,10):
         image , label = val_dataset[n]
-        image_, label = val_dataset_[n]
-        o = JNet(image.to("cuda").unsqueeze(0))
-        if len(o) == 2:
-            output, reconst = o
-        if len(o) == 3:
-             output, reconst, qloss = o
-             print(qloss)
+        image_, label = val_dataset[n]
+        image, label= val_dataset[n]
+        JNet.set_upsample_rate(params["scale"])
+        outdict = JNet(image.to("cuda").unsqueeze(0))
+        output  = outdict["enhanced_image"]
+        reconst = outdict["reconstruction"]
+        qloss   = outdict["quantized_loss"]
+        est_params = outdict["blur_parameter"]
         output  = output.detach().cpu().numpy()
         reconst = reconst.squeeze(0).detach().cpu().numpy()
         fig = plt.figure(figsize=(25, 15))
@@ -151,7 +159,12 @@ else:
     for n in range(0, 10):
         #if n == 7 or n==9:
             image, label= val_dataset[n]
-            output, reconst= JNet(image.to("cuda").unsqueeze(0))
+            JNet.set_upsample_rate(params["scale"])
+            outdict = JNet(image.to("cuda").unsqueeze(0))
+            output  = outdict["enhanced_image"]
+            reconst = outdict["reconstruction"]
+            qloss   = outdict["quantized_loss"]
+            est_params = outdict["blur_parameter"]
             output  = output.detach().cpu().numpy()
             reconst = reconst.squeeze(0).detach().cpu().numpy()
             mse = (image - reconst) ** 2

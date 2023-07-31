@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_259_30_finetuning'
+model_name           = 'JNet_260_30_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -79,7 +79,7 @@ params               = {"mu_z"       : 0.2               ,
                         "log_bet_xy" : np.log(1.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
-                        "scale"  : 6                     ,
+                        "scale"  : 10                    ,
                         }
 reconstruct = True
 param_estimation_list = [False, False, False, False, True]
