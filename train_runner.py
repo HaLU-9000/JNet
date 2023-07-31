@@ -17,7 +17,7 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-model_name           = 'JNet_252_bet_z_10'
+model_name           = 'JNet_261_bet_z_27'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -27,9 +27,9 @@ partial              = None #(56, 184)
 superres = True if scale > 1 else False
 params               = {"mu_z"   : 0.2  , 
                         "sig_z"  : 0.2  , 
-                        "bet_z"  :  20. , 
-                        "bet_xy" :   1. , 
-                        "alpha"  :   1. , 
+                        "log_bet_z"  :  20. , 
+                        "log_bet_xy" :   1. , 
+                        "log_alpha"  :   1. , 
                         "sig_eps":  0.01,
                         "scale"  :  6
                         }
@@ -43,7 +43,6 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
-                  coeff_bet_z           = 10                   ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
@@ -65,7 +64,7 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = None
 
-train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_10' ,  ###
+train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_27' ,  ###
                                  imagename   =  f'_x{scale}'          , 
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
@@ -80,7 +79,7 @@ train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_10' ,  ###
                                  surround      =  surround            ,
                                  surround_size =  surround_size       ,
                                  )
-val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_10'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_27'   ,  ###
                                  imagename   =  f'_x{scale}'            ,     ## scale
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
