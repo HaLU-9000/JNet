@@ -26,9 +26,9 @@ superres = True if scale > 1 else False
 
 params               = {"mu_z"   : 0.2    ,
                         "sig_z"  : 0.2    ,
-                        "bet_z"  : 20.    ,
-                        "bet_xy" : 1.0    ,
-                        "alpha"  : 1.0    ,
+                        "log_bet_z"  : 20.    ,
+                        "log_bet_xy" : 1.0    ,
+                        "log_alpha"  : 1.0    ,
                         "sig_eps": 0.01   ,
                         "scale"  : 6
                         }
@@ -43,7 +43,6 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
-                  coeff_bet_z           = coeff_bet_z          ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
