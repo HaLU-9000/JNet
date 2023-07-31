@@ -191,12 +191,12 @@ def train_loop_v2(n_epochs, optimizer, model, loss_fn,
                 loss *= loss_weight
                 if qloss is not None:
                     loss += qloss * qloss_weight
-                optimizer.zero_grad()
-                loss.backward(retain_graph=False)
-                optimizer.step()
-                loss_sum += loss.detach().item() / 3
-                if check_middle:
-                    midloss_sum += midloss.detach().item()
+            optimizer.zero_grad()
+            loss.backward(retain_graph=False)
+            optimizer.step()
+            loss_sum += loss.detach().item()
+            if check_middle:
+                midloss_sum += midloss.detach().item()
         model.eval()
         with torch.no_grad():
             for val_data0, val_data1, val_data2 in zip(val_loader0, val_loader1, val_loader2):
@@ -212,11 +212,11 @@ def train_loop_v2(n_epochs, optimizer, model, loss_fn,
                     vloss, vmid_loss = branch_calc_loss(out, rec, image, label,
                                                         loss_fn,midloss_fn,partial,
                                                         reconstruct, check_middle)
-                    vloss_sum += vloss.detach().item() * loss_weight / 3
+                    vloss_sum += vloss.detach().item() * loss_weight
                     if qloss is not None:
                         qloss = qloss.detach().item() * qloss_weight
-                        vloss_sum += qloss / 3
-                        vqloss_sum += qloss / 3
+                        vloss_sum += qloss
+                        vqloss_sum += qloss
                     if check_middle:
                         vmidloss_sum += vmid_loss.detach().item()
         num  = len(train_loader0)

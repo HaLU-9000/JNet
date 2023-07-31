@@ -17,7 +17,7 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-model_name           = 'JNet_255_bet_z_several'
+model_name           = 'JNet_257_bet_z_several'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -64,12 +64,15 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = None
 
+It = 200
+Iv = 20
+
 train_dataset0 = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_10' ,  ###
                                   imagename   =  f'_x{scale}'          , 
                                   labelname   =  '_label'              ,
                                   size        =  (1200, 500, 500)      ,
                                   cropsize    =  ( 240, 112, 112)      , 
-                                  I             = 200                  ,
+                                  I             = It                  ,
                                   low           =   0                  ,
                                   high          =  16                  ,
                                   scale         =  scale               ,  ## scale
@@ -84,7 +87,7 @@ val_dataset0  = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_10'   ,  ##
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  20                    ,
+                                 I             =  Iv                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
@@ -113,7 +116,7 @@ train_dataset1 = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_20' ,  ###
                                   labelname   =  '_label'              ,
                                   size        =  (1200, 500, 500)      ,
                                   cropsize    =  ( 240, 112, 112)      , 
-                                  I             = 200                  ,
+                                  I             = It                  ,
                                   low           =   0                  ,
                                   high          =  16                  ,
                                   scale         =  scale               ,  ## scale
@@ -128,7 +131,7 @@ val_dataset1  = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_20'   ,  ##
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  20                    ,
+                                 I             =  Iv                ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
@@ -157,7 +160,7 @@ train_dataset2 = RandomCutDataset(folderpath  =  '_var_num_beadsdata2' ,  ###
                                   labelname   =  '_label'              ,
                                   size        =  (1200, 500, 500)      ,
                                   cropsize    =  ( 240, 112, 112)      , 
-                                  I             = 200                  ,
+                                  I             = It                  ,
                                   low           =   0                  ,
                                   high          =  16                  ,
                                   scale         =  scale               ,  ## scale
@@ -172,7 +175,7 @@ val_dataset2  = RandomCutDataset(folderpath  =  '_var_num_beadsdata2'   ,  ###
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  20                    ,
+                                 I             =  Iv                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
