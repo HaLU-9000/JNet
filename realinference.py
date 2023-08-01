@@ -153,7 +153,7 @@ if vis_mseloss == False:
             ax6.imshow(output[0, 0, :, i, :],
                     cmap='gray', vmin=0.2, vmax=1.0, aspect=1)
 
-        plt.savefig(f'result/{model_name}_realresult{n}_vq_6.png', format='png', dpi=250)
+        plt.savefig(f'result/{model_name}_realresult{n}_vq.png', format='png', dpi=250)
 
 else:
     for n in range(0, 10):

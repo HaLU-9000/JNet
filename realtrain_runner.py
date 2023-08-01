@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_260_30_finetuning'
+model_name           = 'JNet_262_27_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -75,9 +75,9 @@ partial              = None #(56, 184)
 superres = True if scale > 1 else False
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
-                        "log_bet_z"  : np.log(30.).item(),
-                        "log_bet_xy" : np.log(1.).item() ,
-                        "log_alpha"  : np.log(1.).item() ,
+                        "log_bet_z"  : np.log(27.7052).item(),
+                        "log_bet_xy" : np.log(4.43864).item() ,
+                        "log_alpha"  : np.log(74.9664).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
                         }
@@ -95,7 +95,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   use_x_quantized       = True                 ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_241_x6_largeblur-pretrain.pt'),
+JNet.load_state_dict(torch.load('model/JNet_261_bet_z_27.pt'),
                      strict=False)
 init_log_ez0 = (torch.tensor(params["mu_z"]) + 0.5 \
                 * torch.tensor(params["sig_z"]) ** 2).to(device)
@@ -129,7 +129,7 @@ train_loop(
     val_augment      = None        ,
     partial          = partial     ,
     scheduler        = scheduler   ,
-    es_patience      = 15          ,
+    es_patience      = 7          ,
     reconstruct      = reconstruct ,
     check_middle     = False       ,
     midloss_fn       = midloss_fn  ,
