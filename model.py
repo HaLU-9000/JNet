@@ -728,7 +728,7 @@ if __name__ == '__main__':
                   params                = params               ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
-                  reconstruct           = False                ,
+                  reconstruct           = True                 ,
                   apply_vq              = True                 ,
                   )
     input_size = (1, 1, 24, 96, 96)
