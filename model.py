@@ -713,9 +713,9 @@ if __name__ == '__main__':
     superres = True
     params               = {"mu_z"   : 0.2    ,
                             "sig_z"  : 0.2    ,
-                            "bet_z"  : 23.5329,
-                            "bet_xy" : 1.00000,
-                            "alpha"  : 0.9544 ,
+                            "log_bet_z"  : 23.5329,
+                            "log_bet_xy" : 1.00000,
+                            "log_alpha"  : 0.9544 ,
                             "sig_eps": 0.01   ,
                             "scale"  : 10
                             }
