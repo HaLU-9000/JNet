@@ -1,8 +1,11 @@
+import os
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from dataset import RealDensityDataset
+
 import model
 
 vis_mseloss = False
@@ -20,7 +23,7 @@ image__name   = 'croped_cliped_beads'
 image         = torch.load('./' + image_path + image_name  + '.pt').to(device)
 image_        = torch.load('./' + image_path + image__name + '.pt').to(device)
 
-model_name           = 'JNet_261_bet_z_27'
+model_name           = 'JNet_262_27_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -63,25 +66,35 @@ print([i for i in JNet.state_dict()][-4:])
 print(torch.exp(bet_z), torch.exp(bet_xy), torch.exp(alpha), torch.exp(ez0))
 JNet.eval()
 JNet.set_upsample_rate(params["scale"])
-outdict = JNet(image.to("cuda").unsqueeze(0))
-output  = outdict["enhanced_image"]
-output  = output.detach().cpu()
-reconst = outdict["reconstruction"]
-qloss   = outdict["quantized_loss"]
-est_params = outdict["blur_parameter"]
-print("output ", torch.sum(output) * (0.05 * 0.05 * 0.05))
-reconst = reconst.squeeze(0).detach().cpu().numpy()
-torch.save(output, f'./result/{image_name}_result.pt')
-fig = plt.figure(figsize=(10, 10))
-ax1 = fig.add_subplot(121)
-ax2 = fig.add_subplot(122)
-ax1.set_axis_off()
-ax2.set_axis_off()
-ax1.set_title('original image')
-ax2.set_title(f'reconstruct image\n{model_name}')
-plt.subplots_adjust(hspace=-0.0)
-ax1.imshow(image_[0, :, i, :].to(device='cpu'),
-        cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-ax2.imshow(output[0, 0, :, i, :],
-        cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-plt.savefig(f'result/{model_name}_{image_name}.png', format='png', dpi=250)
+
+dirpath = "_beads_roi_extracted"
+images = [os.path.join(dirpath, f) for f in sorted(os.listdir(dirpath))]
+losses = []
+loss_fn = nn.MSELoss()
+for image_name in images[:-1]:
+    image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
+    image = (torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
+    outdict = JNet(image.to("cuda").unsqueeze(0))
+    output  = outdict["enhanced_image"]
+    output  = output.detach().cpu()
+    reconst = outdict["reconstruction"]
+    loss    = loss_fn(reconst, image).item()
+    qloss   = outdict["quantized_loss"]
+    est_params = outdict["blur_parameter"]
+    print("output ", torch.sum(output) * (0.05 * 0.05 * 0.05))
+    reconst = reconst.squeeze(0).detach().cpu().numpy()
+    losses.append(loss)
+    fig = plt.figure(figsize=(10, 10))
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+    ax1.set_axis_off()
+    ax2.set_axis_off()
+    ax1.set_title('original image')
+    ax2.set_title(f'reconstruct image\n{model_name}')
+    plt.subplots_adjust(hspace=-0.0)
+    ax1.imshow(image_[0, :, i, :].to(device='cpu'),
+            cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+    ax2.imshow(output[0, 0, :, i, :],
+            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+    plt.savefig(f'result/{model_name}_{image_name[21:-3]}.png', format='png', dpi=250)
+print(losses)
