@@ -29,7 +29,9 @@ params               = {"mu_z"   : 0.2  ,
                         "sig_z"  : 0.2  , 
                         "log_bet_z"  :  20. , 
                         "log_bet_xy" :   1. , 
-                        "log_alpha"  :   1. , 
+                        "log_alpha"  :   1. ,
+                        "log_k"      :   0. ,
+                        "log_l"      :   0. ,
                         "sig_eps":  0.01,
                         "scale"  :  6
                         }
