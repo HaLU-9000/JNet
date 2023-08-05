@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_262_27_finetuning'
+model_name           = 'JNet_266_vibration_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -95,7 +95,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   use_x_quantized       = True                 ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_261_bet_z_27.pt'),
+JNet.load_state_dict(torch.load('model/JNet_265_vibration.pt'),
                      strict=False)
 init_log_ez0 = (torch.tensor(params["mu_z"]) + 0.5 \
                 * torch.tensor(params["sig_z"]) ** 2).to(device)
@@ -129,10 +129,11 @@ train_loop(
     val_augment      = None        ,
     partial          = partial     ,
     scheduler        = scheduler   ,
-    es_patience      = 7          ,
+    es_patience      = 15          ,
     reconstruct      = reconstruct ,
     check_middle     = False       ,
     midloss_fn       = midloss_fn  ,
+    is_vibrate       = True        ,
     loss_weight      = 1           ,
     qloss_weight     = 1           ,
     paramloss_weight = 0           ,

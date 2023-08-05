@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from dataset import RandomCutDataset
 import model
+from dataset import Vibrate
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -15,7 +16,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_247_finetuning'
+model_name           = 'JNet_265_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -52,13 +53,13 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
-val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_20',  ###
+val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2'   ,  ###
                                  imagename   =  f'_x{scale}'            ,     ## scale
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
                                  I             =  20                    ,
-                                 low           =  16                    ,
+                                 low           =  19                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
                                  train         =  False                 ,
@@ -68,7 +69,7 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_20',  ###
                                  seed          =  907                   ,
                                 ) 
 j = 120
-i = 60
+i = 64
 j_s = j // scale
 
 val_loader  = DataLoader(val_dataset                   ,
@@ -78,15 +79,17 @@ val_loader  = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
+vibrate = Vibrate()
 JNet.eval()
 print([i for i in JNet.parameters()][-4:])
-figure = False
+figure = True
 for n, val_data in enumerate(val_loader):
-    if n >= 5:
+    if n >= 2:
         break
     image = val_data[0].to(device = device)
     label = val_data[1].to(device = device)
     JNet.set_upsample_rate(params["scale"])
+    image = vibrate(image)
     outdict = JNet(image)
     output  = outdict["enhanced_image"]
     reconst = outdict["reconstruction"]

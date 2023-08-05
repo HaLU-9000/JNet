@@ -672,7 +672,7 @@ class Vibrate():
         amp = np.random.gamma(2, 2) * 10
         b = np.random.normal(0, 1)
         c = 0
-        omega = np.random.gamma(3, 2) * 1e-2
+        omega = np.random.gamma(2, 2) * 1e-2
         phi = np.random.uniform(0, 2 * np.pi)
         noise_inv_var = np.random.gamma(8, 1)
         return amp, b, c, omega, phi, noise_inv_var

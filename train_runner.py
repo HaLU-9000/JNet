@@ -17,7 +17,7 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-model_name           = 'JNet_264_vibration'
+model_name           = 'JNet_265_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -47,7 +47,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = False                ,
+                  use_x_quantized       = False             
                   )
 JNet = JNet.to(device = device)
 #JNet.load_state_dict(torch.load('model/JNet_219_x6.pt'), strict=False)
