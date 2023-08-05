@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributions as dist
 from torch.utils.checkpoint import checkpoint
+import torch.special as S
 from scipy.stats import lognorm
 import time
 
@@ -371,8 +372,6 @@ class Emission(nn.Module):
 
     def forward(self, x):
         x = x * torch.exp(self.log_ez0)
-        x = torch.clip(x, min=0, max=1)
-        #x   = x / self.logn_ppf
         return x
 
 
@@ -400,12 +399,13 @@ class Intensity(nn.Module):
 
 
 class Blur(nn.Module):
-    def __init__(self, z, x, y, log_bet_z, log_bet_xy, log_alpha, scale, device,
-                 psf_mode:str="double_exp"):
+    def __init__(self, z, x, y, log_bet_z, log_bet_xy, log_k, log_l, scale, device,
+                 psf_mode:str="double_exp", apply_hill=False):
         super().__init__()
         self.log_bet_z   = log_bet_z
         self.log_bet_xy  = log_bet_xy
-        self.log_alpha   = log_alpha
+        self.log_k   = log_k
+        self.log_l   = log_l
         self.zscale, \
         self.xscale, \
         self.yscale  = scale
@@ -418,19 +418,20 @@ class Blur(nn.Module):
         self.mode    = psf_mode
         bet_xy       = torch.exp(self.log_bet_xy)
         bet_z        = torch.exp(self.log_bet_z )
-        alpha        = torch.exp(self.log_alpha )
-        self.psf     = self.gen_psf(bet_xy, bet_z, alpha).to(device)
+        k        = torch.exp(self.log_k )
+        self.psf     = self.gen_psf(bet_xy, bet_z, k).to(device)
         self.z_pad   = (z - self.zscale + 1) // 2
         self.x_pad   = (x - self.xscale + 1) // 2
         self.y_pad   = (y - self.yscale + 1) // 2
         self.stride  = (self.zscale, self.xscale, self.yscale)
-    
+        self.apply_hill = apply_hill
+
     def forward(self, x):
         x_shape = x.shape
         bet_xy  = torch.exp(self.log_bet_xy)
         bet_z   = torch.exp(self.log_bet_z )
-        alpha   = torch.exp(self.log_alpha )
-        psf = self.gen_psf(bet_xy, bet_z, alpha).to(self.device)
+        k   = torch.exp(self.log_k )
+        psf = self.gen_psf(bet_xy, bet_z, k).to(self.device)
         _x   = F.conv3d(input   = x                                    ,
                         weight  = psf                                  ,
                         stride  = self.stride                          ,
@@ -439,23 +440,46 @@ class Blur(nn.Module):
         x = torch.empty(size=(*x_shape[:2], *_x.shape[2:])).to(self.device)
         for b in range(batch):
                 x[b, 0] = _x[b, b]
+        if self.apply_hill:
+            log_x = torch.log(x + 1e-8)
+            log_l_x_k = torch.exp(self.log_k) * (self.log_l - log_x) #k = 0.5
+            l_x_k = torch.exp(log_l_x_k)
+            denom = torch.log(1. + l_x_k)
+            x = torch.exp( - denom)
         return x
 
-    def gen_psf(self, bet_xy, bet_z, alpha):
+    def gen_psf(self, bet_xy, bet_z, k):
         if bet_xy.shape:
             b = bet_xy.shape[0]
         else:
             b = 1
-        psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
-        psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
-        psf  = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
+        if self.mode == "student_t":
+            psf_lateral = self.gen_2dstudent_t(self.dp, bet_xy, b)[:, None, None,    :,    :]
+            psf_axial   = self.gen_1dstudent_t(self.zd, bet_z , b)[:, None,    :, None, None]
+            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
+        if self.mode == "gumbel":
+            psf_lateral = self.gen_2dgumbel(self.dp, bet_xy, b)[:, None, None,    :,    :]
+            psf_axial   = self.gen_1dgumbel(self.zd, bet_z , b)[:, None,    :, None, None]
+            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
+            if not k.shape:
+                k = k.unsqueeze(0)
+            psf = self.gen_double_exp_dist(psf, k[:, None, None, None, None],)
+        if self.mode == "weibull":
+            psf_lateral = self.gen_2dweibull(self.dp, bet_xy, b, k)[:, None, None,    :,    :]
+            psf_axial   = self.gen_1dweibull(self.zd, bet_z , b, k)[:, None,    :, None, None]
+            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
         if self.mode == "gaussian":
-            pass
-        elif self.mode == "double_exp":
-            if not alpha.shape:
-                alpha = alpha.unsqueeze(0)
-            psf  = self.gen_double_exp_dist(psf, alpha[:, None, None, None, None],)
-        psf /= torch.sum(psf)
+            psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
+            psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
+            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
+        if self.mode == "double_exp":
+            psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
+            psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
+            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
+            if not k.shape:
+                k = k.unsqueeze(0)
+            psf = self.gen_double_exp_dist(psf, k[:, None, None, None, None],)
+        psf = psf / torch.sum(psf)
         return psf
 
     def _init_distance(self, length):
@@ -493,9 +517,53 @@ class Blur(nn.Module):
         normterm = (torch.pi * 2) ** 0.5 * bet_z
         norm     = torch.exp(-d_2 / 2) / normterm
         return norm
+    
+    def gen_2dgumbel(self, distance_plane, bet_xy, b):
+        distance_plane = distance_plane.expand(b, *distance_plane.shape)
+        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
+        d_2      =  distance_plane**0.5 / bet_xy
+        norm     = torch.exp(-d_2)
+        return norm
 
-    def gen_double_exp_dist(self, norm, alpha,):
-        pdf  = 1. - torch.exp(-alpha * norm)
+    def gen_1dgumbel(self, distance, bet_z, b):
+        distance = distance.expand(b, *distance.shape)
+        bet_z = bet_z.view(b, 1).expand(*distance.shape)
+        d_2      =  distance / bet_z
+        norm     = torch.exp(-d_2)
+        return norm
+    ##
+    def gen_2dweibull(self, distance_plane, bet_xy, b, k):
+        distance_plane = distance_plane.expand(b, *distance_plane.shape)
+        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
+        d_2      =  distance_plane**0.5 / bet_xy
+        norm     = - d_2 ** k
+        return norm
+    ##
+    def gen_1dweibull(self, distance, bet_z, b, k):
+        distance = distance.expand(b, *distance.shape)
+        bet_z = bet_z.view(b, 1).expand(*distance.shape)
+        d_2      =  distance / bet_z
+        norm     = - d_2 ** k
+        return norm
+
+    def gen_2dstudent_t(self, distance_plane, bet_xy, b):
+        distance_plane = distance_plane.expand(b, *distance_plane.shape)
+        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
+        d_2      =  (distance_plane / bet_xy + 1) ** -((bet_xy + 1) / 2)
+        normterm = torch.exp(S.gammaln((bet_xy + 1) / 2) - S.gammaln(bet_xy / 2)) / (torch.pi * bet_xy) ** 0.5
+        norm     = normterm * d_2 
+        return norm
+
+    def gen_1dstudent_t(self, distance, bet_z, b):
+        distance = distance.expand(b, *distance.shape)
+        bet_z = bet_z.view(b, 1).expand(*distance.shape)
+        d_2      =  (distance ** 2 / bet_z + 1) ** -((bet_z + 1) / 2)
+        normterm = torch.exp(S.gammaln((bet_z + 1) / 2) - S.gammaln(bet_z / 2)) / (torch.pi * bet_z) ** 0.5
+        norm     = normterm * d_2 
+        return norm
+
+    def gen_double_exp_dist(self, norm, k,):
+        pdf  = 1. - torch.exp(-k * norm)
         return pdf
 
 
@@ -531,7 +599,7 @@ class PreProcess(nn.Module):
 class ImagingProcess(nn.Module):
     def __init__(self, device, params,
                  z, x, y, postmin=0., postmax=1.,
-                 mode:str="train",):
+                 mode:str="train",dist="double_exp", apply_hill=False):
         super().__init__()
         self.device = device
         self.z = z
@@ -545,13 +613,13 @@ class ImagingProcess(nn.Module):
             self.log_ez0 = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(device), requires_grad=True)
             self.log_bet_z  = nn.Parameter(torch.tensor(params["log_bet_z" ]).to(device), requires_grad=True)
             self.log_bet_xy = nn.Parameter(torch.tensor(params["log_bet_xy"]).to(device), requires_grad=True)
-            self.log_alpha  = nn.Parameter(torch.tensor(params["log_alpha" ]).to(device), requires_grad=True)
+            self.log_k  = nn.Parameter(torch.tensor(params["log_k" ]).to(device), requires_grad=True)
+            self.log_l  = nn.Parameter(torch.tensor(params["log_l" ]).to(device), requires_grad=True)
         elif mode == "dataset":
             self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=False)
             self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=False)
             self.log_bet_z   = nn.Parameter(torch.tensor(params["log_bet_z" ]), requires_grad=False)
             self.log_bet_xy  = nn.Parameter(torch.tensor(params["log_bet_xy"]), requires_grad=False)
-            self.log_alpha   = nn.Parameter(torch.tensor(params["log_alpha" ]), requires_grad=False)
         else:
             raise(NotImplementedError())
         scale = [params["scale"], 1, 1]
@@ -563,15 +631,19 @@ class ImagingProcess(nn.Module):
                                y           = y              ,
                                log_bet_z   = self.log_bet_z ,
                                log_bet_xy  = self.log_bet_xy,
-                               log_alpha   = self.log_alpha ,
+                               log_k       = self.log_k     ,
+                               log_l       = self.log_l     ,
                                scale       = scale          ,
-                               device      = device         ,)
+                               device      = device         ,
+                               psf_mode    = dist           ,
+                               apply_hill  = apply_hill     ,)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
     def forward(self, x):
         x = self.emission(x)
         x = self.blur(x)
+        x = x + (torch.clamp(x, min=0., max=1.) - x).detach
         x = self.preprocess(x)
         return x
 
@@ -580,6 +652,7 @@ class ImagingProcess(nn.Module):
         x = self.blur(x)
         x = self.noise.sample(x)
         x = self.preprocess(x)
+        x = torch.clamp(x, min=0., max=1.)
         return x
     
     def sample_from_params(self, x, params):
@@ -591,7 +664,7 @@ class ImagingProcess(nn.Module):
         emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
         blur       = Blur(self.z, self.x, self.y,
                           tt(params["log_bet_z"]), tt(params["log_bet_xy"]),
-                          tt(params["log_alpha"]), scale, self.device)
+                          tt(params["log_k"]), scale, self.device)
         noise      = Noise(tt(params["sig_eps"]))
         preprocess = PreProcess(min=self.postmin, max=self.postmax)
         x = emission.sample(x)
@@ -622,7 +695,7 @@ class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
                  dropout, params, param_estimation_list,
                  superres:bool, reconstruct=False, apply_vq=False,
-                 use_x_quantized=True, device='cuda'):
+                 use_x_quantized=True, blur_mode="gaussian", device='cuda'):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
@@ -658,6 +731,7 @@ class JNet(nn.Module):
                                     x            = 3                ,
                                     y            = 3                ,
                                     mode         = "train"          ,
+                                    dist         = blur_mode        ,
                                     )
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = activation
@@ -711,13 +785,13 @@ if __name__ == '__main__':
     dropout              = 0.5
     partial              = None #(56, 184)
     superres = True
-    params               = {"mu_z"   : 0.2    ,
-                            "sig_z"  : 0.2    ,
+    params               = {"mu_z"       : 0.2    ,
+                            "sig_z"      : 0.2    ,
                             "log_bet_z"  : 23.5329,
                             "log_bet_xy" : 1.00000,
                             "log_alpha"  : 0.9544 ,
-                            "sig_eps": 0.01   ,
-                            "scale"  : 10
+                            "sig_eps"    : 0.01   ,
+                            "scale"      : 10
                             }
     image_size = (1, 1, 24, 96, 96)
     param_estimation_list = [False, False, False, False, True]

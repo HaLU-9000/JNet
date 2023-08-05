@@ -52,7 +52,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4' ,
                                   )
 
 
-model_name           = 'JNet_260_30_finetuning'
+model_name           = 'JNet_266_30_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
