@@ -40,7 +40,7 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4' ,
                                    imagename       =  '002'            ,
                                    size            =  ( 650, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) ,
-                                   I               =  10               ,
+                                   I               =  20               ,
                                    low             =   0               ,
                                    high            =   1               ,
                                    scale           =  scale            ,
@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_266_vibration_finetuning'
+model_name           = 'JNet_267_vibration_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -75,9 +75,9 @@ partial              = None #(56, 184)
 superres = True if scale > 1 else False
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
-                        "log_bet_z"  : np.log(27.7052).item(),
-                        "log_bet_xy" : np.log(4.43864).item() ,
-                        "log_alpha"  : np.log(74.9664).item() ,
+                        "log_bet_z"  : np.log(30.).item(),
+                        "log_bet_xy" : np.log(1.).item() ,
+                        "log_alpha"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
                         }
