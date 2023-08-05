@@ -17,7 +17,7 @@ scale    = 6
 surround = False
 surround_size = [32, 4, 4]
 
-model_name           = 'JNet_264_vibration_'
+model_name           = 'JNet_264_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
