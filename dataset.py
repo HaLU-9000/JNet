@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 import torch.distributions as dist
 import torch.nn.functional as F
+import torchvision.transforms as T
+from torchvision.transforms.functional import InterpolationMode as I
 from torch.utils.data import Dataset
 from scipy.stats import lognorm, truncnorm
 
@@ -646,6 +648,69 @@ class ParamScaler():
                 print(sk, " unmatched with ", k)
         return params
 
+
+import torch
+import torchvision.transforms as T
+from torchvision.transforms.functional import InterpolationMode as I
+# prob distribution version
+class Vibrate():
+    def __init__(self):
+        pass
+    def __call__(self, img, params_x=None, params_y=None):
+        if params_y is None:
+            params_y = self._gen_params()
+        if params_x is None:
+            params_x = self._gen_params()
+        len_t = img.size(-3)
+        vib_y = self._vibration(len_t, *params_y)
+        vib_x = self._vibration(len_t, *params_x)
+        shift = np.stack([vib_y, vib_x], 1)
+        shifted_img = self._shift3d(img, shift)
+        return shifted_img
+        
+    def _gen_params(self):
+        amp = np.random.gamma(2, 2) * 10
+        b = np.random.normal(0, 1)
+        c = 0
+        omega = np.random.gamma(3, 2) * 1e-2
+        phi = np.random.uniform(0, 2 * np.pi)
+        noise_inv_var = np.random.gamma(8, 1)
+        return amp, b, c, omega, phi, noise_inv_var
+    
+    def _vibration(self, len_t, amp, b, c, omega, phi, noise_inv_var):
+        t = np.arange(0, len_t, 1)
+        x = b * t
+        x += amp * np.exp( - c * t) * np.cos(omega * t + phi)
+        x += np.random.randn(len_t) / noise_inv_var
+        x = x - x.mean()
+        return x
+
+    def _shift2d(self, img, shift, interp) -> torch.Tensor:
+        h, w = list(img.shape[-2:])
+        _ch = (h - 1) / (h ** 2)
+        _cw = (w - 1) / (w ** 2)
+        ph, pw = shift
+        disp = torch.cat((torch.full((1, h, w, 1), _ch * ph),
+                          torch.full((1, h, w, 1), _cw * pw)), dim=3)
+        _shifted_img = T.functional.elastic_transform(img.unsqueeze(0),
+                                                      disp,
+                                                      interpolation=interp)
+        return _shifted_img.squeeze(0)
+
+    def _shift3d(self, img, shift, interp=I.BILINEAR) -> torch.Tensor:
+        img_dim = 5
+        if img.dim() == 4:
+            img_dim = 4
+            img = img.unsqueeze(0)
+        z_num = img.size(2)
+        shifted_img = img.clone()
+        for z in range(z_num):
+            shifted_img[:, 0, z] = self._shift2d(img[:, 0, z].clone(),
+                                                shift[z],
+                                                interp)
+        if img_dim == 4:
+            shifted_img = shifted_img.squeeze(0)
+        return shifted_img
 
 if __name__ == "__main__":
     device = (torch.device('cuda') if torch.cuda.is_available()

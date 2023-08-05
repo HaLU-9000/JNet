@@ -4,7 +4,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
-from dataset import Augmentation
+from dataset import Vibrate
 
 
 def divide(x, partial):
@@ -36,7 +36,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                device, path, savefig_path, model_name, param_normalize, augment, val_augment, partial=None,
                scheduler=None, es_patience=10,
                reconstruct=False, check_middle=False, midloss_fn=None, 
-               is_randomblur=False, 
+               is_randomblur=False, is_vibrate=False,
                loss_weight=1, qloss_weight = 1/100, paramloss_weight = 1/10,
                verbose=False):
     earlystopping = EarlyStopping(name     = model_name ,
@@ -45,12 +45,13 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                   verbose  = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
+    vibrate = Vibrate()
     for epoch in range(1, n_epochs + 1):
         loss_sum, midloss_sum, vloss_sum, vqloss_sum, vmidloss_sum, \
         vparam_loss_sum = 0., 0., 0., 0., 0., 0.
         model.train()
         for train_data in train_loader:
-            if is_randomblur: # from here
+            if is_randomblur:
                 label  = train_data[0].to(device = device)
                 params = train_data[1]
                 image  = model.image.sample_from_params(label, params).float()
@@ -65,8 +66,12 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 image = augment(image)
             else:
                 image    = train_data[0].to(device = device)
-                label    = train_data[1].to(device = device) # to here -> 'preprocess'
-            outdict = model(image)
+                label    = train_data[1].to(device = device)
+            if is_vibrate:
+                vimage = vibrate(image)
+            else:
+                vimage = image
+            outdict = model(vimage)
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
             qloss = outdict["quantized_loss"]
@@ -103,7 +108,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 else:
                     image    = val_data[0].to(device = device)
                     label    = val_data[1].to(device = device)
-                outdict = model(image)
+                if is_vibrate:
+                    vimage = vibrate(image)
+                else:
+                    vimage = image
+                outdict = model(vimage)
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
                 qloss = outdict["quantized_loss"]
