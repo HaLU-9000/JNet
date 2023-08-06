@@ -238,6 +238,10 @@ class RandomCutDataset(Dataset):
             self.indiceslist = gen_indices(I, low, high)
             self.coordslist  = self.gen_coords(I, size, cropsize, scale)
     
+    def couple_randomflip(self, image, label):
+        option = self.options[np.random.choice([i for i in range(8)])]
+        return image.flip(dims=option), label.flip(dims=option)
+
     def gen_coords(self, I, size, cropsize, scale):
         zcoord = np.random.randint(0, size[0]-cropsize[0], (I,))
         xcoord = np.random.randint(0, size[1]-cropsize[1], (I,))
@@ -263,7 +267,7 @@ class RandomCutDataset(Dataset):
                                                 )(torch.load(self.images[idx]))) # .unsqueeze(0) for beadslikedata5
             label, _, _      = Rotate(i, j)(Crop(lcoords, self.csize
                                                 )(torch.load(self.labels[idx])))
-            
+            image, label = self.couple_randomflip(image, label)
             image = apply_mask(self.mask, image, self.mask_size, self.mask_num)
             image = apply_surround_mask(self.surround, image, self.surround_size)
         else:
@@ -272,6 +276,7 @@ class RandomCutDataset(Dataset):
             lcoords = self.coordslist[0][:, idx]
             image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx])) # .unsqueeze(0) for beadslikedata5
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
+            image, label = self.couple_randomflip(image, label)
             image = apply_surround_mask(self.surround, image, self.surround_size)
         return image, label
 
@@ -325,6 +330,8 @@ class RealDensityDataset(Dataset):
         self.icoords_size  = [self.ssize[0] - self.scsize[0] + 1,
                               self.ssize[1] - self.scsize[1] + 1,
                               self.ssize[2] - self.scsize[2] + 1,]
+        self.options       = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
+                              [-2], [-2,-1], [-1], [-4]]
         
         if score is None:
             self.scores = self.gen_scores(self.images, self.icoords_size, self.scsize)
@@ -373,6 +380,10 @@ class RealDensityDataset(Dataset):
             image = surround_mask_(image, surround_size)
         return image
 
+    def randomflip(self, image):
+        option = self.options[np.random.choice([i for i in range(8)])]
+        return image.flip(dims=option)
+
     def __getitem__(self, idx):
         if self.train:
             r, s = 1, 0
@@ -385,6 +396,7 @@ class RealDensityDataset(Dataset):
                 s = self.scores[idx, 0, z, x, y]
             image, _, _      = Rotate(    )(Crop(icoords, self.scsize
                                                 )(torch.load(self.images[idx])))
+            image = self.randomflip(image)
             image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         else:

@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from dataset import RealDensityDataset
 
-import model
+import old_model
 
 vis_mseloss = False
 
@@ -23,7 +23,7 @@ image__name   = 'croped_cliped_beads'
 image         = torch.load('./' + image_path + image_name  + '.pt').to(device)
 image_        = torch.load('./' + image_path + image__name + '.pt').to(device)
 
-model_name           = 'JNet_265_vibration'
+model_name           = 'JNet_267_vibration_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -43,7 +43,7 @@ params               = {"mu_z"       : 0.2               ,
                         }             
 reconstruct = True
 param_estimation_list = [False, False, False, False, True]
-JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
+JNet = old_model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
@@ -73,7 +73,7 @@ losses = []
 loss_fn = nn.MSELoss()
 for image_name in images[:-1]:
     image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
-    image = (torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
+    image = image_#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
     outdict = JNet(image.to("cuda").unsqueeze(0))
     output  = outdict["enhanced_image"]
     output  = output.detach().cpu()
@@ -96,5 +96,5 @@ for image_name in images[:-1]:
             cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
     ax2.imshow(output[0, 0, :, i, :],
             cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_{image_name[21:-3]}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_noclip_{image_name[21:-3]}.png', format='png', dpi=250)
 print(losses)

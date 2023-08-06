@@ -643,7 +643,7 @@ class ImagingProcess(nn.Module):
     def forward(self, x):
         x = self.emission(x)
         x = self.blur(x)
-        x = x + (torch.clamp(x, min=0., max=1.) - x).detach
+        x = x + (torch.clamp(x, min=0., max=1.) - x).detach()
         x = self.preprocess(x)
         return x
 

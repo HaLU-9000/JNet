@@ -47,7 +47,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = False             
+                  use_x_quantized       = True             
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -124,5 +124,5 @@ for n, val_data in enumerate(val_loader):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(_label[0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        plt.savefig(f'result/{model_name}_result_{n}.png',
+        plt.savefig(f'result/{model_name}_vq_result_{n}.png',
                     format='png', dpi=250)
