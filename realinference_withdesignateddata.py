@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from dataset import RealDensityDataset
 
-import old_model
+import old_model, model
 
 vis_mseloss = False
 
@@ -23,7 +23,7 @@ image__name   = 'croped_cliped_beads'
 image         = torch.load('./' + image_path + image_name  + '.pt').to(device)
 image_        = torch.load('./' + image_path + image__name + '.pt').to(device)
 
-model_name           = 'JNet_267_vibration_finetuning'
+model_name           = 'JNet_269_vibration_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -38,12 +38,14 @@ params               = {"mu_z"       : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
                         "log_bet_xy" : np.log(1.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
+                        "log_k"  : np.log(1.).item() ,
+                        "log_l"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
                         }             
 reconstruct = True
 param_estimation_list = [False, False, False, False, True]
-JNet = old_model.JNet(hidden_channels_list  = hidden_channels_list ,
+JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,

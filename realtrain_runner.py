@@ -15,11 +15,11 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = None#torch.load('./beadsscore4/002_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-val_score     = None#torch.load('./beadsscore4/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+train_score   = None #torch.load('./_beadsscore/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = None #torch.load('./_beadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
-train_dataset = RealDensityDataset(folderpath      =  '_beadsdata'     ,
-                                   scorefolderpath =  '_beadsscore'    ,
+train_dataset = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
+                                   scorefolderpath =  '_stackbeadsscore'    ,
                                    imagename       =  '001'            ,
                                    size            =  (1200, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
@@ -35,8 +35,8 @@ train_dataset = RealDensityDataset(folderpath      =  '_beadsdata'     ,
                                    surround_size   =  surround_size    ,
                                    score           =  train_score      ,
                                   )
-val_dataset   = RealDensityDataset(folderpath      =  '_beadsdata'     ,
-                                   scorefolderpath =  '_beadsscore'    ,
+val_dataset   = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
+                                   scorefolderpath =  '_stackbeadsscore'    ,
                                    imagename       =  '002'            ,
                                    size            =  ( 650, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) ,
@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_269_vibration_finetuning'
+model_name           = 'JNet_270_vibration_finetuning_stackreged'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -78,6 +78,8 @@ params               = {"mu_z"       : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
                         "log_bet_xy" : np.log(1.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
+                        "log_k"  : np.log(1.).item() ,
+                        "log_l"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
                         }
@@ -95,14 +97,13 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   use_x_quantized       = True                 ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_265_vibration.pt'),
+JNet.load_state_dict(torch.load('model/JNet_268_vibration.pt'),
                      strict=False)
 init_log_ez0 = (torch.tensor(params["mu_z"]) + 0.5 \
                 * torch.tensor(params["sig_z"]) ** 2).to(device)
 JNet.image.emission.log_ez0.data = init_log_ez0
 JNet.image.blur.log_bet_xy.data  = torch.tensor(params["log_bet_xy"]).to(device)
 JNet.image.blur.log_bet_z.data   = torch.tensor(params["log_bet_z"]).to(device)
-JNet.image.blur.log_alpha.data   = torch.tensor(params["log_alpha"]).to(device)
 print([i for i in JNet.parameters()][-4:])
 
 params = JNet.parameters()
