@@ -66,6 +66,12 @@ def gen_imaging_parameters(params_ranges:dict
             params[param] = sample_truncnorm(*params_ranges[param])
     return params
 
+def sequentialflip(image, i):
+        options = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
+                   [-2], [-2,-1], [-1], [-4]]
+        option = options[i%8]
+        return image.flip(dims=option)
+
 class Rotate:
     def __init__(self, i=None, j=None):
         if i is not None:

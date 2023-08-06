@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from dataset import RealDensityDataset
+from dataset import RealDensityDataset, sequentialflip
 
 import old_model, model
 
@@ -75,10 +75,16 @@ losses = []
 loss_fn = nn.MSELoss()
 for image_name in images[:-1]:
     image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
-    image = image_#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
-    outdict = JNet(image.to("cuda").unsqueeze(0))
-    output  = outdict["enhanced_image"]
-    output  = output.detach().cpu()
+    ensenbled_output = torch.zeros_like(image_, device='cpu')
+
+    for i in range(8):
+        image = sequentialflip(image_, i)#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
+        outdict = JNet(image.to("cuda").unsqueeze(0))
+        output  = outdict["enhanced_image"]
+        output  = output.detach().cpu()
+        output  = sequentialflip(output, i)
+        ensenbled_output += output / 8
+
     reconst = outdict["reconstruction"]
     loss    = loss_fn(reconst, image).item()
     qloss   = outdict["quantized_loss"]
