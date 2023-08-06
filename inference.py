@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from dataset import RandomCutDataset
 import model
+import old_model
 from dataset import Vibrate
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -14,8 +15,6 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-
-
 model_name           = 'JNet_268_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
@@ -24,21 +23,20 @@ activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
 superres = True if scale > 1 else False
-
-params               = {"mu_z"   : 0.2    ,
-                        "sig_z"  : 0.2    ,
-                        "log_bet_z"  : 20.    ,
-                        "log_bet_xy" : 1.0    ,
+params               = {"mu_z"   : 0.2  , 
+                        "sig_z"  : 0.2  , 
+                        "log_bet_z"  :  20. , 
+                        "log_bet_xy" :   1. , 
+                        "log_alpha"  :   1. ,
                         "log_k"      :   0. ,
                         "log_l"      :   0. ,
-                        "sig_eps": 0.01   ,
-                        "scale"  : 6
+                        "sig_eps":  0.01,
+                        "scale"  :  6
                         }
-
+# must set same param num for training, because of the param estimation layer (will be deleted)
 image_size = (1, 1, 240,  96,  96)
 original_cropsize = [360, 120, 120]
 param_estimation_list = [False, False, False, False, True]
-coeff_bet_z = 10
 
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
@@ -48,13 +46,13 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
-                  apply_vq              = True                ,
-                  use_x_quantized       = True                ,
+                  apply_vq              = True                 ,
+                  use_x_quantized       = False             
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
-val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill'   ,  ###
                                  imagename   =  f'_x{scale}'            ,     ## scale
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
@@ -85,7 +83,7 @@ JNet.eval()
 print([i for i in JNet.parameters()][-4:])
 figure = True
 for n, val_data in enumerate(val_loader):
-    if n >= 2:
+    if n >= 5:
         break
     image = val_data[0].to(device = device)
     label = val_data[1].to(device = device)
