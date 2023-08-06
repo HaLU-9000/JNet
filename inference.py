@@ -16,7 +16,7 @@ surround = False
 surround_size = [32, 4, 4]
 
 
-model_name           = 'JNet_265_vibration'
+model_name           = 'JNet_268_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -29,7 +29,8 @@ params               = {"mu_z"   : 0.2    ,
                         "sig_z"  : 0.2    ,
                         "log_bet_z"  : 20.    ,
                         "log_bet_xy" : 1.0    ,
-                        "log_alpha"  : 1.0    ,
+                        "log_k"      :   0. ,
+                        "log_l"      :   0. ,
                         "sig_eps": 0.01   ,
                         "scale"  : 6
                         }
@@ -47,8 +48,8 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
-                  apply_vq              = True                 ,
-                  use_x_quantized       = True                 ,
+                  apply_vq              = True                ,
+                  use_x_quantized       = True                ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
