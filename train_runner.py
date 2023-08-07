@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_271_vibration'
+model_name           = 'JNet_272_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -70,7 +70,7 @@ train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill' , 
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
                                  cropsize    =  ( 240, 112, 112)      , 
-                                 I             = 2                    ,
+                                 I             = 200                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
                                  scale         =  scale               ,  ## scale
@@ -85,7 +85,7 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill'   
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  2                     ,
+                                 I             =  20                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale

@@ -238,6 +238,8 @@ class RandomCutDataset(Dataset):
         self.mask_num      = mask_num
         self.surround      = surround
         self.surround_size = surround_size
+        self.options       = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
+                              [-2], [-2,-1], [-1], [-4]]
 
         if train == False:
             np.random.seed(seed)
