@@ -688,7 +688,7 @@ class Vibrate():
         
     def _gen_params(self):
         amp = np.random.gamma(2, 2) * 10
-        b = np.random.normal(0, 1)
+        b = np.random.normal(0, 0.1)
         c = 0
         omega = np.random.gamma(2, 2) * 1e-2
         phi = np.random.uniform(0, 2 * np.pi)
