@@ -15,7 +15,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_268_vibration'
+model_name           = 'JNet_272_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -47,7 +47,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = True             
+                  use_x_quantized       = True              
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -124,5 +124,5 @@ for n, val_data in enumerate(val_loader):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(_label[0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        plt.savefig(f'result/{model_name}_vq_result_{n}.png',
+        plt.savefig(f'result/{model_name}_vqresult_{n}.png',
                     format='png', dpi=250)

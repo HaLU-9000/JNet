@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
-import model as model
+import old_model as model
 from dataset import RealDensityDataset
 from   train_loop import train_loop
 
@@ -15,8 +15,8 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = None #torch.load('./_beadsscore/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-val_score     = None #torch.load('./_beadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+train_score   = torch.load('./_stackbeadsscore/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = torch.load('./_stackbeadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
 train_dataset = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
                                    scorefolderpath =  '_stackbeadsscore'    ,
@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_270_vibration_finetuning_stackreged'
+model_name           = 'JNet_277_vibration_finetuning_stackreg'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -78,8 +78,6 @@ params               = {"mu_z"       : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
                         "log_bet_xy" : np.log(1.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
-                        "log_k"  : np.log(1.).item() ,
-                        "log_l"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
                         }
@@ -97,7 +95,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   use_x_quantized       = True                 ,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_268_vibration.pt'),
+JNet.load_state_dict(torch.load('model/JNet_265_vibration.pt'),
                      strict=False)
 init_log_ez0 = (torch.tensor(params["mu_z"]) + 0.5 \
                 * torch.tensor(params["sig_z"]) ** 2).to(device)

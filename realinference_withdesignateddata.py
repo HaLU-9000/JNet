@@ -23,7 +23,7 @@ image__name   = 'croped_cliped_beads'
 image         = torch.load('./' + image_path + image_name  + '.pt').to(device)
 image_        = torch.load('./' + image_path + image__name + '.pt').to(device)
 
-model_name           = 'JNet_270_vibration_finetuning_stackreged'
+model_name           = 'JNet_274_vibration_finetuning_stackreg'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
