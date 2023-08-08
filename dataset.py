@@ -70,7 +70,7 @@ def sequentialflip(image, i):
         options = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
                    [-2], [-2,-1], [-1], [-4]]
         option = options[i%8]
-        return image.flip(dims=option)
+        return torch.flip(image, dims=option)
 
 class Rotate:
     def __init__(self, i=None, j=None):
