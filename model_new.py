@@ -248,37 +248,6 @@ class CrossAttention(nn.Module):
         # Map to `[batch_size, height * width, d_model]` with a linear layer
         return self.to_out(out)
 
-class BlurParameterEstimator(nn.Module):
-    def __init__(self, x_dim, z_dim, mid_dim, params_dim):
-        super().__init__()
-        self.z_dim = z_dim
-        self.to_a = nn.Sequential(nn.Linear(in_features  = x_dim,
-                                            out_features = z_dim,),
-                                  nn.Softmax(dim=-1))
-        self.to_v = nn.Linear(in_features  = x_dim,
-                              out_features = z_dim,)
-
-        self.layers = nn.ModuleList([nn.Linear(in_features  = z_dim     ,
-                                               out_features = mid_dim   ,),
-                                     nn.ReLU(inplace=False)               ,
-                                     nn.Linear(in_features  = mid_dim   ,
-                                               out_features = mid_dim   ,),
-                                     nn.ReLU(inplace=False)               ,
-                                     nn.Linear(in_features  = mid_dim   ,
-                                               out_features = params_dim,),
-                                     nn.Sigmoid()
-                                     ])
-    def forward(self, x):
-        x_shape = x.shape
-        x = x.reshape(-1, x_shape[1]) # (bczxy -> b'c) (b'=bzxy)
-        a = self.to_a(x).view(x_shape[0], -1, self.z_dim) # (b'c -> b'c' -> bhc') (h=zxy)
-        v = self.to_v(x).view(x_shape[0], -1, self.z_dim) # (b'c -> b'c' -> bhc') (h=zxy)
-        z = torch.einsum("bhc, bhc -> bc", a, v)
-        for f in self.layers:
-            z = f(z)
-        return z
-
-
 class VectorQuantizer(nn.Module):
     def __init__(self, device):
         super().__init__()
@@ -291,13 +260,12 @@ class VectorQuantizer(nn.Module):
 
 
 class JNetLayer(nn.Module):
-    def __init__(self, in_channels, hidden_channels_list, param_estimation_list,
+    def __init__(self, in_channels, hidden_channels_list,
                  x_dim_list, params_dim, nblocks, dropout):
         super().__init__()
         self.last = hidden_channels_list[-1]
         hidden_channels = hidden_channels_list.pop(0)
         self.hidden_channels = hidden_channels
-        self.is_param_estimation = param_estimation_list.pop(0)
         x_dim = x_dim_list.pop(0)
         self.pool = JNetPooling(in_channels  = in_channels    ,
                                 out_channels = hidden_channels,)
@@ -310,14 +278,8 @@ class JNetLayer(nn.Module):
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
                                              ) for _ in range(nblocks)])
-        self.param = BlurParameterEstimator(x_dim      = x_dim     ,
-                                            z_dim      = 16        ,
-                                            mid_dim    = 16        ,
-                                            params_dim = params_dim,
-                                            ) if self.is_param_estimation else nn.Identity()
         self.mid = JNetLayer(in_channels           = hidden_channels      ,
                              hidden_channels_list  = hidden_channels_list ,
-                             param_estimation_list = param_estimation_list,
                              x_dim_list            = x_dim_list           ,
                              params_dim            = params_dim           ,
                              nblocks               = nblocks              ,
@@ -338,17 +300,12 @@ class JNetLayer(nn.Module):
         d = checkpoint(self.conv, d) # checkpoint
         for f in self.prev:
             d = checkpoint(f, d)
-        if self.hidden_channels == self.last:
-            d = self.mid(d)
-            #d = self.attn(d)
-            p = self.param(d)
-        else:
-            d, p = self.mid(d)
+        d = self.mid(d)
         for f in self.post:
             d = checkpoint(f, d)
         d = checkpoint(self.unpool, d) # checkpoint
         x = x + d
-        return x, p
+        return x
 
 
 class Emission(nn.Module):
@@ -400,13 +357,11 @@ class Intensity(nn.Module):
 
 
 class Blur(nn.Module):
-    def __init__(self, z, x, y, log_bet_z, log_bet_xy, log_k, log_l, scale, device,
+    def __init__(self, z, x, y, log_bet_z, log_bet_xy, scale, device,
                  psf_mode:str="double_exp", apply_hill=False):
         super().__init__()
         self.log_bet_z   = log_bet_z
         self.log_bet_xy  = log_bet_xy
-        self.log_k   = log_k
-        self.log_l   = log_l
         self.zscale, \
         self.xscale, \
         self.yscale  = scale
@@ -419,8 +374,7 @@ class Blur(nn.Module):
         self.mode    = psf_mode
         bet_xy       = torch.exp(self.log_bet_xy)
         bet_z        = torch.exp(self.log_bet_z )
-        k        = torch.exp(self.log_k )
-        self.psf     = self.gen_psf(bet_xy, bet_z, k).to(device)
+        self.psf     = self.gen_psf(bet_xy, bet_z).to(device)
         self.z_pad   = (z - self.zscale + 1) // 2
         self.x_pad   = (x - self.xscale + 1) // 2
         self.y_pad   = (y - self.yscale + 1) // 2
@@ -431,8 +385,7 @@ class Blur(nn.Module):
         x_shape = x.shape
         bet_xy  = torch.exp(self.log_bet_xy)
         bet_z   = torch.exp(self.log_bet_z )
-        k   = torch.exp(self.log_k )
-        psf = self.gen_psf(bet_xy, bet_z, k).to(self.device)
+        psf = self.gen_psf(bet_xy, bet_z).to(self.device)
         _x   = F.conv3d(input   = x                                    ,
                         weight  = psf                                  ,
                         stride  = self.stride                          ,
@@ -441,45 +394,16 @@ class Blur(nn.Module):
         x = torch.empty(size=(*x_shape[:2], *_x.shape[2:])).to(self.device)
         for b in range(batch):
                 x[b, 0] = _x[b, b]
-        if self.apply_hill:
-            log_x = torch.log(x + 1e-8)
-            log_l_x_k = torch.exp(self.log_k) * (self.log_l - log_x) #k = 0.5
-            l_x_k = torch.exp(log_l_x_k)
-            denom = torch.log(1. + l_x_k)
-            x = torch.exp( - denom)
         return x
 
-    def gen_psf(self, bet_xy, bet_z, k):
+    def gen_psf(self, bet_xy, bet_z):
         if bet_xy.shape:
             b = bet_xy.shape[0]
         else:
             b = 1
-        if self.mode == "student_t":
-            psf_lateral = self.gen_2dstudent_t(self.dp, bet_xy, b)[:, None, None,    :,    :]
-            psf_axial   = self.gen_1dstudent_t(self.zd, bet_z , b)[:, None,    :, None, None]
-            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
-        if self.mode == "gumbel":
-            psf_lateral = self.gen_2dgumbel(self.dp, bet_xy, b)[:, None, None,    :,    :]
-            psf_axial   = self.gen_1dgumbel(self.zd, bet_z , b)[:, None,    :, None, None]
-            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
-            if not k.shape:
-                k = k.unsqueeze(0)
-            psf = self.gen_double_exp_dist(psf, k[:, None, None, None, None],)
-        if self.mode == "weibull":
-            psf_lateral = self.gen_2dweibull(self.dp, bet_xy, b, k)[:, None, None,    :,    :]
-            psf_axial   = self.gen_1dweibull(self.zd, bet_z , b, k)[:, None,    :, None, None]
-            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
-        if self.mode == "gaussian":
-            psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
-            psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
-            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
-        if self.mode == "double_exp":
-            psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
-            psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
-            psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial))
-            if not k.shape:
-                k = k.unsqueeze(0)
-            psf = self.gen_double_exp_dist(psf, k[:, None, None, None, None],)
+        psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
+        psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
+        psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
         psf = psf / torch.sum(psf)
         return psf
 
@@ -518,55 +442,6 @@ class Blur(nn.Module):
         normterm = (torch.pi * 2) ** 0.5 * bet_z
         norm     = torch.exp(-d_2 / 2) / normterm
         return norm
-    
-    def gen_2dgumbel(self, distance_plane, bet_xy, b):
-        distance_plane = distance_plane.expand(b, *distance_plane.shape)
-        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
-        d_2      =  distance_plane**0.5 / bet_xy
-        norm     = torch.exp(-d_2)
-        return norm
-
-    def gen_1dgumbel(self, distance, bet_z, b):
-        distance = distance.expand(b, *distance.shape)
-        bet_z = bet_z.view(b, 1).expand(*distance.shape)
-        d_2      =  distance / bet_z
-        norm     = torch.exp(-d_2)
-        return norm
-    ##
-    def gen_2dweibull(self, distance_plane, bet_xy, b, k):
-        distance_plane = distance_plane.expand(b, *distance_plane.shape)
-        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
-        d_2      =  distance_plane**0.5 / bet_xy
-        norm     = - d_2 ** k
-        return norm
-    ##
-    def gen_1dweibull(self, distance, bet_z, b, k):
-        distance = distance.expand(b, *distance.shape)
-        bet_z = bet_z.view(b, 1).expand(*distance.shape)
-        d_2      =  distance / bet_z
-        norm     = - d_2 ** k
-        return norm
-
-    def gen_2dstudent_t(self, distance_plane, bet_xy, b):
-        distance_plane = distance_plane.expand(b, *distance_plane.shape)
-        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
-        d_2      =  (distance_plane / bet_xy + 1) ** -((bet_xy + 1) / 2)
-        normterm = torch.exp(S.gammaln((bet_xy + 1) / 2) - S.gammaln(bet_xy / 2)) / (torch.pi * bet_xy) ** 0.5
-        norm     = normterm * d_2 
-        return norm
-
-    def gen_1dstudent_t(self, distance, bet_z, b):
-        distance = distance.expand(b, *distance.shape)
-        bet_z = bet_z.view(b, 1).expand(*distance.shape)
-        d_2      =  (distance ** 2 / bet_z + 1) ** -((bet_z + 1) / 2)
-        normterm = torch.exp(S.gammaln((bet_z + 1) / 2) - S.gammaln(bet_z / 2)) / (torch.pi * bet_z) ** 0.5
-        norm     = normterm * d_2 
-        return norm
-
-    def gen_double_exp_dist(self, norm, k,):
-        pdf  = 1. - torch.exp(-k * norm)
-        return pdf
-
 
 class Noise(nn.Module):
     def __init__(self, sig_eps):
@@ -609,13 +484,11 @@ class ImagingProcess(nn.Module):
         self.postmin = postmin
         self.postmax = postmax
         if mode == "train":
-            self.mu_z   = torch.tensor(params["mu_z"])
-            self.sig_z  = torch.tensor(params["sig_z"])
-            self.log_ez0 = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(device), requires_grad=True)
+            self.mu_z       = params["mu_z"]
+            self.sig_z      = params["sig_z"]
+            self.log_ez0    = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(device), requires_grad=True)
             self.log_bet_z  = nn.Parameter(torch.tensor(params["log_bet_z" ]).to(device), requires_grad=True)
             self.log_bet_xy = nn.Parameter(torch.tensor(params["log_bet_xy"]).to(device), requires_grad=True)
-            self.log_k  = nn.Parameter(torch.tensor(params["log_k" ]).to(device), requires_grad=True)
-            self.log_l  = nn.Parameter(torch.tensor(params["log_l" ]).to(device), requires_grad=True)
         elif mode == "dataset":
             self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=False)
             self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=False)
@@ -632,8 +505,6 @@ class ImagingProcess(nn.Module):
                                y           = y              ,
                                log_bet_z   = self.log_bet_z ,
                                log_bet_xy  = self.log_bet_xy,
-                               log_k       = self.log_k     ,
-                               log_l       = self.log_l     ,
                                scale       = scale          ,
                                device      = device         ,
                                psf_mode    = dist           ,
@@ -694,8 +565,7 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
-                 dropout, params, param_estimation_list,
-                 superres:bool, reconstruct=False, apply_vq=False,
+                 dropout, params, superres:bool, reconstruct=False, apply_vq=False,
                  use_x_quantized=True, blur_mode="gaussian", device='cuda'):
         super().__init__()
         t1 = time.time()
@@ -705,7 +575,6 @@ class JNet(nn.Module):
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels = hidden_channels_list.pop(0)
         x_dim_list = hidden_channels_list.copy() 
-        param_estimation = param_estimation_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
                                 out_channels = hidden_channels,)
         self.prev  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
@@ -714,7 +583,6 @@ class JNet(nn.Module):
                                               ) for _ in range(nblocks)])
         self.mid   = JNetLayer(in_channels           = hidden_channels      ,
                                hidden_channels_list  = hidden_channels_list ,
-                               param_estimation_list = param_estimation_list,
                                x_dim_list            = x_dim_list           ,
                                params_dim            = params_dim           ,
                                nblocks               = nblocks              ,
@@ -744,17 +612,13 @@ class JNet(nn.Module):
         print(f'init done ({t2-t1:.2f} s)')
         self.use_x_quantized = use_x_quantized
 
-    def set_upsample_rate(self, scale):
-        scale_factor  = (scale, 1, 1)
-        self.upsample = JNetUpsample(scale_factor = scale_factor)
-
     def forward(self, x):
         if self.superres:
             x = self.upsample(x)
         x = self.prev0(x)
         for f in self.prev:
             x = checkpoint(f, x)
-        x, p = self.mid(x)
+        x = self.mid(x)
         for f in self.post:
             x = checkpoint(f, x)
         x = checkpoint(self.post0, x)
@@ -767,7 +631,6 @@ class JNet(nn.Module):
         r = self.image(x) if self.reconstruct else x
         out = {"enhanced_image" : x,
                "reconstruction" : r,
-               "blur_parameter" : p,
                }
         vqd = {"quantized_loss" : qloss} if self.apply_vq else {"quantized_loss" : None}
         out = dict(**out, **vqd)
@@ -790,25 +653,21 @@ if __name__ == '__main__':
                             "sig_z"      : 0.2    ,
                             "log_bet_z"  : 23.5329,
                             "log_bet_xy" : 1.00000,
-                            "log_alpha"  : 0.9544 ,
                             "sig_eps"    : 0.01   ,
                             "scale"      : 10
                             }
-    image_size = (1, 1, 24, 96, 96)
-    param_estimation_list = [False, False, False, False, True]
+    image_size = (4, 1, 24, 96, 96)
     model =  JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
-                  param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = True                 ,
                   apply_vq              = True                 ,
                   )
     input_size = (1, 1, 24, 96, 96)
     model.to(device='cuda')
-    print(model(torch.abs(torch.randn(*input_size)).to(device='cuda')))
     #a, b, c, d, e = [i for i in model.parameters()][-5:]
     #print(a.item())
     torchinfo.summary(model, input_size)
