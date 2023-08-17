@@ -6,24 +6,24 @@ from pathlib import Path
 
 #from metrics import jiffs
 
-
 class EarlyStopping():
     """
     path[str]: path you want to save your model
     name[str]: model name
     patience[int]: default = 10 
-    window_size[int]: size of the moving mean window
+    window_size[int]: size of the moving window
     mode[int]: 1 for minimizing, -1 for maximizing
+    metric[str]: 'mean' for moving mean, 'median' for moving median
     verbose[bool]: whether to print messages
-    modified from https://qiita.com/ku_a_i/items/ba33c9ce3449da23b503
     """
-    def __init__(self, path, name, patience=10, window_size=5, mode=1, verbose=False):
+    def __init__(self, path, name, patience=10, window_size=5, mode=1, metric='mean', verbose=False):
         self.patience = patience
         self.window_size = window_size
         self.verbose = verbose
         self.mode = mode
+        self.metric = metric
         self.counter = 0
-        self.best_mean = None
+        self.best_stat = None
         self.early_stop = False
         self.val_losses = []
         self.path = path
@@ -35,12 +35,17 @@ class EarlyStopping():
         if len(self.val_losses) < self.window_size:
             return
         
-        moving_mean = np.mean(self.val_losses[-self.window_size:])
+        if self.metric == 'mean':
+            moving_stat = np.mean(self.val_losses[-self.window_size:])
+        elif self.metric == 'median':
+            moving_stat = np.median(self.val_losses[-self.window_size:])
+        else:
+            raise ValueError("Unsupported metric. Use 'mean' or 'median'.")
         
-        if self.best_mean is None:
-            self.best_mean = moving_mean
+        if self.best_stat is None:
+            self.best_stat = moving_stat
             self.checkpoint(val_loss, model)
-        elif self.mode * moving_mean < self.mode * self.best_mean and condition:
+        elif self.mode * moving_stat < self.mode * self.best_stat and condition:
             self.counter += 1
             if self.verbose:
                 print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
@@ -48,13 +53,13 @@ class EarlyStopping():
                 self.early_stop = True
                 print('EarlyStopping!')
         else:
-            self.best_mean = moving_mean
+            self.best_stat = moving_stat
             self.checkpoint(val_loss, model)
             self.counter = 0
 
     def checkpoint(self, val_loss, model):
         if self.verbose:
-            print(f'Moving Mean Loss ({self.best_mean:.6f}) -> Current Loss ({val_loss:.6f}). Saving models...')
+            print(f'Moving {self.metric.capitalize()} Loss ({self.best_stat:.6f}) -> Current Loss ({val_loss:.6f}). Saving models...')
         torch.save(model.state_dict(), f'{self.path}/{self.name}.pt')
 
 
