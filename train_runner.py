@@ -7,7 +7,7 @@ import torch.optim as optim
 import model as model
 from dataset import RandomCutDataset
 from dataset import ParamScaler, Augmentation
-from train_loop import train_loop
+from train_loop import train_loop, ElasticWeightConsolidation
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -139,3 +139,6 @@ train_loop(
            paramloss_weight = 0                    ,
            verbose          = False                ,
            )
+
+JNet.load_state_dict(torch.load(model_name), strict=False)
+ElasticWeightConsolidation(JNet, train_data, loss_fn)

@@ -263,3 +263,80 @@ def train_loop_v2(n_epochs, optimizer, model, loss_fn,
         plt.plot(vmidloss_list , label='validation loss (middle)')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
+
+
+class ElasticWeightConsolidation():
+    """
+    modified from https://github.com/shivamsaboo17/Overcoming-Catastrophic-forgetting-in-Neural-Networks
+    """
+    def __init__(self, model, prev_dataloader, loss_fn,
+                 init_num_batch, is_vibrate, device):
+        self.model = model
+        self.device = device
+        self.is_vibrate = is_vibrate
+        self.loss_fn = loss_fn
+        self.prev_dataloader = prev_dataloader
+        num_fisher = 0
+        num_params = len([name for name, _ in self.model.named_parameters()])
+        for name, _ in self.model.named_buffers():
+            if '_estimated_fisher' in name:
+                num_fisher += 1
+        if num_params == num_fisher:
+            pass
+        else:
+            print("(ewc) registering ewc params...")
+            self.register_ewc_params(prev_dataloader,
+                                     num_batch=init_num_batch)
+        self.vibrate = Vibrate()
+
+    def _update_mean_params(self):
+        """
+        save parameters of previous task in buffer.
+        """
+        for param_name, param in self.model.named_parameters():
+            _buff_param_name = param_name.replace('.', '__')
+            self.model.register_buffer(_buff_param_name+'_estimated_mean',
+                                       param.data.clone())
+
+    def _update_fisher_params(self, dataloader, num_batch=100):
+        """
+        calculate diagonal components of fisher information matrix on the task
+        and save them in buffer.
+        """
+        log_likelihood = []
+        for i, (image, label) in enumerate(dataloader):
+            if i > num_batch:
+                break
+            if self.is_vibrate:
+                vimage = self.vibrate(image)
+            else:
+                vimage = image
+            outdict = self.model(vimage)
+            out   = outdict["enhanced_image"]
+            label = label.to(self.device)
+            log_likelihood.append(torch.log(self.loss_fn(out, label)))
+        log_likelihood = sum(log_likelihood) / len(log_likelihood)
+        grad_log_likelihood = torch.autograd.grad(log_likelihood,
+                                                  self.model.parameters())
+        _buff_param_names = [param[0].replace('.', '__')
+                             for param in self.model.named_parameters()]
+        for _buff_param_name, param in zip(_buff_param_names,
+                                           grad_log_likelihood):
+            self.model.register_buffer(_buff_param_name+"_estimated_fisher",
+                                       param.data.clone() ** 2)
+
+    def register_ewc_params(self, dataloader, num_batch):
+        """
+        update mean and fisher for initialization
+        """
+        self._update_mean_params()
+        self._update_fisher_params(dataloader, num_batch)
+
+    def calc_ewc_loss(self, lambda_):
+        losses = []
+        for param_name, param in self.model.named_parameters():
+            _buff_param_name = param_name.replace('.', '__')
+            mean = getattr(self.model, f'{_buff_param_name}_estimated_mean')
+            fisher = getattr(self.model, f'{_buff_param_name}_estimated_fisher')
+            losses.append((fisher * (param - mean) ** 2).sum())
+        return (lambda_ / 2) * sum(losses)

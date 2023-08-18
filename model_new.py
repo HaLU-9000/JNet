@@ -668,6 +668,7 @@ if __name__ == '__main__':
                   )
     input_size = (1, 1, 24, 96, 96)
     model.to(device='cuda')
+    print([name for name, _ in model.named_parameters()])
     #a, b, c, d, e = [i for i in model.parameters()][-5:]
     #print(a.item())
     torchinfo.summary(model, input_size)
