@@ -15,7 +15,7 @@ class EarlyStopping():
     metric[str]: 'mean' for moving mean, 'median' for moving median
     verbose[bool]: whether to print messages
     """
-    def __init__(self, path, name, patience=10, window_size=5, mode=1, metric='mean', verbose=False):
+    def __init__(self, path, name, patience=10, window_size=5, mode=1, metric='mean', verbose=True):
         self.patience = patience
         self.window_size = window_size
         self.verbose = verbose
@@ -30,24 +30,22 @@ class EarlyStopping():
 
     def __call__(self, val_loss, model, condition=False):
         self.val_losses.append(val_loss)
-        
-        if len(self.val_losses) < self.window_size:
-            return
-        
+
+        window = min(len(self.val_losses) , self.window_size)
         if self.metric == 'mean':
-            moving_stat = np.mean(self.val_losses[-self.window_size:])
+            moving_stat = np.mean(self.val_losses[-window:])
         elif self.metric == 'median':
-            moving_stat = np.median(self.val_losses[-self.window_size:])
+            moving_stat = np.median(self.val_losses[-window:])
         else:
             raise ValueError("Unsupported metric. Use 'mean' or 'median'.")
         
         if self.best_stat is None:
             self.best_stat = moving_stat
-            self.checkpoint(val_loss, model)
-        elif self.mode * moving_stat < self.mode * self.best_stat and condition:
+            self.checkpoint(moving_stat, model)
+        elif self.mode * moving_stat > self.mode * self.best_stat and condition:
             self.counter += 1
             if self.verbose:
-                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+                print(f' Current Loss ({moving_stat:.6f}) EarlyStopping counter: {self.counter} out of {self.patience}')
             if self.counter >= self.patience:
                 self.early_stop = True
                 print('EarlyStopping!')
@@ -56,9 +54,9 @@ class EarlyStopping():
             self.checkpoint(val_loss, model)
             self.counter = 0
 
-    def checkpoint(self, val_loss, model):
+    def checkpoint(self, moving_stat, model):
         if self.verbose:
-            print(f'Moving {self.metric.capitalize()} Loss ({self.best_stat:.6f}) -> Current Loss ({val_loss:.6f}). Saving models...')
+            print(f'Moving {self.metric.capitalize()} Loss ({self.best_stat:.6f}) -> Current Loss ({moving_stat:.6f}). Saving models...')
         torch.save(model.state_dict(), f'{self.path}/{self.name}.pt')
 
 

@@ -285,9 +285,6 @@ class JNetLayer(nn.Module):
                              nblocks               = nblocks              ,
                              dropout               = dropout              ,
                              ) if hidden_channels_list else nn.Identity()
-        self.attn = CrossAttentionBlock(channels = hidden_channels ,
-                                        n_heads  = 8               ,
-                                        d_cond   = hidden_channels ,)
         self.post = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
@@ -297,13 +294,13 @@ class JNetLayer(nn.Module):
     
     def forward(self, x):
         d = self.pool(x)
-        d = checkpoint(self.conv, d) # checkpoint
+        d = self.conv(d) # checkpoint
         for f in self.prev:
-            d = checkpoint(f, d)
+            d = f(d)
         d = self.mid(d)
         for f in self.post:
-            d = checkpoint(f, d)
-        d = checkpoint(self.unpool, d) # checkpoint
+            d = f(d)
+        d = self.unpool(d) # checkpoint
         x = x + d
         return x
 
@@ -617,11 +614,11 @@ class JNet(nn.Module):
             x = self.upsample(x)
         x = self.prev0(x)
         for f in self.prev:
-            x = checkpoint(f, x)
+            x = f(x)
         x = self.mid(x)
         for f in self.post:
-            x = checkpoint(f, x)
-        x = checkpoint(self.post0, x)
+            x = f(x)
+        x = self.post0(x)
         x = F.softmax(input = x, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
             if self.use_x_quantized:

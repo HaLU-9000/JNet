@@ -39,10 +39,12 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                is_randomblur=False, is_vibrate=False,
                loss_weight=1, qloss_weight = 1/100, paramloss_weight = 1/10,
                verbose=False):
-    earlystopping = EarlyStopping(name     = model_name ,
-                                  path     = path       ,
-                                  patience = es_patience,
-                                  verbose  = True       ,)
+    earlystopping = EarlyStopping(name        = model_name ,
+                                  path        = path       ,
+                                  patience    = es_patience,
+                                  window_size = 10         ,
+                                  metric      = "median"   ,
+                                  verbose     = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     vibrate = Vibrate()
@@ -254,7 +256,7 @@ def train_loop_v2(n_epochs, optimizer, model, loss_fn,
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
 
-
+vibrate = Vibrate()
 class ElasticWeightConsolidation():
     """
     modified from https://github.com/shivamsaboo17/Overcoming-Catastrophic-forgetting-in-Neural-Networks
@@ -295,10 +297,12 @@ class ElasticWeightConsolidation():
         """
         log_likelihood = []
         for i, (image, label) in enumerate(dataloader):
+            image = image.to(self.device)
+            label = label.to(self.device)
             if i > num_batch:
                 break
             if self.is_vibrate:
-                vimage = self.vibrate(image)
+                vimage = vibrate(image)
             else:
                 vimage = image
             outdict = self.model(vimage)
@@ -307,13 +311,18 @@ class ElasticWeightConsolidation():
             log_likelihood.append(torch.log(self.loss_fn(out, label)))
         log_likelihood = sum(log_likelihood) / len(log_likelihood)
         grad_log_likelihood = torch.autograd.grad(log_likelihood,
-                                                  self.model.parameters())
+                                                  self.model.parameters(),
+                                                  allow_unused=True)
         _buff_param_names = [param[0].replace('.', '__')
                              for param in self.model.named_parameters()]
         for _buff_param_name, param in zip(_buff_param_names,
                                            grad_log_likelihood):
+            if param is None:
+                param_data_clone = None
+            else:
+                param_data_clone = param.data.clone() ** 2
             self.model.register_buffer(_buff_param_name+"_estimated_fisher",
-                                       param.data.clone() ** 2)
+                                       param_data_clone)
 
     def register_ewc_params(self, dataloader, num_batch):
         """

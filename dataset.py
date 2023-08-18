@@ -677,16 +677,18 @@ class Vibrate():
     def __init__(self):
         pass
     def __call__(self, img, params_x=None, params_y=None):
-        if params_y is None:
-            params_y = self._gen_params()
-        if params_x is None:
-            params_x = self._gen_params()
-        len_t = img.size(-3)
-        vib_y = self._vibration(len_t, *params_y)
-        vib_x = self._vibration(len_t, *params_x)
-        shift = np.stack([vib_y, vib_x], 1)
-        shifted_img = self._shift3d(img, shift)
-        return shifted_img
+        if img.dim() == 5:
+            for i in range(img.size(0)):
+                if params_y is None:
+                    params_y = self._gen_params()
+                if params_x is None:
+                    params_x = self._gen_params()
+                len_t = img.size(-3)
+                vib_y = self._vibration(len_t, *params_y)
+                vib_x = self._vibration(len_t, *params_x)
+                shift = np.stack([vib_y, vib_x], 1)
+                img[i] = self._shift3d(img[i], shift)
+        return img
         
     def _gen_params(self):
         amp = np.random.gamma(2, 2) * 10
