@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
-import model as model
+import model_new as model
 from dataset import RandomCutDataset
 from dataset import ParamScaler, Augmentation
 from train_loop import train_loop, ElasticWeightConsolidation
@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_272_vibration'
+model_name           = 'JNet_279_ewc_train_test'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -44,7 +44,6 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
-                  param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = True                 ,
@@ -70,7 +69,7 @@ train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill' , 
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
                                  cropsize    =  ( 240, 112, 112)      , 
-                                 I             = 200                  ,
+                                 I             = 2                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
                                  scale         =  scale               ,  ## scale
@@ -85,7 +84,7 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill'   
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  20                    ,
+                                 I             =  2                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
@@ -137,7 +136,7 @@ train_loop(
            loss_weight      = 1                    ,
            qloss_weight     = 0                    ,
            paramloss_weight = 0                    ,
-           verbose          = False                ,
+           verbose          = True                 ,
            )
 
 JNet.load_state_dict(torch.load(model_name), strict=False)

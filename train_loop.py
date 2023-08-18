@@ -75,13 +75,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
             qloss = outdict["quantized_loss"]
-            est_params = outdict["blur_parameter"]
             loss, midloss = branch_calc_loss(out, rec, image, label,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
-            if param_loss_fn is not None:
-                paramloss = param_loss_fn(est_params, target_params)
-                loss += paramloss * paramloss_weight
             loss *= loss_weight
             if qloss is not None:
                 loss += qloss * qloss_weight
@@ -116,7 +112,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
                 qloss = outdict["quantized_loss"]
-                est_params = outdict["blur_parameter"]
                 vloss, vmid_loss = branch_calc_loss(out, rec, image, label,
                                                     loss_fn,midloss_fn,partial,
                                                     reconstruct, check_middle)
@@ -127,16 +122,12 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     vqloss_sum += qloss
                 if check_middle:
                     vmidloss_sum += vmid_loss.detach().item()
-                if param_loss_fn is not None:
-                    vparam_loss = param_loss_fn(target_params, est_params).detach().item()
-                    vparam_loss_sum += vparam_loss
-                    vloss_sum += vparam_loss * paramloss_weight
         num  = len(train_loader)
         vnum = len(val_loader)
-        ez0, bet_z, bet_xy, alpha = [i for i in model.parameters()][-4:]
+        ez0, bet_z, bet_xy  = [i for i in model.parameters()][-3:]
         if verbose:
-            print([i for i in model.state_dict()][-4:])
-            print(bet_z, bet_xy, alpha, ez0)
+            print([i for i in model.state_dict()][-3:])
+            print(ez0, bet_z, bet_xy)
         loss_list.append(loss_sum / num)
         midloss_list.append(midloss_sum / num) if check_middle else 0
         vloss_list.append(vloss_sum / vnum)
@@ -149,7 +140,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
         writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
         writer.add_scalar('bet_xy', bet_xy.item(), epoch)
         writer.add_scalar('bet_z' , bet_z.item() , epoch)
-        writer.add_scalar('alpha' , alpha.item() , epoch)
         writer.add_scalar('ez0'   , ez0.item()   , epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
