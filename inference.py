@@ -15,7 +15,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_272_vibration'
+model_name           = 'JNet_282_pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -43,11 +43,10 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
-                  param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = False                ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = True              
+                  use_x_quantized       = False             
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
@@ -87,13 +86,11 @@ for n, val_data in enumerate(val_loader):
         break
     image = val_data[0].to(device = device)
     label = val_data[1].to(device = device)
-    JNet.set_upsample_rate(params["scale"])
     image = vibrate(image)
     outdict = JNet(image)
     output  = outdict["enhanced_image"]
     reconst = outdict["reconstruction"]
     qloss   = outdict["quantized_loss"]
-    est_params = outdict["blur_parameter"]
     _image  = image[0].detach().cpu().numpy()
     _label  = label[0].detach().cpu().numpy()
     _output = output[0].detach().cpu().numpy()

@@ -387,11 +387,7 @@ class Blur(nn.Module):
                         weight  = psf                                  ,
                         stride  = self.stride                          ,
                         padding = (self.z_pad, self.x_pad, self.y_pad,),)
-        batch = _x.shape[0]
-        x = torch.empty(size=(*x_shape[:2], *_x.shape[2:])).to(self.device)
-        for b in range(batch):
-                x[b, 0] = _x[b, b]
-        return x
+        return _x
 
     def gen_psf(self, bet_xy, bet_z):
         if bet_xy.shape:

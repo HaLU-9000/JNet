@@ -33,7 +33,7 @@ def preprocess():
     pass
 
 def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader, val_loader,
-               device, path, savefig_path, model_name, param_normalize, augment, val_augment, partial=None,
+               device, path, savefig_path, model_name, param_normalize, augment, val_augment, ewc, partial=None,
                scheduler=None, es_patience=10,
                reconstruct=False, check_middle=False, midloss_fn=None, 
                is_randomblur=False, is_vibrate=False,
@@ -81,6 +81,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              loss_fn, midloss_fn, partial,
                                              reconstruct, check_middle)
             loss *= loss_weight
+            if ewc is not None:
+                loss += ewc.calc_ewc_loss(100000)
             if qloss is not None:
                 loss += qloss * qloss_weight
             optimizer.zero_grad()
@@ -257,12 +259,13 @@ def train_loop_v2(n_epochs, optimizer, model, loss_fn,
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
 
 vibrate = Vibrate()
+
 class ElasticWeightConsolidation():
     """
     modified from https://github.com/shivamsaboo17/Overcoming-Catastrophic-forgetting-in-Neural-Networks
     """
     def __init__(self, model, prev_dataloader, loss_fn,
-                 init_num_batch, is_vibrate, device):
+                 init_num_batch, is_vibrate, device, skip_register=True):
         self.model = model
         self.device = device
         self.is_vibrate = is_vibrate
@@ -273,13 +276,12 @@ class ElasticWeightConsolidation():
         for name, _ in self.model.named_buffers():
             if '_estimated_fisher' in name:
                 num_fisher += 1
-        if num_params == num_fisher:
-            pass
+        if num_params == num_fisher and skip_register:
+            print("(ewc) ewc params found. Registeration is skipped...")
         else:
             print("(ewc) registering ewc params...")
             self.register_ewc_params(prev_dataloader,
                                      num_batch=init_num_batch)
-        self.vibrate = Vibrate()
 
     def _update_mean_params(self):
         """
@@ -295,8 +297,9 @@ class ElasticWeightConsolidation():
         calculate diagonal components of fisher information matrix on the task
         and save them in buffer.
         """
-        log_likelihood = []
+        grad_log_likelihood_data = []
         for i, (image, label) in enumerate(dataloader):
+            #self.optimizer.zero_grad()
             image = image.to(self.device)
             label = label.to(self.device)
             if i > num_batch:
@@ -308,19 +311,34 @@ class ElasticWeightConsolidation():
             outdict = self.model(vimage)
             out   = outdict["enhanced_image"]
             label = label.to(self.device)
-            log_likelihood.append(torch.log(self.loss_fn(out, label)))
-        log_likelihood = sum(log_likelihood) / len(log_likelihood)
-        grad_log_likelihood = torch.autograd.grad(log_likelihood,
-                                                  self.model.parameters(),
-                                                  allow_unused=True)
+            log_likelihood = torch.log(self.loss_fn(out, label))
+            grad_log_likelihood = torch.autograd.grad(log_likelihood,
+                                                      self.model.parameters(),
+                                                      retain_graph = False,
+                                                      allow_unused=True)
+            print(i)
+            grad_log_likelihood = list(grad_log_likelihood)
+            #print(len(grad_log_likelihood))
+            for n, param in enumerate(grad_log_likelihood):
+                if param is None:
+                        param_data_clone = None
+                else:
+                    param_data_clone = param.data.clone() / len(dataloader)
+                if len(grad_log_likelihood_data) != len(grad_log_likelihood):
+                    #print(len(grad_log_likelihood_data))
+                    grad_log_likelihood_data.append(param_data_clone)
+                elif param is not None:
+                    #print(len(grad_log_likelihood_data))
+                    grad_log_likelihood_data[n] += param_data_clone
+        grad_log_likelihood_data = tuple(grad_log_likelihood_data)
         _buff_param_names = [param[0].replace('.', '__')
                              for param in self.model.named_parameters()]
         for _buff_param_name, param in zip(_buff_param_names,
-                                           grad_log_likelihood):
+                                           grad_log_likelihood_data):
             if param is None:
                 param_data_clone = None
             else:
-                param_data_clone = param.data.clone() ** 2
+                param_data_clone = param.data.clone() ** 2 / len(dataloader)
             self.model.register_buffer(_buff_param_name+"_estimated_fisher",
                                        param_data_clone)
 
@@ -337,5 +355,6 @@ class ElasticWeightConsolidation():
             _buff_param_name = param_name.replace('.', '__')
             mean = getattr(self.model, f'{_buff_param_name}_estimated_mean')
             fisher = getattr(self.model, f'{_buff_param_name}_estimated_fisher')
-            losses.append((fisher * (param - mean) ** 2).sum())
+            if fisher is not None and mean is not None and param is not None:
+                losses.append((fisher * (param - mean) ** 2).sum())
         return (lambda_ / 2) * sum(losses)

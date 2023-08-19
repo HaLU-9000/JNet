@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from dataset import RealDensityDataset, sequentialflip
 
-import old_model as model
+import model_new as model
 
 vis_mseloss = False
 
@@ -23,7 +23,7 @@ image__name   = 'croped_cliped_beads'
 image         = torch.load('./' + image_path + image_name  + '.pt').to(device)
 image_        = torch.load('./' + image_path + image__name + '.pt').to(device)
 
-model_name           = 'JNet_277_vibration_finetuning_stackreg'
+model_name           = 'JNet_282_pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -48,11 +48,10 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
-                  param_estimation_list = param_estimation_list,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = True                 ,
+                  use_x_quantized       = False                 ,
                   )
 
 JNet = JNet.to(device = device)
@@ -65,7 +64,6 @@ ez0, bet_z, bet_xy, alpha = [i for i in JNet.parameters()][-4:]
 print([i for i in JNet.state_dict()][-4:])
 print(torch.exp(bet_z), torch.exp(bet_xy), torch.exp(alpha), torch.exp(ez0))
 JNet.eval()
-JNet.set_upsample_rate(params["scale"])
 
 dirpath = "_beads_roi_extracted_stackreg"
 images = [os.path.join(dirpath, f) for f in sorted(os.listdir(dirpath))]
@@ -141,5 +139,5 @@ for image_name in images[:-1]:
     ax1.imshow(image_.cpu().numpy()[0,:,i, :], cmap="gray", vmin=0, vmax=1, aspect=10)
     ax2.imshow(ensenbled_output.cpu().numpy()[0, :, i, :],
              cmap="gray", vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_noclip_{image_name[30:-3]}.png', format='png', dpi=250)
+    plt.savefig(f'result/{model_name}_{image_name[30:-3]}.png', format='png', dpi=250)
 print(losses)
