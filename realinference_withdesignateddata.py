@@ -23,7 +23,7 @@ image__name   = 'croped_cliped_beads'
 image         = torch.load('./' + image_path + image_name  + '.pt').to(device)
 image_        = torch.load('./' + image_path + image__name + '.pt').to(device)
 
-model_name           = 'JNet_265_vibration'
+model_name           = 'JNet_292_fft_finetuning_bead'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -36,7 +36,7 @@ reconstruct          = True
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
-                        "log_bet_xy" : np.log(1.).item() ,
+                        "log_bet_xy" : np.log(3.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
@@ -51,7 +51,9 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = False                 ,
+                  use_x_quantized       = True                 ,
+                  use_fftconv           = True,
+                  z = 161, x = 31, y = 31,
                   )
 
 JNet = JNet.to(device = device)
