@@ -18,7 +18,7 @@ print(f"Inference on device {device}.")
 image_folder = '_wakelabdata_processed/'
 image_name   = "1_Spine_structure_AD_175-11w-D3-xyz6-020C3-T1.tif"
 save_folder  = "_result_tif/"
-model_name           = 'JNet_300_ewc_1e7'
+model_name           = 'JNet_301_ewc_5e6'
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),

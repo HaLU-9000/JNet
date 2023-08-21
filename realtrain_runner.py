@@ -18,8 +18,8 @@ surround_size = [32, 4, 4]
 #val_score     = torch.load('./_stackbeadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
 train_dataset = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
-                                   imagename       =  '1_Spine'        ,
-                                   cropsize        =  (96, 112, 112)  , # size after segmentation
+                                   imagename       =  '1_Spine_structure_AD_175-11w-D3-xyz6-020'        ,
+                                   cropsize        =  (240, 112, 112)  , # size after segmentation
                                    I               = 200               ,
                                    low             = 0                 ,
                                    high            =  None             ,
@@ -31,8 +31,8 @@ train_dataset = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
                                    surround_size   =  surround_size    ,
                                   )
 val_dataset   = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
-                                   imagename       =  '1_Spine'        ,
-                                   cropsize        =  (96, 112, 112)  ,
+                                   imagename       =  '1_Spine_structure_AD_175-11w-D3-xyz6-020'        ,
+                                   cropsize        =  (240, 112, 112)  ,
                                    I               =  20               ,
                                    low             =   0               ,
                                    high            =  None             ,
@@ -56,7 +56,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_300_ewc_1e7'
+model_name           = 'JNet_301_ewc_5e6'
 pretrainmodel_name   = 'JNet_294_pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
@@ -151,7 +151,7 @@ train_loop(
     param_normalize  = None        ,
     augment          = None        ,
     val_augment      = None        ,
-    ewc              = None        ,
+    ewc              = ewc         ,
     partial          = partial     ,
     scheduler        = scheduler   ,
     es_patience      = 20          ,
