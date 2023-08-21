@@ -10,6 +10,8 @@ import torchvision.transforms as T
 from torchvision.transforms.functional import InterpolationMode as I
 from torch.utils.data import Dataset
 from scipy.stats import lognorm, truncnorm
+from fft_conv_pytorch import fft_conv
+
 
 from utils import mask_, surround_mask_
 from model import ImagingProcess
@@ -356,8 +358,8 @@ class RealDensityDataset(Dataset):
         _scores = torch.zeros((len(images), 1, *icoords_size))
         for n, i in enumerate(images):
             print(f'(init) calcurating the score...({n+1}/{len(images)})')
-            _score = F.conv3d(input   = torch.load(i)          ,
-                              weight  = torch.ones(1,1,*scsize),
+            _score = fft_conv(signal  = torch.load(i)          ,
+                              kernel  = torch.ones(1,1,*scsize),
                               stride  = 1                      ,
                               padding = 0                      ,)
             _scores[n] = _score

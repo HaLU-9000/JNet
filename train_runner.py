@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_282_pretrain'
+model_name           = 'JNet_294_pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -35,7 +35,7 @@ params               = {"mu_z"   : 0.2  ,
                         "scale"  :  6
                         }
 
-image_size = (1, 1, 240,  96,  96)
+image_size = (1, 1, 240,  112,  112)
 original_cropsize = [360, 120, 120]
 param_estimation_list = [False, False, False, False, True]
 
@@ -64,27 +64,27 @@ loss_fn              = nn.BCELoss()
 midloss_fn           = nn.BCELoss()
 param_loss_fn        = None
 
-train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill' ,  ###
+train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur' ,  ###
                                  imagename   =  f'_x{scale}'          , 
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
-                                 cropsize    =  ( 240, 64, 64)        , 
-                                 I             = 800                  ,
+                                 cropsize    =  ( 240, 112, 112)      , 
+                                 I             = 200                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
                                  scale         =  scale               ,  ## scale
                                  mask          =  True                ,
                                  mask_size     =  [ 1, 10, 10]        ,
-                                 mask_num      =  10                  ,  #( 1% of image)
+                                 mask_num      =  30                  ,  #( 1% of image)
                                  surround      =  surround            ,
                                  surround_size =  surround_size       ,
                                  )
-val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill'   ,  ###
+val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur'   ,  ###
                                  imagename   =  f'_x{scale}'            ,     ## scale
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
-                                 cropsize    =  ( 240, 64, 64)          ,
-                                 I             =  80                    ,
+                                 cropsize    =  ( 240, 112, 112)        ,
+                                 I             =  20                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
@@ -96,13 +96,13 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill'   
                                 )       
 
 train_data  = DataLoader(train_dataset                 ,
-                         batch_size  = 4               ,
+                         batch_size  = 1               ,
                          shuffle     = True            ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 val_data    = DataLoader(val_dataset                   ,
-                         batch_size  = 4               ,
+                         batch_size  = 1               ,
                          shuffle     = False           ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
@@ -126,6 +126,7 @@ train_loop(
            augment          = None                 ,
            val_augment      = None                 ,
            partial          = partial              ,
+           ewc              = None                 ,
            scheduler        = scheduler            ,
            es_patience      = 10                   ,
            reconstruct      = False                ,
@@ -139,11 +140,11 @@ train_loop(
            verbose          = False                ,
            )
 
-JNet.load_state_dict(torch.load(f'{model_path}/{model_name}.pt'), strict=False)
-ElasticWeightConsolidation(model           = JNet,
-                           prev_dataloader = train_data,
-                           loss_fn         = loss_fn,
-                           init_num_batch  = 100,
-                           is_vibrate      = True,
-                           device          = device)
-torch.save(JNet.state_dict(), f'{model_path}/{model_name}.pt')
+#JNet.load_state_dict(torch.load(f'{model_path}/{model_name}.pt'), strict=False)
+#ElasticWeightConsolidation(model           = JNet,
+#                           prev_dataloader = train_data,
+#                           loss_fn         = loss_fn,
+#                           init_num_batch  = 100,
+#                           is_vibrate      = True,
+#                           device          = device)
+#torch.save(JNet.state_dict(), f'{model_path}/{model_name}.pt')

@@ -15,13 +15,13 @@ print(f"Training on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-train_score   = torch.load('./_stackbeadsscore/001_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+train_score   = torch.load('./_stackbeadsscore/002_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
 val_score     = torch.load('./_stackbeadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
 train_dataset = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
                                    scorefolderpath =  '_stackbeadsscore'    ,
-                                   imagename       =  '001'            ,
-                                   size            =  (1200, 512, 512) , # size after segmentation
+                                   imagename       =  '002'            ,
+                                   size            =  ( 650, 512, 512) , # size after segmentation
                                    cropsize        =  ( 240, 112, 112) , # size after segmentation
                                    I               = 200               ,
                                    low             =   0               ,
@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_292_fft_finetuning_bead'
+model_name           = 'JNet_293_fft_finetuning_bead'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -147,7 +147,7 @@ torch.save(JNet.state_dict(), f'model/JNet_265_vibration.pt')
 
 print(f"============= model {model_name} train started =============")
 train_loop(
-    n_epochs         = 500         , ####
+    n_epochs         = 100         , ####
     optimizer        = optimizer   ,
     model            = JNet        ,
     loss_fn          = loss_fn     ,

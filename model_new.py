@@ -319,8 +319,10 @@ class Emission(nn.Module):
         
     def sample(self, x):
         b = x.shape[0]
-        pz0  = dist.LogNormal(loc   = self.mu_z.view( b, 1, 1, 1, 1).expand(*x.shape),
-                              scale = self.sig_z.view(b, 1, 1, 1, 1).expand(*x.shape),)
+        mu_z   = torch.tensor(self.mu_z )
+        sig_z  = torch.tensor(self.sig_z) 
+        pz0  = dist.LogNormal(loc   = mu_z.view( b, 1, 1, 1, 1).expand(*x.shape),
+                              scale = sig_z.view(b, 1, 1, 1, 1).expand(*x.shape),)
         x    = x * pz0.sample().to(x.device)
         x    = torch.clip(x, min=0, max=1)
         #x    = x / self.logn_ppf
