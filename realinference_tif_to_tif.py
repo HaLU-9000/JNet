@@ -8,7 +8,7 @@ from dataset import RealDensityDataset, sequentialflip
 
 import model_new as model
 
-vis_mseloss = False
+"input: tif, output: tif"
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -51,7 +51,7 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   superres              = superres             ,
                   reconstruct           = reconstruct          ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = False                ,
+                  use_x_quantized       = True                 ,
                   use_fftconv           = True,
                   z = 161, x = 31, y = 31,
                   )
@@ -72,16 +72,59 @@ images = [os.path.join(dirpath, f) for f in sorted(os.listdir(dirpath))]
 print(images)
 losses = []
 loss_fn = nn.MSELoss()
+# for image_name in images[:-1]:
+#     image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
+#     image = image_#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
+#     outdict = JNet(image.to("cuda").unsqueeze(0))
+#     output  = outdict["enhanced_image"]
+#     output  = output.detach().cpu()
+#     reconst = outdict["reconstruction"]
+#     loss    = loss_fn(reconst, image).item()
+#     qloss   = outdict["quantized_loss"]
+#     est_params = outdict["blur_parameter"]
+#     print("output ", torch.sum(output) * (0.05 * 0.05 * 0.05))
+#     reconst = reconst.squeeze(0).detach().cpu().numpy()
+#     losses.append(loss)
+#     fig = plt.figure(figsize=(10, 10))
+#     ax1 = fig.add_subplot(121)
+#     ax2 = fig.add_subplot(122)
+#     ax1.set_axis_off()
+#     ax2.set_axis_off()
+#     ax1.set_title('original image')
+#     ax2.set_title(f'reconstruct image\n{model_name}')
+#     plt.subplots_adjust(hspace=-0.0)
+#     ax1.imshow(image_[0, :, i, :].to(device='cpu'),
+#             cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
+#     ax2.imshow(output[0, 0, :, i, :],
+#             cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+#     plt.savefig(f'result/{model_name}_noclip_{image_name[30:-3]}.png', format='png', dpi=250)
+# print(losses)
+
 for image_name in images[:-1]:
-    image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
-    image = image_#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
-    outdict = JNet(image.to("cuda").unsqueeze(0))
-    output  = outdict["enhanced_image"]
-    output  = output.detach().cpu()
-    reconst = outdict["reconstruction"]
-    loss    = loss_fn(reconst, image).item()
-    qloss   = outdict["quantized_loss"]
-    print("output ", torch.sum(output) * (0.05 * 0.05 * 0.05))
+    image_ = torch.load(image_name, map_location="cuda")
+    c_, z_, x_, y_ = image_.shape
+    ensenbled_output  = torch.zeros((c_, z_*scale, x_, y_), device='cpu')
+    ensenbled_reconst = torch.zeros((c_, z_, x_, y_), device='cpu')
+    ensenbled_loss    = 0
+    ensenbled_qloss   = 0
+
+    for _ in range(8):
+        image   = sequentialflip(image_, i)#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
+        outdict = JNet(image.to("cuda").unsqueeze(0))
+        output  = outdict["enhanced_image"]
+        output  = output.detach().cpu().squeeze(0)
+        output  = sequentialflip(output.clone(), i)
+        reconst = outdict["reconstruction"]
+        reconst  = sequentialflip(reconst, i)
+        image   = image.cpu()
+        reconst = reconst.squeeze(0).detach().cpu()
+        loss    = loss_fn(reconst, image).item()
+        qloss   = outdict["quantized_loss"].item()
+        ensenbled_output  += output  / 8
+        ensenbled_reconst += reconst / 8
+        ensenbled_loss    += loss  / 8
+        ensenbled_qloss   += qloss / 8
+    print("output ", torch.sum(ensenbled_output) * (0.05 * 0.05 * 0.05))
     reconst = reconst.squeeze(0).detach().cpu().numpy()
     losses.append(loss)
     fig = plt.figure(figsize=(10, 10))
@@ -92,53 +135,11 @@ for image_name in images[:-1]:
     ax1.set_title('original image')
     ax2.set_title(f'reconstruct image\n{model_name}')
     plt.subplots_adjust(hspace=-0.0)
-    ax1.imshow(image_[0, :, i, :].to(device='cpu'),
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=scale)
-    ax2.imshow(output[0, 0, :, i, :],
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{model_name}_noclip_{image_name[30:-3]}.png', format='png', dpi=250)
+    dirpath = "_beads_roi_extracted_stackreg/"
+    #image_ = torch.load(image_name, map_location="cuda")
+    image_ = torch.load(image_name, map_location="cuda")
+    ax1.imshow(image_.cpu().numpy()[0,:,i, :], cmap="gray", vmin=0, vmax=1, aspect=10)
+    ax2.imshow(ensenbled_output.cpu().numpy()[0, :, i, :],
+             cmap="gray", vmin=0.0, vmax=1.0, aspect=1)
+    plt.savefig(f'result/{model_name}_{image_name[30:-3]}.png', format='png', dpi=250)
 print(losses)
-
-#for image_name in images[:-1]:
-#    image_ = torch.load(image_name, map_location="cuda")
-#    c_, z_, x_, y_ = image_.shape
-#    ensenbled_output  = torch.zeros((c_, z_*scale, x_, y_), device='cpu')
-#    ensenbled_reconst = torch.zeros((c_, z_, x_, y_), device='cpu')
-#    ensenbled_loss    = 0
-#    ensenbled_qloss   = 0
-#
-#    for _ in range(8):
-#        image   = sequentialflip(image_, i)#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
-#        outdict = JNet(image.to("cuda").unsqueeze(0))
-#        output  = outdict["enhanced_image"]
-#        output  = output.detach().cpu().squeeze(0)
-#        output  = sequentialflip(output.clone(), i)
-#        reconst = outdict["reconstruction"]
-#        reconst  = sequentialflip(reconst, i)
-#        image   = image.cpu()
-#        reconst = reconst.squeeze(0).detach().cpu()
-#        loss    = loss_fn(reconst, image).item()
-#        qloss   = outdict["quantized_loss"].item()
-#        ensenbled_output  += output  / 8
-#        ensenbled_reconst += reconst / 8
-#        ensenbled_loss    += loss  / 8
-#        ensenbled_qloss   += qloss / 8
-#    print("output ", torch.sum(ensenbled_output) * (0.05 * 0.05 * 0.05))
-#    reconst = reconst.squeeze(0).detach().cpu().numpy()
-#    losses.append(loss)
-#    fig = plt.figure(figsize=(10, 10))
-#    ax1 = fig.add_subplot(121)
-#    ax2 = fig.add_subplot(122)
-#    ax1.set_axis_off()
-#    ax2.set_axis_off()
-#    ax1.set_title('original image')
-#    ax2.set_title(f'reconstruct image\n{model_name}')
-#    plt.subplots_adjust(hspace=-0.0)
-#    dirpath = "_beads_roi_extracted_stackreg/"
-#    #image_ = torch.load(image_name, map_location="cuda")
-#    image_ = torch.load(image_name, map_location="cuda")
-#    ax1.imshow(image_.cpu().numpy()[0,:,i, :], cmap="gray", vmin=0, vmax=1, aspect=10)
-#    ax2.imshow(ensenbled_output.cpu().numpy()[0, :, i, :],
-#             cmap="gray", vmin=0.0, vmax=1.0, aspect=1)
-#    plt.savefig(f'result/{model_name}_{image_name[30:-3]}.png', format='png', dpi=250)
-#print(losses)
