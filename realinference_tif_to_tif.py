@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from dataset import RealDensityDataset, sequentialflip
 
 import model_new as model
-from utils import tifpath_to_tensor
+from utils import tifpath_to_tensor, array_to_tif
 
 "input: tif, output: tif"
 
@@ -15,6 +15,9 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Inference on device {device}.")
 
+image_folder = '_wakelabdata_processed/'
+image_name   = ""
+save_folder  = "_result_tif/"
 model_name           = 'JNet_292_fft_finetuning_bead'
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
@@ -41,8 +44,7 @@ JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
-image_path = 'images_psj/'
-image      = tifpath_to_tensor(image_path)
+image      = tifpath_to_tensor(os.path.join(image_folder, image_name))
 crop_size  = (24, 112, 112)
 overlap    = ( 1,  10,  10)
 # image padding
@@ -50,9 +52,11 @@ z_stride   = crop_size[0] - overlap[0]
 x_stride   = crop_size[1] - overlap[1]
 y_stride   = crop_size[2] - overlap[2]
 image_size = image.shape[1:]
-zpad = image_size[0] % (crop_size[0] - overlap[0])
-xpad = image_size[1] % (crop_size[1] - overlap[1])
-ypad = image_size[2] % (crop_size[2] - overlap[2])
+scale = params["scale"]
+zpad  = image_size[0] % (crop_size[0] - overlap[0])
+xpad  = image_size[1] % (crop_size[1] - overlap[1])
+ypad  = image_size[2] % (crop_size[2] - overlap[2])
+image = F.pad(image, (0, zpad), (0, xpad), (0, ypad))
 result = torch.zeros((0, params["scale"]*image.shape[1], *image.shape[-2:]))
 for _z in range(image_size[0] // (crop_size[0] - overlap[0])):
     for _x in range(image_size[1] // (crop_size[1] - overlap[1])):
@@ -61,28 +65,29 @@ for _z in range(image_size[0] // (crop_size[0] - overlap[0])):
                             x_stride*_x : x_stride*_x + crop_size[1],
                             y_stride*_y : y_stride*_y + crop_size[2],].clone().to(device)
             crop = JNet(crop)["enhanced_image"] # inference
-            result[0, z_stride*_z : z_stride*_z + crop_size[0],
+            result[0, (z_stride*_z)*scale : (z_stride*_z + crop_size[0]) * scale,
                       x_stride*_x : x_stride*_x + crop_size[1],
                       y_stride*_y : y_stride*_y + crop_size[2],] += crop # sum
             if _z != 0 and overlap[0] != 0: # resolve overlap
-                result[0, z_stride*_z : z_stride*_z + overlap[0]  ,
+                result[0, (z_stride*_z)*scale : (z_stride*_z + overlap[0]) * scale,
                           x_stride*_x : x_stride*_x + crop_size[1],
                           y_stride*_y : y_stride*_y + crop_size[2],] \
-              = result[0, z_stride*_z : z_stride*_z + overlap[0]  ,
+              = result[0, (z_stride*_z)*scale : (z_stride*_z + overlap[0]) * scale,
                           x_stride*_x : x_stride*_x + crop_size[1],
                           y_stride*_y : y_stride*_y + crop_size[2],].clone() * 1/2
             if _x != 0 and overlap[1] != 0:
-                result[0, z_stride*_z : z_stride*_z + crop_size[0],
+                result[0, (z_stride*_z)*scale : (z_stride*_z + crop_size[0]) * scale,
                           x_stride*_x : x_stride*_x + overlap[1]  ,
                           y_stride*_y : y_stride*_y + crop_size[2],] \
-              = result[0, z_stride*_z : z_stride*_z + crop_size[0],
+              = result[0, (z_stride*_z)*scale : (z_stride*_z + crop_size[0]) * scale,
                           x_stride*_x : x_stride*_x + overlap[1]  ,
                           y_stride*_y : y_stride*_y + crop_size[2],].clone() * 1/2
             if _y != 0 and overlap[2] != 0:
-                result[0, z_stride*_z : z_stride*_z + crop_size[0],
+                result[0, (z_stride*_z)*scale : (z_stride*_z + crop_size[0]) * scale,
                           x_stride*_x : x_stride*_x + crop_size[1],
                           y_stride*_y : y_stride*_y + overlap[2]  ,] \
-              = result[0, z_stride*_z : z_stride*_z + crop_size[0],
+              = result[0, (z_stride*_z)*scale : (z_stride*_z + crop_size[0]) * scale,
                           x_stride*_x : x_stride*_x + crop_size[1],
                           y_stride*_y : y_stride*_y + overlap[2]  ,].clone() * 1/2
-result = result
+result = result[:, :zpad, :xpad, :ypad].detach().cpu().numpy()
+array_to_tif(os.path.join(save_folder, image_name), result)

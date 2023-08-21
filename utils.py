@@ -52,8 +52,8 @@ class EarlyStopping():
                 self.early_stop = True
                 print('EarlyStopping!')
         else:
-            self.best_stat = moving_stat
             self.checkpoint(moving_stat, model)
+            self.best_stat = moving_stat
             self.counter = 0
 
     def checkpoint(self, moving_stat, model):
@@ -306,6 +306,5 @@ def tifpath_to_tensor(tifpath):
     tensor = (tensor - tensor.min()) / (tensor.max() - tensor.min())
     return tensor
 
-def tensor_to_tif(path, tensor):
-    tifffile.imwrite(path, tensor.numpy())
-    
+def array_to_tif(path, array):
+    tifffile.imwrite(path, array)
