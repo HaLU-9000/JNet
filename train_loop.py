@@ -69,6 +69,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             else:
                 image    = train_data[0].to(device = device)
                 label    = train_data[1].to(device = device)
+                print(label)
             if is_vibrate:
                 vimage = vibrate(image)
             else:
