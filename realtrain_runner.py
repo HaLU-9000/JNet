@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_288_ewc_finetuning'
+model_name           = 'JNet_292_fft_finetuning_bead'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -76,13 +76,13 @@ superres = True if scale > 1 else False
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
-                        "log_bet_xy" : np.log(1.).item() ,
+                        "log_bet_xy" : np.log(3.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
+                        
                         }
 reconstruct = True
-param_estimation_list = [False, False, False, False, True]
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   nblocks               = nblocks              ,
                   activation            = activation           ,
@@ -92,6 +92,10 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   reconstruct           = True                 ,
                   apply_vq              = True                 ,
                   use_x_quantized       = True                 ,
+                  use_fftconv           = True                 ,
+                  z                     = 161                  , 
+                  x                     = 31                   , 
+                  y                     = 31                   ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load('model/JNet_265_vibration.pt'),
@@ -114,7 +118,7 @@ ewc_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill' , 
                                  imagename   =  f'_x6'                , 
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
-                                 cropsize    =  ( 240, 112, 112)        , 
+                                 cropsize    =  ( 240, 112, 112)      ,
                                  I             = 800                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
@@ -138,7 +142,7 @@ ewc = ElasticWeightConsolidation(model           = JNet,
                                  init_num_batch  = 100,
                                  is_vibrate      = True,
                                  device          = device,
-                                 skip_register   = False  )
+                                 skip_register   = True   )
 torch.save(JNet.state_dict(), f'model/JNet_265_vibration.pt')
 
 print(f"============= model {model_name} train started =============")

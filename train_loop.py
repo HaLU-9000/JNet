@@ -276,7 +276,7 @@ class ElasticWeightConsolidation():
         for name, _ in self.model.named_buffers():
             if '_estimated_fisher' in name:
                 num_fisher += 1
-        if num_params == num_fisher and skip_register:
+        if num_fisher != 0 and skip_register:
             print("(ewc) ewc params found. Registeration is skipped...")
         else:
             print("(ewc) registering ewc params...")
@@ -316,7 +316,6 @@ class ElasticWeightConsolidation():
                                                       self.model.parameters(),
                                                       retain_graph = False,
                                                       allow_unused=True)
-            print(i)
             grad_log_likelihood = list(grad_log_likelihood)
             #print(len(grad_log_likelihood))
             for n, param in enumerate(grad_log_likelihood):

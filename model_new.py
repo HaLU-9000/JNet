@@ -6,6 +6,7 @@ import torch.distributions as dist
 from torch.utils.checkpoint import checkpoint
 import torch.special as S
 from scipy.stats import lognorm
+from fft_conv_pytorch import fft_conv
 import time
 
 from utils import tt
@@ -355,7 +356,7 @@ class Intensity(nn.Module):
 
 class Blur(nn.Module):
     def __init__(self, z, x, y, log_bet_z, log_bet_xy, scale, device,
-                 psf_mode:str="double_exp", apply_hill=False):
+                 psf_mode:str="double_exp", apply_hill=False, use_fftconv=False):
         super().__init__()
         self.log_bet_z   = log_bet_z
         self.log_bet_xy  = log_bet_xy
@@ -377,16 +378,25 @@ class Blur(nn.Module):
         self.y_pad   = (y - self.yscale + 1) // 2
         self.stride  = (self.zscale, self.xscale, self.yscale)
         self.apply_hill = apply_hill
+        self.use_fftconv = use_fftconv
 
     def forward(self, x):
         x_shape = x.shape
         bet_xy  = torch.exp(self.log_bet_xy)
         bet_z   = torch.exp(self.log_bet_z )
         psf = self.gen_psf(bet_xy, bet_z).to(self.device)
-        _x   = F.conv3d(input   = x                                    ,
-                        weight  = psf                                  ,
-                        stride  = self.stride                          ,
-                        padding = (self.z_pad, self.x_pad, self.y_pad,),)
+        if self.use_fftconv:
+            _x   = fft_conv(signal  = x                                    ,
+                            kernel  = psf                                  ,
+                            stride  = self.stride                          ,
+                            padding = (self.z_pad, self.x_pad, self.y_pad,),
+                            )
+        else:
+            _x   = F.conv3d(input   = x                                    ,
+                            weight  = psf                                  ,
+                            stride  = self.stride                          ,
+                            padding = (self.z_pad, self.x_pad, self.y_pad,),
+                            )
         return _x
 
     def gen_psf(self, bet_xy, bet_z):
@@ -468,7 +478,8 @@ class PreProcess(nn.Module):
 class ImagingProcess(nn.Module):
     def __init__(self, device, params,
                  z, x, y, postmin=0., postmax=1.,
-                 mode:str="train",dist="double_exp", apply_hill=False):
+                 mode:str="train", dist="double_exp",
+                 apply_hill=False, use_fftconv=False):
         super().__init__()
         self.device = device
         self.z = z
@@ -501,7 +512,8 @@ class ImagingProcess(nn.Module):
                                scale       = scale          ,
                                device      = device         ,
                                psf_mode    = dist           ,
-                               apply_hill  = apply_hill     ,)
+                               apply_hill  = apply_hill     ,
+                               use_fftconv = use_fftconv    ,)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
@@ -558,8 +570,10 @@ class SuperResolutionLayer(nn.Module):
 
 class JNet(nn.Module):
     def __init__(self, hidden_channels_list, nblocks, activation,
-                 dropout, params, superres:bool, reconstruct=False, apply_vq=False,
-                 use_x_quantized=True, blur_mode="gaussian", device='cuda'):
+                 dropout, params, superres:bool, reconstruct=False,
+                 apply_vq=False, use_fftconv=False,
+                 use_x_quantized=True, blur_mode="gaussian", device='cuda',
+                 z=161, x=3, y=3):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
@@ -589,11 +603,12 @@ class JNet(nn.Module):
                                 out_channels = 2               ,)
         self.image = ImagingProcess(device       = device           ,
                                     params       = params           ,
-                                    z            = 161              ,
-                                    x            = 3                ,
-                                    y            = 3                ,
+                                    z            = z                ,
+                                    x            = x                ,
+                                    y            = y                ,
                                     mode         = "train"          ,
                                     dist         = blur_mode        ,
+                                    use_fftconv  = use_fftconv      ,
                                     )
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = activation

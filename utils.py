@@ -1,8 +1,10 @@
+import os
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from pathlib import Path
+import tifffile
 #from metrics import jiffs
 
 class EarlyStopping():
@@ -42,7 +44,7 @@ class EarlyStopping():
         if self.best_stat is None:
             self.best_stat = moving_stat
             self.checkpoint(moving_stat, model)
-        elif self.mode * moving_stat > self.mode * self.best_stat and condition:
+        elif self.mode * moving_stat > self.mode * self.best_stat or f'{moving_stat:.6f}' == 'nan' and condition:
             self.counter += 1
             if self.verbose:
                 print(f' Current Loss ({moving_stat:.6f}) EarlyStopping counter: {self.counter} out of {self.patience}')
@@ -51,7 +53,7 @@ class EarlyStopping():
                 print('EarlyStopping!')
         else:
             self.best_stat = moving_stat
-            self.checkpoint(val_loss, model)
+            self.checkpoint(moving_stat, model)
             self.counter = 0
 
     def checkpoint(self, moving_stat, model):
@@ -284,3 +286,26 @@ def tt(x):
     returns torch cuda tensor of x
     """
     return torch.tensor(x, requires_grad=False, device="cuda")
+
+def split_time(load_folderpath, tifpath, save_folderpath):
+    tiff = tifffile.imread(os.path.join(load_folderpath, tifpath))
+    tifpath = tifpath[:-4]
+    channels = ["C1-", "C2-", "C3-"]
+    for channel in channels:
+        if channel in tifpath:
+            tifpath = tifpath.replace(channel,"")+ channel[:-1]
+    if len(tiff.shape) == 3:
+        tifffile.imwrite(save_folderpath+tifpath+f"-C{1}-T{1}.tif", tiff[None, :])
+    else:
+        for t in range(tiff.shape[0]):
+            tifffile.imwrite(save_folderpath+tifpath+f"-T{t+1}.tif", tiff[t][None, :])
+
+def tifpath_to_tensor(tifpath):
+    tiff   = tifffile.imread(tifpath).astype('float32')
+    tensor = torch.from_numpy(tiff)
+    tensor = (tensor - tensor.min()) / (tensor.max() - tensor.min())
+    return tensor
+
+def tensor_to_tif(path, tensor):
+    tifffile.imwrite(path, tensor.numpy())
+    
