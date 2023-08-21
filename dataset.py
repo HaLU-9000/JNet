@@ -441,14 +441,16 @@ class RealSeveralDataset(Dataset):
        reject | else
     '''
     def __init__(self, folderpath:str, imagename:str,
-                 cropsize:list, I:int, low:int, high:int,
+                 cropsize:list, I:int, low:int, high,
                  train=True, mask=True, mask_size=[10, 10, 10], mask_num=1,
                  surround=True, surround_size=[64, 8, 8], seed=904):
         self.I             = I
+        self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}*.tif')))
         self.low           = low
-        self.high          = high
-        self.imagename     = imagename
-        self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}.tif')))
+        if high is not None:
+            self.high = high
+        else:
+            self.high = len(self.images) - 1
         self.csize         = cropsize
         self.train         = train
         self.mask          = mask
@@ -456,16 +458,10 @@ class RealSeveralDataset(Dataset):
         self.mask_size     = mask_size
         self.surround      = surround
         self.surround_size = surround_size
-        self.icoords_size  = [self.ssize[0] - self.scsize[0] + 1,
-                              self.ssize[1] - self.scsize[1] + 1,
-                              self.ssize[2] - self.scsize[2] + 1,]
-        self.options       = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
-                              [-2], [-2,-1], [-1], [-4]]
+        self.options       = [[-2], [-2,-1], [-1], [-4]]
         
         if train == False:
             np.random.seed(seed)
-            self.indiceslist = self.gen_indices(I, low, high)
-            self.coordslist  = self.gen_coords(I, self.icoords_size)
 
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
@@ -487,46 +483,47 @@ class RealSeveralDataset(Dataset):
         return image
 
     def randomflip(self, image):
-        option = self.options[np.random.choice([i for i in range(8)])]
+        option = self.options[np.random.choice([i for i in range(len(self.options))])]
         return image.flip(dims=option)
 
+    def temporal_solution(self, name):
+        name = str(name)
+        if "2_Spine" in name:
+            scale = 2   
+        if "3_2-"     in name:
+            scale = 8    
+        if "Beads"    in name:
+            scale = 10     
+        if "MD"       in name:
+            scale = 12   
+        if "1_Spine" in name:
+            scale = 6  
+
+        return scale
+
     def __getitem__(self, idx):
+        r, s = 1, 0
+        while not r < s:
+            idx = self.gen_indices(1, self.low, self.high).item()
+            image = tifpath_to_tensor(self.images[idx])
+            scale = self.temporal_solution(self.images[idx])
+            ssize = [image.size(1), image.size(2), image.size(3)]
+            icoords_size  = [ssize[0] - self.csize[0]//scale + 1,
+                             ssize[1] - self.csize[1]        + 1,
+                             ssize[2] - self.csize[2]        + 1,]
+            scsize        = [self.csize[0]//scale ,
+                             self.csize[1]        ,
+                             self.csize[2]        ,]
+            icoords = self.gen_coords(1, icoords_size)
+            icoords = icoords[:, 0]
+            image = Crop(icoords, scsize)(image)
+            s = torch.sum(image) / (self.csize[0]//scale * self.csize[1] * self.csize[2])
+            r = np.random.uniform(0, 0.1)
+        image, _, _ = Rotate()(image)
+        image = self.randomflip(image)
         if self.train:
-            r, s = 1, 0
-            while not r < s:
-                idx = self.gen_indices(1, self.low, self.high).item()
-                image = tifpath_to_tensor(self.images[idx])
-                if "1_Spine-" in self.images[idx]:
-                    scale = 6
-                if "2_Spine-" in self.images[idx]:
-                    scale = 2
-                if "3_2-" in self.images[idx]:
-                    scale = 8
-                if "Beads" in self.images[idx]:
-                    scale = 10
-                if "MD" in self.images[idx]:
-                    scale = 12
-                ssize = [image.size(1) // scale, image.size(2), image.size(3)]
-                icoords_size  = [ssize[0] - self.csize[0]//scale + 1,
-                                 ssize[1] - self.csize[1]        + 1,
-                                 ssize[2] - self.csize[2]        + 1,]
-                scsize        = [self.csize[0]//scale ,
-                                 self.csize[1]        ,
-                                 self.csize[2]        ,]
-                icoords = self.gen_coords(1, icoords_size)
-                icoords = icoords[:, 0]
-                image = Crop(icoords, scsize)(image)
-                s = self.torch.sum(image) / (self.csize[0]//scale * self.csize[1] * self.csize[2])
-                r = np.random.uniform(0, 1)
-            image, _, _ = Rotate()(image)
-            image = self.randomflip(image)
             image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
-        else:
-            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
-            icoords = self.coordslist[:, idx]
-            image   = Crop(icoords, self.scsize)(tifpath_to_tensor(self.images[_idx]))
-            image = self.apply_surround_mask(self.surround, image, self.surround_size)
+        image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image, scale
 
     def __len__(self):

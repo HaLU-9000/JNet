@@ -18,7 +18,7 @@ print(f"Inference on device {device}.")
 image_folder = '_wakelabdata_processed/'
 image_name   = "1_Spine_structure_AD_175-11w-D3-xyz6-020C3-T1.tif"
 save_folder  = "_result_tif/"
-model_name           = 'JNet_294_pretrain'
+model_name           = 'JNet_300_ewc_1e7'
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
@@ -45,7 +45,7 @@ JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
 image      = tifpath_to_tensor(os.path.join(image_folder, image_name))
-crop_size  = (8, 112, 112)
+crop_size  = (16, 112, 112)
 overlap    = ( 1,  10,  10)
 # image padding
 z_stride   = crop_size[0] - overlap[0]

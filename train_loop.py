@@ -69,7 +69,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             else:
                 image    = train_data[0].to(device = device)
                 label    = train_data[1].to(device = device)
-                print(label)
             if is_vibrate:
                 vimage = vibrate(image)
             else:
@@ -83,7 +82,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                                              reconstruct, check_middle)
             loss *= loss_weight
             if ewc is not None:
-                loss += ewc.calc_ewc_loss(100000)
+                loss += ewc.calc_ewc_loss(1000000)
             if qloss is not None:
                 loss += qloss * qloss_weight
             optimizer.zero_grad()
