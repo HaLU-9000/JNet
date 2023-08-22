@@ -300,10 +300,13 @@ def split_time(load_folderpath, tifpath, save_folderpath):
         for t in range(tiff.shape[0]):
             tifffile.imwrite(save_folderpath+tifpath+f"-T{t+1}.tif", tiff[t][None, :])
 
-def tifpath_to_tensor(tifpath):
+def tifpath_to_tensor(tifpath, preprocess=False):
     tiff   = tifffile.imread(tifpath).astype('float32')
     tensor = torch.from_numpy(tiff)
     tensor = (tensor - tensor.min()) / (tensor.max() - tensor.min())
+    if preprocess:
+        tensor = torch.clip(tensor, min=torch.tensor(0.1), max=torch.tensor(1.))
+        tensor = (tensor - 0.1) / 0.9
     return tensor
 
 def array_to_tif(path, array):

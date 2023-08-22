@@ -70,7 +70,7 @@ JNet.eval()
 dirpath = "_beads_roi_extracted_stackreg"
 images = [os.path.join(dirpath, f) for f in sorted(os.listdir(dirpath))]
 print(images)
-losses = []
+#losses = []
 loss_fn = nn.MSELoss()
 for image_name in images[:-1]:
     image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
@@ -79,11 +79,11 @@ for image_name in images[:-1]:
     output  = outdict["enhanced_image"]
     output  = output.detach().cpu()
     reconst = outdict["reconstruction"]
-    loss    = loss_fn(reconst, image).item()
+    #loss    = loss_fn(reconst, image).item()
     qloss   = outdict["quantized_loss"]
     print("output ", torch.sum(output) * (0.05 * 0.05 * 0.05))
     reconst = reconst.squeeze(0).detach().cpu().numpy()
-    losses.append(loss)
+    #losses.append(loss)
     fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
@@ -97,7 +97,7 @@ for image_name in images[:-1]:
     ax2.imshow(output[0, 0, :, i, :],
             cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
     plt.savefig(f'result/{model_name}_noclip_{image_name[30:-3]}.png', format='png', dpi=250)
-print(losses)
+#print(losses)
 
 #for image_name in images[:-1]:
 #    image_ = torch.load(image_name, map_location="cuda")

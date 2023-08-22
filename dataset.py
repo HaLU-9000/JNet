@@ -443,7 +443,7 @@ class RealSeveralDataset(Dataset):
     def __init__(self, folderpath:str, imagename:str,
                  cropsize:list, I:int, low:int, high,
                  train=True, mask=True, mask_size=[10, 10, 10], mask_num=1,
-                 surround=True, surround_size=[64, 8, 8], seed=904):
+                 surround=True, surround_size=[64, 8, 8], preprocess=False, seed=904):
         self.I             = I
         self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}*.tif')))
         self.low           = low
@@ -459,7 +459,7 @@ class RealSeveralDataset(Dataset):
         self.surround      = surround
         self.surround_size = surround_size
         self.options       = [[-2], [-2,-1], [-1], [-4]]
-        
+        self.preprocess    = preprocess
         if train == False:
             np.random.seed(seed)
 
@@ -505,7 +505,7 @@ class RealSeveralDataset(Dataset):
         r, s = 1, 0
         while not r < s:
             idx = self.gen_indices(1, self.low, self.high).item()
-            image = tifpath_to_tensor(self.images[idx])
+            image = tifpath_to_tensor(self.images[idx], preprocess=self.preprocess)
             scale = self.temporal_solution(self.images[idx])
             ssize = [image.size(1), image.size(2), image.size(3)]
             icoords_size  = [ssize[0] - self.csize[0]//scale + 1,

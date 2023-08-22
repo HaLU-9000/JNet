@@ -16,16 +16,16 @@ device = (torch.device('cuda') if torch.cuda.is_available()
 print(f"Inference on device {device}.")
 
 image_folder = '_wakelabdata_processed/'
-image_name   = "1_Spine_structure_AD_175-11w-D3-xyz6-020C3-T1.tif"
+image_name   = "MD495_1G2_D14_FINC1-T1.tif"
 save_folder  = "_result_tif/"
-model_name           = 'JNet_301_ewc_5e6'
+model_name           = 'JNet_294_pretrain'
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
                         "log_bet_xy" : np.log(3.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
                         "sig_eps"    : 0.01              ,
-                        "scale"      : 6                 ,
+                        "scale"      : 12                 ,
                         }
 
 JNet = model.JNet(hidden_channels_list  = [16, 32, 64, 128, 256],
@@ -36,7 +36,7 @@ JNet = model.JNet(hidden_channels_list  = [16, 32, 64, 128, 256],
                   superres              = True                 ,
                   reconstruct           = True                 ,
                   apply_vq              = True                 ,
-                  use_x_quantized       = True                 ,
+                  use_x_quantized       = False                ,
                   use_fftconv           = True,
                   z = 161, x = 31, y = 31,
                   )
@@ -44,7 +44,7 @@ JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
-image      = tifpath_to_tensor(os.path.join(image_folder, image_name))
+image      = tifpath_to_tensor(os.path.join(image_folder, image_name), False)
 crop_size  = (16, 112, 112)
 overlap    = ( 1,  10,  10)
 # image padding
@@ -98,4 +98,4 @@ for _z in range(image.shape[1] // (crop_size[0] - overlap[0]) - 1):
                           y_stride*_y : y_stride*_y + overlap[2]  ,].clone() * 1/2
 result = result[:, :-zpad*scale, :-xpad, :-ypad].detach().cpu().numpy()
 print(result.shape)
-array_to_tif(os.path.join(save_folder, image_name), result)
+array_to_tif(os.path.join(save_folder,  model_name+image_name), result)

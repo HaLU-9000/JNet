@@ -29,6 +29,7 @@ train_dataset = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
                                    mask_size       =  [1, 10, 10]      ,
                                    surround        =  surround         ,
                                    surround_size   =  surround_size    ,
+                                   preprocess      = True              ,
                                   )
 val_dataset   = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
                                    imagename       =  '1_Spine_structure_AD_175-11w-D3-xyz6-020'        ,
@@ -40,6 +41,7 @@ val_dataset   = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
                                    mask            =  False            ,
                                    surround        =  False            ,
                                    surround_size   =  [64, 8, 8]       ,
+                                   preprocess      = True              ,
                                    seed            =  1204             ,
                                   )
 
@@ -56,7 +58,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_301_ewc_5e6'
+model_name           = 'JNet_304_ewc_1e4_preprocess'
 pretrainmodel_name   = 'JNet_294_pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
@@ -67,7 +69,7 @@ partial              = None #(56, 184)
 superres             = True
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
-                        "log_bet_z"  : np.log(30.).item(),
+                        "log_bet_z"  : np.log(40.).item(),
                         "log_bet_xy" : np.log(3.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
