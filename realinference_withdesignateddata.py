@@ -17,7 +17,7 @@ print(f"Inference on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_288_ewc_finetuning'
+model_name           = 'JNet_241_x6_largeblur-pretrain'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
@@ -90,6 +90,7 @@ for image_name in images[:-1]:
     ax2.imshow(output[0, 0, :, i, :],
             cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
     plt.savefig(f'result/{model_name}_new_{image_name[30:-3]}.png', format='png', dpi=250)
+print(model_name)
 print(np.mean(np.array(outputs)))
 
 #print(losses)

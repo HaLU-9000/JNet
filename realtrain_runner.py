@@ -14,35 +14,42 @@ print(f"Training on device {device}.")
 
 surround = False
 surround_size = [32, 4, 4]
-#train_score   = torch.load('./_stackbeadsscore/002_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-#val_score     = torch.load('./_stackbeadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+train_score   = torch.load('./_stackbeadsscore/002_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
+val_score     = torch.load('./_stackbeadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
 
-train_dataset = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
-                                   imagename       =  '1_Spine_structure_AD_175-11w-D3-xyz6-020'        ,
-                                   cropsize        =  (240, 112, 112)  , # size after segmentation
+scale = 10
+train_dataset = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
+                                   scorefolderpath =  '_stackbeadsscore'    ,
+                                   imagename       =  '002'            ,
+                                   size            =  ( 650, 512, 512) , # size after segmentation
+                                   cropsize        =  ( 240, 112, 112) , # size after segmentation
                                    I               = 200               ,
-                                   low             = 0                 ,
-                                   high            =  None             ,
+                                   low             =   0               ,
+                                   high            =   1               ,
+                                   scale           =  scale            ,   ## scale
                                    train           =  True             ,
                                    mask            =  True             ,
                                    mask_num        =  10               ,
                                    mask_size       =  [1, 10, 10]      ,
                                    surround        =  surround         ,
                                    surround_size   =  surround_size    ,
-                                   preprocess      = True              ,
+                                   score           =  train_score      ,
                                   )
-val_dataset   = RealSeveralDataset(folderpath      =  '_wakelabdata_processed/',
-                                   imagename       =  '1_Spine_structure_AD_175-11w-D3-xyz6-020'        ,
-                                   cropsize        =  (240, 112, 112)  ,
+val_dataset   = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
+                                   scorefolderpath =  '_stackbeadsscore'    ,
+                                   imagename       =  '002'            ,
+                                   size            =  ( 650, 512, 512) , # size after segmentation
+                                   cropsize        =  ( 240, 112, 112) ,
                                    I               =  20               ,
                                    low             =   0               ,
-                                   high            =  None             ,
+                                   high            =   1               ,
+                                   scale           =  scale            ,
                                    train           =  False            ,
                                    mask            =  False            ,
                                    surround        =  False            ,
                                    surround_size   =  [64, 8, 8]       ,
-                                   preprocess      = True              ,
                                    seed            =  1204             ,
+                                   score           =  val_score        ,
                                   )
 
 train_data  = DataLoader(train_dataset                 ,
@@ -58,8 +65,8 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_304_ewc_1e4_preprocess'
-pretrainmodel_name   = 'JNet_294_pretrain'
+model_name           = 'JNet_307_finetuning'
+pretrainmodel_name   = 'JNet_265_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -69,8 +76,8 @@ partial              = None #(56, 184)
 superres             = True
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
-                        "log_bet_z"  : np.log(40.).item(),
-                        "log_bet_xy" : np.log(3.).item() ,
+                        "log_bet_z"  : np.log(30.).item(),
+                        "log_bet_xy" : np.log(1.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 6                     ,                        
@@ -85,10 +92,10 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   reconstruct           = True                 ,
                   apply_vq              = True                 ,
                   use_x_quantized       = True                 ,
-                  use_fftconv           = True                 ,
+                  use_fftconv           = False                ,
                   z                     = 161                  , 
-                  x                     = 31                   , 
-                  y                     = 31                   ,
+                  x                     = 3                    , 
+                  y                     = 3                    ,
                   )
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{pretrainmodel_name}.pt'),
@@ -106,36 +113,35 @@ scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, '
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
 
-ewc_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur' ,  ###
-                                 imagename   =  f'_x6'                , 
-                                 labelname   =  '_label'              ,
-                                 size        =  (1200, 500, 500)      ,
-                                 cropsize    =  ( 240, 112, 112)      ,
-                                 I             = 800                  ,
-                                 low           =   0                  ,
-                                 high          =  16                  ,
-                                 scale         =  6               ,  ## scale
-                                 mask          =  True                ,
-                                 mask_size     =  [ 1, 10, 10]        ,
-                                 mask_num      =  10                  ,  #( 1% of image)
-                                 surround      =  surround            ,
-                                 surround_size =  surround_size       ,
-                                 )
-
-ewc_data    = DataLoader(ewc_dataset                   ,
-                         batch_size  = 1               ,
-                         shuffle     = True            ,
-                         pin_memory  = True            ,
-                         num_workers = os.cpu_count()  ,
-                         )
-ewc = ElasticWeightConsolidation(model           = JNet,
-                                 prev_dataloader = ewc_data,
-                                 loss_fn         = loss_fn,
-                                 init_num_batch  = 100,
-                                 is_vibrate      = True,
-                                 device          = device,
-                                 skip_register   = True   )
-torch.save(JNet.state_dict(), f'model/{pretrainmodel_name}.pt')
+# ewc_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur' ,  ###
+#                                  imagename   =  f'_x6'                , 
+#                                  labelname   =  '_label'              ,
+#                                  size        =  (1200, 500, 500)      ,
+#                                  cropsize    =  ( 240, 112, 112)      ,
+#                                  I             = 800                  ,
+#                                  low           =   0                  ,
+#                                  high          =  16                  ,
+#                                  scale         =  6               ,  ## scale
+#                                  mask          =  True                ,
+#                                  mask_size     =  [ 1, 10, 10]        ,
+#                                  mask_num      =  10                  ,  #( 1% of image)
+#                                  surround      =  surround            ,
+#                                  surround_size =  surround_size       ,
+#                                  )
+# ewc_data    = DataLoader(ewc_dataset                   ,
+#                          batch_size  = 1               ,
+#                          shuffle     = True            ,
+#                          pin_memory  = True            ,
+#                          num_workers = os.cpu_count()  ,
+#                          )
+# ewc = ElasticWeightConsolidation(model           = JNet,
+#                                  prev_dataloader = ewc_data,
+#                                  loss_fn         = loss_fn,
+#                                  init_num_batch  = 100,
+#                                  is_vibrate      = True,
+#                                  device          = device,
+#                                  skip_register   = True   )
+# torch.save(JNet.state_dict(), f'model/{pretrainmodel_name}.pt')
 
 print(f"============= model {model_name} train started =============")
 train_loop(
@@ -153,7 +159,7 @@ train_loop(
     param_normalize  = None        ,
     augment          = None        ,
     val_augment      = None        ,
-    ewc              = ewc         ,
+    ewc              = None        ,
     partial          = partial     ,
     scheduler        = scheduler   ,
     es_patience      = 20          ,
