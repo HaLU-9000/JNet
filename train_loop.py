@@ -69,6 +69,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
             else:
                 image    = train_data[0].to(device = device)
                 label    = train_data[1].to(device = device)
+            image = image + image * torch.randn_like(image)
+            image = torch.clamp(image, torch.tensor(0., device=device), torch.tensor(1., device=device))
             if is_vibrate:
                 vimage = vibrate(image)
             else:
@@ -108,6 +110,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                 else:
                     image    = val_data[0].to(device = device)
                     label    = val_data[1].to(device = device)
+                
+                image = image + image * torch.randn_like(image)
+                image = torch.clamp(image, torch.tensor(0., device=device), torch.tensor(1., device=device))
                 if is_vibrate:
                     vimage = vibrate(image)
                 else:
