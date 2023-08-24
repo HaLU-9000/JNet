@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_307_finetuning'
+model_name           = 'JNet_309_finetuning'
 pretrainmodel_name   = 'JNet_265_vibration'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
@@ -80,7 +80,7 @@ params               = {"mu_z"       : 0.2               ,
                         "log_bet_xy" : np.log(1.).item() ,
                         "log_alpha"  : np.log(1.).item() ,
                         "sig_eps": 0.01                  ,
-                        "scale"  : 6                     ,                        
+                        "scale"  : 10                    ,                        
                         }
 reconstruct = True
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
