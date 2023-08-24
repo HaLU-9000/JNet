@@ -17,7 +17,7 @@ print(f"Inference on device {device}.")
 scale    = 10
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_307_finetuning'
+model_name           = 'JNet_312_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 scale_factor         = (scale, 1, 1)
 nblocks              = 2
