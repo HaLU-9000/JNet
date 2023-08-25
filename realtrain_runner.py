@@ -65,7 +65,7 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_313_finetuning'
+model_name           = 'JNet_314_ewc_finetuning'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -132,15 +132,14 @@ ewc_data    = DataLoader(ewc_dataset                   ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
-#ewc = ElasticWeightConsolidation(model           = JNet,
-#                                 prev_dataloader = ewc_data,
-#                                 loss_fn         = loss_fn,
-#                                 init_num_batch  = 100,
-#                                 is_vibrate      = True,
-#                                 device          = device,
-#                                 skip_register   = False  )
+ewc = ElasticWeightConsolidation(model           = JNet,
+                                 prev_dataloader = ewc_data,
+                                 loss_fn         = loss_fn,
+                                 init_num_batch  = 100,
+                                 is_vibrate      = True,
+                                 device          = device,
+                                 skip_register   = False  )
 #torch.save(JNet.state_dict(), f'model/JNet_265_vibration.pt')
-ewc = None
 print(f"============= model {model_name} train started =============")
 train_loop(
     n_epochs         = 500         , ####
