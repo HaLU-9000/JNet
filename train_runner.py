@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_305_pretrain_poisson_noise'
+model_name           = 'JNet_317_pretrain_b1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -128,7 +128,7 @@ train_loop(
            partial          = partial              ,
            ewc              = None                 ,
            scheduler        = scheduler            ,
-           es_patience      = 10                   ,
+           es_patience      = 20                   ,
            reconstruct      = False                ,
            check_middle     = False                ,
            midloss_fn       = midloss_fn           ,

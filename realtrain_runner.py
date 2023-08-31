@@ -65,7 +65,8 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name           = 'JNet_314_ewc_finetuning'
+model_name            = 'JNet_319_fft_finetuning'
+pretrained_model_name = 'JNet_317_pretrain_b1'
 hidden_channels_list = [16, 32, 64, 128, 256]
 nblocks              = 2
 s_nblocks            = 2
@@ -76,8 +77,7 @@ superres = True if scale > 1 else False
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
-                        "log_bet_xy" : np.log(1.).item() ,
-                        "log_alpha"  : np.log(1.).item() ,
+                        "log_bet_xy" : np.log(3.).item() ,
                         "sig_eps": 0.01                  ,
                         "scale"  : 10                    ,
                         }
@@ -92,9 +92,11 @@ JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
                   reconstruct           = True                 ,
                   apply_vq              = True                 ,
                   use_x_quantized       = True                 ,
+                  use_fftconv           = True                 ,
+                  z = 161, x = 31, y = 31,
                   )
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load('model/JNet_265_vibration.pt'),
+JNet.load_state_dict(torch.load(f'model/{pretrained_model_name}.pt'),
                      strict=False)
 init_log_ez0 = (torch.tensor(params["mu_z"]) + 0.5 \
                 * torch.tensor(params["sig_z"]) ** 2).to(device)
@@ -110,18 +112,18 @@ scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, '
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
 
-ewc_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_hill' ,  ###
+ewc_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur' ,  ###
                                  imagename   =  f'_x6'                , 
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
-                                 cropsize    =  ( 240, 112, 112)        , 
+                                 cropsize    =  ( 240, 112, 112)      , 
                                  I             = 800                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
                                  scale         =  scale               ,  ## scale
                                  mask          =  True                ,
                                  mask_size     =  [ 1, 10, 10]        ,
-                                 mask_num      =  10                  ,  #( 1% of image)
+                                 mask_num      =  30                  ,  #( 1% of image)
                                  surround      =  surround            ,
                                  surround_size =  surround_size       ,
                                  )
@@ -132,14 +134,15 @@ ewc_data    = DataLoader(ewc_dataset                   ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
-ewc = ElasticWeightConsolidation(model           = JNet,
-                                 prev_dataloader = ewc_data,
-                                 loss_fn         = loss_fn,
-                                 init_num_batch  = 100,
-                                 is_vibrate      = True,
-                                 device          = device,
-                                 skip_register   = False  )
+#ewc = ElasticWeightConsolidation(model           = JNet,
+#                                 prev_dataloader = ewc_data,
+#                                 loss_fn         = loss_fn,
+#                                 init_num_batch  = 100,
+#                                 is_vibrate      = True,
+#                                 device          = device,
+#                                 skip_register   = False  )
 #torch.save(JNet.state_dict(), f'model/JNet_265_vibration.pt')
+ewc = None
 print(f"============= model {model_name} train started =============")
 train_loop(
     n_epochs         = 500         , ####
