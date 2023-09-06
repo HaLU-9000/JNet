@@ -18,7 +18,7 @@ print(f"Inference on device {device}.")
 image_folder = '_wakelabdata_processed/'
 image_name   = "MD495_1G2_D14_FINC1-T1.tif"
 save_folder  = "_result_tif/"
-model_name           = 'JNet_294_pretrain'
+model_name           = 'JNet_314_ewc_finetuning'
 params               = {"mu_z"       : 0.2               ,
                         "sig_z"      : 0.2               ,
                         "log_bet_z"  : np.log(30.).item(),
@@ -45,6 +45,9 @@ JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
 image      = tifpath_to_tensor(os.path.join(image_folder, image_name), False)
+print(image.shape)
+image = image[:, 1:17, 512:1024, 512:1024].clone()
+array_to_tif(os.path.join(save_folder,  "original"+model_name+image_name), image.numpy())
 crop_size  = (16, 112, 112)
 overlap    = ( 1,  10,  10)
 # image padding
@@ -99,3 +102,4 @@ for _z in range(image.shape[1] // (crop_size[0] - overlap[0]) - 1):
 result = result[:, :-zpad*scale, :-xpad, :-ypad].detach().cpu().numpy()
 print(result.shape)
 array_to_tif(os.path.join(save_folder,  model_name+image_name), result)
+
