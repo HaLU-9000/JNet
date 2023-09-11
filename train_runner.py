@@ -16,8 +16,8 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_317_pretrain_b1'
-hidden_channels_list = [16, 32, 64, 128, 256]
+model_name           = 'JNet_321_half_channel'
+hidden_channels_list = [8, 16, 32, 64, 128]
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
