@@ -300,8 +300,8 @@ class JNetLayer(nn.Module):
         d = self.conv(d) # checkpoint
         for f in self.prev:
             d = f(d)
-        d = self.mid(d)
         d = self.attn(d)
+        d = self.mid(d)
         for f in self.post:
             d = f(d)
         d = self.unpool(d) # checkpoint
