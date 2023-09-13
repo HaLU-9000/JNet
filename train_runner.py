@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_327_1_4_pre_cross_attn_1' # 318_pretrain_b1
+model_name           = 'JNet_328_1_4_pre_cross_attn_1' # 318_pretrain_b1
 hidden_channels_list = [4, 8, 16, 32, 64]
 nblocks              = 2
 s_nblocks            = 2
