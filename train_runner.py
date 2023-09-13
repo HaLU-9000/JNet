@@ -16,8 +16,8 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_326_1_8_128_channel' # 318_pretrain_b1
-hidden_channels_list = [2, 4, 8, 16, 128]
+model_name           = 'JNet_326_1_4_cross_attn_1' # 318_pretrain_b1
+hidden_channels_list = [4, 8, 16, 32, 64]
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
@@ -35,11 +35,12 @@ params               = {"mu_z"   : 0.2  ,
                         "scale"  :  6
                         }
 
-image_size = (1, 1, 240,  112,  112)
+image_size = (1, 1, 240, 112, 112)
 original_cropsize = [360, 120, 120]
-param_estimation_list = [False, False, False, False, True]
+attn_list = [False, False, False, False, True]
 
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
+                  attn_list             = attn_list            , 
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,

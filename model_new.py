@@ -262,12 +262,11 @@ class VectorQuantizer(nn.Module):
 
 class JNetLayer(nn.Module):
     def __init__(self, in_channels, hidden_channels_list,
-                 x_dim_list, params_dim, nblocks, dropout):
+                 attn_list, nblocks, dropout):
         super().__init__()
-        self.last = hidden_channels_list[-1]
+        is_attn = attn_list.pop(0)
         hidden_channels = hidden_channels_list.pop(0)
         self.hidden_channels = hidden_channels
-        x_dim = x_dim_list.pop(0)
         self.pool = JNetPooling(in_channels  = in_channels    ,
                                 out_channels = hidden_channels,)
         self.conv = nn.Conv3d(in_channels    = hidden_channels,
@@ -281,11 +280,14 @@ class JNetLayer(nn.Module):
                                              ) for _ in range(nblocks)])
         self.mid = JNetLayer(in_channels           = hidden_channels      ,
                              hidden_channels_list  = hidden_channels_list ,
-                             x_dim_list            = x_dim_list           ,
-                             params_dim            = params_dim           ,
+                             attn_list             = attn_list            ,
                              nblocks               = nblocks              ,
                              dropout               = dropout              ,
                              ) if hidden_channels_list else nn.Identity()
+        self.attn = CrossAttentionBlock(channels = hidden_channels ,
+                                        n_heads  = 8               ,
+                                        d_cond   = hidden_channels ,)\
+                                            if is_attn else nn.Identity()
         self.post = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
@@ -299,6 +301,7 @@ class JNetLayer(nn.Module):
         for f in self.prev:
             d = f(d)
         d = self.mid(d)
+        d = self.attn(d)
         for f in self.post:
             d = f(d)
         d = self.unpool(d) # checkpoint
@@ -448,6 +451,7 @@ class Blur(nn.Module):
         norm     = torch.exp(-d_2 / 2) / normterm
         return norm
 
+
 class Noise(nn.Module):
     def __init__(self, sig_eps):
         super().__init__()
@@ -571,7 +575,7 @@ class SuperResolutionLayer(nn.Module):
 
 
 class JNet(nn.Module):
-    def __init__(self, hidden_channels_list, nblocks, activation,
+    def __init__(self, hidden_channels_list, attn_list, nblocks, activation,
                  dropout, params, superres:bool, reconstruct=False,
                  apply_vq=False, use_fftconv=False,
                  use_x_quantized=True, blur_mode="gaussian", device='cuda',
@@ -579,11 +583,10 @@ class JNet(nn.Module):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
-        params_dim = int(len(params) - 2)
         scale_factor            = (params["scale"], 1, 1)
         hidden_channels_list    = hidden_channels_list.copy()
         hidden_channels = hidden_channels_list.pop(0)
-        x_dim_list = hidden_channels_list.copy() 
+        attn_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
                                 out_channels = hidden_channels,)
         self.prev  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
@@ -592,8 +595,7 @@ class JNet(nn.Module):
                                               ) for _ in range(nblocks)])
         self.mid   = JNetLayer(in_channels           = hidden_channels      ,
                                hidden_channels_list  = hidden_channels_list ,
-                               x_dim_list            = x_dim_list           ,
-                               params_dim            = params_dim           ,
+                               attn_list             = attn_list            ,
                                nblocks               = nblocks              ,
                                dropout               = dropout              ,
                                ) if hidden_channels_list else nn.Identity()
@@ -652,7 +654,7 @@ if __name__ == '__main__':
     import torch.optim as optim
     surround = False
     surround_size = [32, 4, 4]
-    hidden_channels_list = [16, 32, 64, 128, 256]
+    hidden_channels_list = [4, 8, 16, 32]
     nblocks              = 2
     s_nblocks            = 2
     activation           = nn.ReLU(inplace=True)
@@ -668,6 +670,7 @@ if __name__ == '__main__':
                             }
     image_size = (4, 1, 24, 96, 96)
     model =  JNet(hidden_channels_list  = hidden_channels_list ,
+                  attn_list=[False, False, False, True],
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
