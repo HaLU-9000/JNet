@@ -284,10 +284,14 @@ class JNetLayer(nn.Module):
                              nblocks               = nblocks              ,
                              dropout               = dropout              ,
                              ) if hidden_channels_list else nn.Identity()
-        self.attn = CrossAttentionBlock(channels = hidden_channels ,
-                                        n_heads  = 8               ,
-                                        d_cond   = hidden_channels ,)\
-                                            if is_attn else nn.Identity()
+        self.attn0 = CrossAttentionBlock(channels = hidden_channels ,
+                                         n_heads  = 8               ,
+                                         d_cond   = hidden_channels ,)\
+                                             if is_attn else nn.Identity()
+        self.attn1 = CrossAttentionBlock(channels = hidden_channels ,
+                                         n_heads  = 8               ,
+                                         d_cond   = hidden_channels ,)\
+                                             if is_attn else nn.Identity()
         self.post = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                              hidden_channels = hidden_channels,
                                              dropout         = dropout        ,
@@ -300,8 +304,9 @@ class JNetLayer(nn.Module):
         d = self.conv(d) # checkpoint
         for f in self.prev:
             d = f(d)
-        d = self.attn(d)
+        d = self.attn0(d)
         d = self.mid(d)
+        d = self.attn1(d)
         for f in self.post:
             d = f(d)
         d = self.unpool(d) # checkpoint
