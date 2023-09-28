@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name           = 'JNet_332_1_4_after_cross_attn_pp' # 318_pretrain_b1
+model_name           = 'JNet_337_1_4_attn_batch_4' # 318_pretrain_b1
 hidden_channels_list = [4, 8, 16, 32, 64]
 nblocks              = 2
 s_nblocks            = 2
@@ -70,7 +70,7 @@ train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
                                  cropsize    =  ( 240, 112, 112)      , 
-                                 I             = 200                  ,
+                                 I             = 800                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
                                  scale         =  scale               ,  ## scale
@@ -85,7 +85,7 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  20                    ,
+                                 I             =  80                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
@@ -97,13 +97,13 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur
                                 )       
 
 train_data  = DataLoader(train_dataset                 ,
-                         batch_size  = 1               ,
+                         batch_size  = 4               ,
                          shuffle     = True            ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,
                          )
 val_data    = DataLoader(val_dataset                   ,
-                         batch_size  = 1               ,
+                         batch_size  = 4               ,
                          shuffle     = False           ,
                          pin_memory  = True            ,
                          num_workers = os.cpu_count()  ,

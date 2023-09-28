@@ -1,4 +1,5 @@
-# TODO delete param estimation layer and alpha, log_k, log_l
+import numpy as np
+import scipy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -284,11 +285,7 @@ class JNetLayer(nn.Module):
                              nblocks               = nblocks              ,
                              dropout               = dropout              ,
                              ) if hidden_channels_list else nn.Identity()
-        self.attn0 = CrossAttentionBlock(channels = hidden_channels ,
-                                         n_heads  = 8               ,
-                                         d_cond   = hidden_channels ,)\
-                                             if is_attn else nn.Identity()
-        self.attn1 = CrossAttentionBlock(channels = hidden_channels ,
+        self.attn = CrossAttentionBlock(channels = hidden_channels ,
                                          n_heads  = 8               ,
                                          d_cond   = hidden_channels ,)\
                                              if is_attn else nn.Identity()
@@ -304,15 +301,13 @@ class JNetLayer(nn.Module):
         d = self.conv(d) # checkpoint
         for f in self.prev:
             d = f(d)
-        d = self.attn0(d)
         d = self.mid(d)
-        d = self.attn1(d)
+        d = self.attn(d)
         for f in self.post:
             d = f(d)
         d = self.unpool(d) # checkpoint
         x = x + d
         return x
-
 
 class Emission(nn.Module):
     def __init__(self, mu_z, sig_z, log_ez0):
@@ -320,21 +315,6 @@ class Emission(nn.Module):
         self.mu_z     = mu_z
         self.sig_z    = sig_z
         self.log_ez0  = log_ez0
-        #self.mu_z_    = mu_z.item()
-        #self.sig_z_   = sig_z.item()
-        #self.logn_ppf = lognorm.ppf([0.99], 1,
-        #                    loc=self.mu_z_, scale=self.sig_z_)[0]
-        
-    def sample(self, x):
-        b = x.shape[0]
-        mu_z   = torch.tensor(self.mu_z )
-        sig_z  = torch.tensor(self.sig_z) 
-        pz0  = dist.LogNormal(loc   = mu_z.view( b, 1, 1, 1, 1).expand(*x.shape),
-                              scale = sig_z.view(b, 1, 1, 1, 1).expand(*x.shape),)
-        x    = x * pz0.sample().to(x.device)
-        x    = torch.clip(x, min=0, max=1)
-        #x    = x / self.logn_ppf
-        return x
 
     def forward(self, x):
         x = x * torch.exp(self.log_ez0)
@@ -365,36 +345,38 @@ class Intensity(nn.Module):
 
 
 class Blur(nn.Module):
-    def __init__(self, z, x, y, log_bet_z, log_bet_xy, scale, device,
-                 psf_mode:str="double_exp", apply_hill=False, use_fftconv=False):
+    def __init__(self, params, device, use_fftconv=False):
         super().__init__()
-        self.log_bet_z   = log_bet_z
-        self.log_bet_xy  = log_bet_xy
-        self.zscale, \
-        self.xscale, \
-        self.yscale  = scale
-        self.z       = z
-        self.x       = x
-        self.y       = y
-        self.device  = device
-        self.zd      = self.distance(z)
-        self.dp      = self.gen_distance_plane(xlen=x, ylen=y)
-        self.mode    = psf_mode
-        bet_xy       = torch.exp(self.log_bet_xy)
-        bet_z        = torch.exp(self.log_bet_z )
-        self.psf     = self.gen_psf(bet_xy, bet_z).to(device)
-        self.z_pad   = (z - self.zscale + 1) // 2
-        self.x_pad   = (x - self.xscale + 1) // 2
-        self.y_pad   = (y - self.yscale + 1) // 2
-        self.stride  = (self.zscale, self.xscale, self.yscale)
-        self.apply_hill = apply_hill
+        self.params      = params
+        self.device      = device
         self.use_fftconv = use_fftconv
-
+        gibson_lanni     = GibsonLanniModel(params)
+        self.psf_rz      = nn.Parameter(torch.tensor(gibson_lanni.PSF_rz, requires_grad=True).float().to(self.device))
+        self.psf_rz_s0   = self.psf_rz.shape[0]
+        xy               = torch.meshgrid(torch.arange(params["size_y"]),
+                                          torch.arange(params["size_x"]),
+                                          indexing='ij')
+        #self.psf      = nn.Parameter(torch.zeros((self.params["size_z"], self.params["size_x"],  self.params["size_y"]), device=self.device), requires_grad=True)
+        r = torch.tensor(gibson_lanni.r)
+        x0 = (params["size_x"] - 1) / 2
+        y0 = (params["size_y"] - 1) / 2
+        r_pixel = torch.sqrt((xy[1] - x0) ** 2 + (xy[0] - y0) ** 2) * params["res_lateral"]
+        rs0, = r.shape
+        self.rps0, self.rps1 = r_pixel.shape
+        r_e = r[:, None, None].expand(rs0, self.rps0, self.rps1)
+        r_pixel_e = r_pixel[None].expand(rs0, self.rps0, self.rps1)
+        r_index = torch.argmin(torch.abs(r_e- r_pixel_e), dim=0)
+        r_index_fe = r_index.flatten().expand(self.psf_rz_s0, -1)
+        self.r_index_fe = r_index_fe.to(self.device)
+        self.z_pad   = int((params["size_z"] - self.params["res_axial"] // self.params["res_lateral"] + 1) // 2)
+        self.x_pad   = (params["size_x"]) // 2
+        self.y_pad   = (params["size_y"]) // 2
+        self.stride  = (params["scale"], 1, 1)
+        
     def forward(self, x):
-        x_shape = x.shape
-        bet_xy  = torch.exp(self.log_bet_xy)
-        bet_z   = torch.exp(self.log_bet_z )
-        psf = self.gen_psf(bet_xy, bet_z).to(self.device)
+        psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
+        psf = psf / torch.sum(psf)
+        psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         if self.use_fftconv:
             _x   = fft_conv(signal  = x                                    ,
                             kernel  = psf                                  ,
@@ -409,52 +391,65 @@ class Blur(nn.Module):
                             )
         return _x
 
-    def gen_psf(self, bet_xy, bet_z):
-        if bet_xy.shape:
-            b = bet_xy.shape[0]
-        else:
-            b = 1
-        psf_lateral = self.gen_2dnorm(self.dp, bet_xy, b)[:, None, None,    :,    :]
-        psf_axial   = self.gen_1dnorm(self.zd, bet_z , b)[:, None,    :, None, None]
-        psf = torch.exp(torch.log(psf_lateral) + torch.log(psf_axial)) # log-sum-exp technique
-        psf = psf / torch.sum(psf)
-        return psf
 
-    def _init_distance(self, length):
-        return torch.zeros(length)
+class GibsonLanniModel():
+    def __init__(self, params):
+        size_x = params["size_x"]#256 # # # # param # # # #
+        size_y = params["size_y"]#256 # # # # param # # # #
+        size_z = params["size_z"]#128 # # # # param # # # #
 
-    def _distance_from_center(self, index, length):
-        return abs(index - length // 2)
+        # Precision control
+        num_basis    = 100  # Number of rescaled Bessels that approximate the phase function
+        num_samples  = 1000 # Number of pupil samples along radial direction
+        oversampling = 1    # Defines the upsampling ratio on the image space grid for computations
 
-    def distance(self, length):
-        distance = torch.zeros(length)
-        for idx in range(length):
-            distance[idx] = self._distance_from_center(idx, length)
-        return distance.to(self.device)
+        # Microscope parameters
+        NA          = params["NA"]#1.1   # # # # param # # # #
+        wavelength  = params["wavelength"]#0.910 # microns # # # # param # # # #
+        M           = params["M"]#25    # magnification # # # # param # # # #
+        ns          = 1.33  # specimen refractive index (RI)
+        ng0         = 1.5   # coverslip RI design value
+        ng          = 1.5   # coverslip RI experimental value
+        ni0         = 1.5   # immersion medium RI design value
+        ni          = 1.5   # immersion medium RI experimental value
+        ti0         = 150   # microns, working distance (immersion medium thickness) design value
+        tg0         = 170   # microns, coverslip thickness design value
+        tg          = 170   # microns, coverslip thickness experimental value
+        res_lateral = params["res_lateral"]#0.05  # microns # # # # param # # # #
+        res_axial   = params["res_axial"]#0.5   # microns # # # # param # # # #
+        pZ          = 2     # microns, particle distance from coverslip
 
-    def gen_distance_plane(self, xlen, ylen):
-        xd = self.distance(xlen)
-        yd = self.distance(ylen)
-        xp = xd.expand(ylen, xlen)
-        yp = yd.expand(xlen, ylen).transpose(1, 0)
-        dp = xp ** 2 + yp ** 2
-        return dp.to(self.device)
+        # Scaling factors for the Fourier-Bessel series expansion
+        min_wavelength = 0.436 # microns
+        scaling_factor = NA * (3 * np.arange(1, num_basis + 1) - 2) * min_wavelength / wavelength
+        x0 = (size_x - 1) / 2
+        y0 = (size_y - 1) / 2
+        max_radius = round(np.sqrt((size_x - x0) * (size_x - x0) + (size_y - y0) * (size_y - y0)))
+        r = res_lateral * np.arange(0, oversampling * max_radius) / oversampling
+        self.r = r
+        a = min([NA, ns, ni, ni0, ng, ng0]) / NA
+        rho = np.linspace(0, a, num_samples)
 
-    def gen_2dnorm(self, distance_plane, bet_xy, b):
-        distance_plane = distance_plane.expand(b, *distance_plane.shape)
-        bet_xy = bet_xy.view(b, 1, 1).expand(*distance_plane.shape)
-        d_2      =  distance_plane / bet_xy ** 2
-        normterm = (torch.pi * 2) * (bet_xy ** 2)
-        norm     = torch.exp(-d_2 / 2) / normterm
-        return norm
+        z = res_axial * np.arange(-size_z / 2, size_z /2) + res_axial / 2
 
-    def gen_1dnorm(self, distance, bet_z, b):
-        distance = distance.expand(b, *distance.shape)
-        bet_z = bet_z.view(b, 1).expand(*distance.shape)
-        d_2      =  distance ** 2 / bet_z ** 2
-        normterm = (torch.pi * 2) ** 0.5 * bet_z
-        norm     = torch.exp(-d_2 / 2) / normterm
-        return norm
+        OPDs = pZ * np.sqrt(ns * ns - NA * NA * rho * rho) # OPD in the sample
+        OPDi = (z.reshape(-1,1) + ti0) * np.sqrt(ni * ni - NA * NA * rho * rho) - ti0 * np.sqrt(ni0 * ni0 - NA * NA * rho * rho) # OPD in the immersion medium
+        OPDg = tg * np.sqrt(ng * ng - NA * NA * rho * rho) - tg0 * np.sqrt(ng0 * ng0 - NA * NA * rho * rho) # OPD in the coverslip
+        W    = 2 * np.pi / wavelength * (OPDs + OPDi + OPDg)
+        phase = np.cos(W) + 1j * np.sin(W)
+        J = scipy.special.jv(0, scaling_factor.reshape(-1, 1) * rho)
+        C, residuals, _, _ = np.linalg.lstsq(J.T, phase.T)
+        b = 2 * np.pi * r.reshape(-1, 1) * NA / wavelength
+        J0 = lambda x: scipy.special.j0(x)
+        J1 = lambda x: scipy.special.j1(x)
+        denom = scaling_factor * scaling_factor - b * b
+        R = scaling_factor * J1(scaling_factor * a) * J0(b * a) * a - b * J0(scaling_factor * a) * J1(b * a) * a
+        R /= denom
+        PSF_rz = (np.abs(R.dot(C))**2).T
+        self.PSF_rz = PSF_rz / np.max(PSF_rz)
+
+    def __call__(self):
+        return self.PSF_rz
 
 
 class Noise(nn.Module):
@@ -464,14 +459,7 @@ class Noise(nn.Module):
 
     def forward(self, x):
         return x
-    
-    def sample(self, x):
-        b = x.shape[0]
-        px = dist.Normal(loc   = x           ,
-                         scale = self.sig_eps.view(b, 1, 1, 1, 1).expand(*x.shape).to(x.device))
-        x  = px.rsample()
-        x  = torch.clip(x, min=0, max=1)
-        return x
+
 
 
 class PreProcess(nn.Module):
@@ -502,63 +490,25 @@ class ImagingProcess(nn.Module):
             self.mu_z       = params["mu_z"]
             self.sig_z      = params["sig_z"]
             self.log_ez0    = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(device), requires_grad=True)
-            self.log_bet_z  = nn.Parameter(torch.tensor(params["log_bet_z" ]).to(device), requires_grad=True)
-            self.log_bet_xy = nn.Parameter(torch.tensor(params["log_bet_xy"]).to(device), requires_grad=True)
         elif mode == "dataset":
             self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=False)
             self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=False)
-            self.log_bet_z   = nn.Parameter(torch.tensor(params["log_bet_z" ]), requires_grad=False)
-            self.log_bet_xy  = nn.Parameter(torch.tensor(params["log_bet_xy"]), requires_grad=False)
         else:
             raise(NotImplementedError())
-        scale = [params["scale"], 1, 1]
         self.emission   = Emission(mu_z    = self.mu_z ,
                                    sig_z   = self.sig_z,
                                    log_ez0 = self.log_ez0,)
-        self.blur       = Blur(z           = z              ,
-                               x           = x              ,
-                               y           = y              ,
-                               log_bet_z   = self.log_bet_z ,
-                               log_bet_xy  = self.log_bet_xy,
-                               scale       = scale          ,
+        self.blur       = Blur(params      = params         ,
                                device      = device         ,
-                               psf_mode    = dist           ,
-                               apply_hill  = apply_hill     ,
                                use_fftconv = use_fftconv    ,)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         self.preprocess = PreProcess(min=postmin, max=postmax)
 
+
     def forward(self, x):
         x = self.emission(x)
         x = self.blur(x)
-        x = x + (torch.clamp(x, min=0., max=1.) - x).detach()
         x = self.preprocess(x)
-        return x
-
-    def sample(self, x):
-        x = self.emission.sample(x)
-        x = self.blur(x)
-        x = self.noise.sample(x)
-        x = self.preprocess(x)
-        x = torch.clamp(x, min=0., max=1.)
-        return x
-    
-    def sample_from_params(self, x, params):
-        if isinstance(params["scale"], torch.Tensor):
-            z = int(params["scale"][0])
-        else:
-            z = params["scale"]
-        scale = [z, 1, 1] ## use only one scale
-        emission   = Emission(tt(params["mu_z"]), tt(params["sig_z"]))
-        blur       = Blur(self.z, self.x, self.y,
-                          tt(params["log_bet_z"]), tt(params["log_bet_xy"]),
-                          tt(params["log_k"]), scale, self.device)
-        noise      = Noise(tt(params["sig_eps"]))
-        preprocess = PreProcess(min=self.postmin, max=self.postmax)
-        x = emission.sample(x)
-        x = blur(x)
-        x = noise.sample(x)
-        x = preprocess(x)
         return x
 
 

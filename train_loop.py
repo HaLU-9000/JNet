@@ -133,10 +133,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
                     vmidloss_sum += vmid_loss.detach().item()
         num  = len(train_loader)
         vnum = len(val_loader)
-        ez0, bet_z, bet_xy  = [i for i in model.parameters()][-3:]
-        if verbose:
-            print([i for i in model.state_dict()][-3:])
-            print(ez0, bet_z, bet_xy)
+        
         loss_list.append(loss_sum / num)
         midloss_list.append(midloss_sum / num) if check_middle else 0
         vloss_list.append(vloss_sum / vnum)
@@ -147,9 +144,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, param_loss_fn, train_loader,
         writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
         writer.add_scalar('val middle loss', vmidloss_sum / vnum, epoch) if check_middle else 0
         writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
-        writer.add_scalar('bet_xy', bet_xy.item(), epoch)
-        writer.add_scalar('bet_z' , bet_z.item() , epoch)
-        writer.add_scalar('ez0'   , ez0.item()   , epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
