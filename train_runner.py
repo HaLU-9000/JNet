@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name = 'JNet_340_physicspsf_pretrain_test' # 318_pretrain_b1
+model_name = 'JNet_341_physicspsf_pretrain' # 318_pretrain_b1
 params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
               "attn_list"             : [False, False, False, False, True],     
               "nblocks"               : 2                                 ,     
@@ -73,7 +73,7 @@ train_dataset = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur
                                  labelname   =  '_label'              ,
                                  size        =  (1200, 500, 500)      ,
                                  cropsize    =  ( 240, 112, 112)      , 
-                                 I             = 2                  ,
+                                 I             = 200                  ,
                                  low           =   0                  ,
                                  high          =  16                  ,
                                  scale         =  scale               ,  ## scale
@@ -88,7 +88,7 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  2                    ,
+                                 I             =  20                    ,
                                  low           =  16                    ,
                                  high          =  20                    ,
                                  scale         =  scale                 ,   ## scale
