@@ -386,6 +386,7 @@ class Blur(nn.Module):
 
 class GaussianModel():
     def __init__(self, params):
+        oversampling = 1    # Defines the upsampling ratio on the image space grid for computations
         size_x = params["size_x"]
         size_y = params["size_y"]
         size_z = params["size_z"]
@@ -394,13 +395,15 @@ class GaussianModel():
         x0 = (size_x - 1) / 2
         y0 = (size_y - 1) / 2
         z0 = (size_z - 1) / 2
+        res_lateral = params["res_lateral"]#0.05  # microns # # # # param # # # #
         max_radius = round(np.sqrt((size_x - x0) * (size_x - x0) + (size_y - y0) * (size_y - y0)))
+        self.r = res_lateral * np.arange(0, oversampling * max_radius) / oversampling
         xy = np.meshgrid(np.arange(params["size_z"]), np.arange(max_radius), indexing="ij")
         distance = np.sqrt((xy[1] / bet_xy) ** 2 + ((xy[0] - z0) / bet_z) ** 2)
-        self.psf_rz = np.exp(- distance ** 2)
+        self.PSF_rz = np.exp(- distance ** 2)
 
     def __call__(self):
-        return self.psf_rz
+        return self.PSF_rz
 
 
 class GibsonLanniModel():

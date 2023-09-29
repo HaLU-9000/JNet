@@ -16,7 +16,7 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name = 'JNet_341_physicspsf_pretrain' # 318_pretrain_b1
+model_name = 'JNet_342_gaussianpsf_pretrain' # 318_pretrain_b1
 params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
               "attn_list"             : [False, False, False, False, True],     
               "nblocks"               : 2                                 ,     
@@ -30,7 +30,7 @@ params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
               "use_x_quantized"       : False                             ,     
               "mu_z"                  : 0.1                               ,
               "sig_z"                 : 0.1                               ,
-              "blur_mode"             : "gibsonlanni"                     ,
+              "blur_mode"             : "gaussian"                        ,
               "size_x"                : 51                                ,
               "size_y"                : 51                                ,
               "size_z"                : 161                               ,
@@ -48,6 +48,8 @@ params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
               "res_lateral"           : 0.05                              , # microns # # # # param # # # #
               "res_axial"             : 0.05                              , # microns # # # # param # # # #
               "pZ"                    : 0                                 , # microns, particle distance from coverslip
+              "bet_z"                 : 30.                               ,
+              "bet_xy"                :  3.                               ,
               "sig_eps"               : 0.01                              ,
               "scale"                 : 10                                ,
               "device"                : device                            ,
