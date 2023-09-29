@@ -65,33 +65,45 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-model_name            = 'JNet_338_physics'
-pretrained_model_name = 'JNet_326_1_4_cross_attn_1'
+model_name            = 'JNet_346_gaussianpsf_finetuning'
+pretrained_model_name = 'JNet_344_gaussianpsf_pretrain_woattn'
 
-params     = {"hidden_channels_list" : [4, 8, 16, 32, 64]                 ,
-              "attn_list"            : [False, False, False, False, True] ,     
-              "nblocks"              : 2                                  ,     
-              "activation"           : nn.ReLU(inplace=True)              ,     
-              "dropout"              : 0.5                                ,     
-              "superres"             : True                               ,     
-              "reconstruct"          : True                               ,     
-              "apply_vq"             : True                               ,     
-              "use_fftconv"          : True                               ,     
-              "use_x_quantized"      : True                               ,     
-              "mu_z"                 : 0.1                                ,
-              "sig_z"                : 0.1                                ,
-              "blur_mode"            : "gaussian"                         ,
-              "size_x"               : 51                                 ,
-              "size_y"               : 51                                 ,
-              "size_z"               : 161                                ,
-              "NA"                   : 1.33                               ,
-              "wavelength"           : 0.910                              ,
-              "M"                    : 25                                 ,
-              "res_lateral"          : 0.05                               ,
-              "res_axial"            : 0.5                                ,
-              "sig_eps"              : 0.01                               ,
-              "scale"                : 10                                 ,
-              "device"               : device                             ,
+params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
+              "attn_list"             : [False, False, False, False, False],     
+              "nblocks"               : 2                                 ,     
+              "activation"            : nn.ReLU(inplace=True)             ,     
+              "dropout"               : 0.5                               ,     
+              "superres"              : True                              ,     
+              "partial"               : None                              ,
+              "reconstruct"           : True                              ,     
+              "apply_vq"              : True                              ,     
+              "use_fftconv"           : True                              ,     
+              "use_x_quantized"       : True                              ,     
+              "mu_z"                  : 0.1                               ,
+              "sig_z"                 : 0.1                               ,
+              "blur_mode"             : "gaussian"                        , # "gaussian" or "gibsonlanni"
+              "size_x"                : 51                                ,
+              "size_y"                : 51                                ,
+              "size_z"                : 161                               ,
+              "NA"                    : 0.80                              , # # # # param # # # #
+              "wavelength"            : 0.910                             , # microns # # # # param # # # #
+              "M"                     : 25                                , # magnification # # # # param # # # #
+              "ns"                    : 1.4                               , # specimen refractive index (RI)
+              "ng0"                   : 1.5                               , # coverslip RI design value
+              "ng"                    : 1.5                               , # coverslip RI experimental value
+              "ni0"                   : 1.5                               , # immersion medium RI design value
+              "ni"                    : 1.5                               , # immersion medium RI experimental value
+              "ti0"                   : 150                               , # microns, working distance (immersion medium thickness) design value
+              "tg0"                   : 170                               , # microns, coverslip thickness design value
+              "tg"                    : 170                               , # microns, coverslip thickness experimental value
+              "res_lateral"           : 0.05                              , # microns # # # # param # # # #
+              "res_axial"             : 0.05                              , # microns # # # # param # # # #
+              "pZ"                    : 0                                 , # microns, particle distance from coverslip
+              "bet_z"                 : 30.                               ,
+              "bet_xy"                :  3.                               ,
+              "sig_eps"               : 0.01                              ,
+              "scale"                 : 10                                ,
+              "device"                : device                            ,
               }
 
 JNet = model.JNet(params)
@@ -100,9 +112,9 @@ JNet.load_state_dict(torch.load(f'model/{pretrained_model_name}.pt'),
                      strict=False)
 #print([i for i in JNet.parameters()][-4:])
 
-params = JNet.parameters()
+train_params = JNet.parameters()
 
-optimizer            = optim.Adam(params, lr = 1e-3)
+optimizer            = optim.Adam(train_params, lr = 1e-3)
 scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
 loss_fn              = nn.MSELoss()
 midloss_fn           = nn.BCELoss()
@@ -144,17 +156,14 @@ train_loop(
     optimizer        = optimizer   ,
     model            = JNet        ,
     loss_fn          = loss_fn     ,
-    param_loss_fn    = None        ,
     train_loader     = train_data  ,
     val_loader       = val_data    ,
     device           = device      ,
     path             = 'model'     ,
     savefig_path     = 'train'     ,
     model_name       = model_name  ,
-    param_normalize  = None        ,
-    augment          = None        ,
-    val_augment      = None        ,
     ewc              = ewc         ,
+    params           = params      ,
     partial          = params["partial"]     ,
     scheduler        = scheduler   ,
     es_patience      = 20          ,
@@ -164,6 +173,4 @@ train_loop(
     is_vibrate       = True        ,
     loss_weight      = 1           ,
     qloss_weight     = 1           ,
-    paramloss_weight = 0           ,
-    verbose          = False       ,
     )
