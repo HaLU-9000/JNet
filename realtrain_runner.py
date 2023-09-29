@@ -92,7 +92,6 @@ params     = {"hidden_channels_list" : [4, 8, 16, 32, 64]                 ,
               "sig_eps"              : 0.01                               ,
               "scale"                : 10                                 ,
               "device"               : device                             ,
-              
               }
 
 JNet = model.JNet(params)

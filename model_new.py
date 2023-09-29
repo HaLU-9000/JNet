@@ -311,54 +311,39 @@ class JNetLayer(nn.Module):
         return x
 
 class Emission(nn.Module):
-    def __init__(self, mu_z, sig_z, log_ez0):
+    def __init__(self, params, log_ez0):
         super().__init__()
-        self.mu_z     = mu_z
-        self.sig_z    = sig_z
         self.log_ez0  = log_ez0
 
     def forward(self, x):
         x = x * torch.exp(self.log_ez0)
         return x
-
-
-class Intensity(nn.Module):
-    def __init__(self, gamma, image_size, initial_depth, voxel_size, scale,
-                 device):
-        super().__init__()
-        init_d = initial_depth
-        im_z,  \
-        im_x,  \
-        im_y   = image_size
-        end_d  = im_z * voxel_size * scale
-        depth  = init_d \
-               + torch.linspace(0, end_d, im_z,).view(-1,1,1,).to(device)
-        _intensity = torch.exp(-2 * depth * gamma) # gamma = 0.005
-        self._intensity = _intensity.expand(image_size)
-
-    def forward(self, x):
-         x = x * self.intensity
-         return x
-
-    @property
-    def intensity(self):
-        return self._intensity
-
+    
+    def sample(self, x, params):
+        b = x.shape[0]
+        pz0  = dist.LogNormal(loc   = torch.tensor(params["mu_z"]).view( b,1,1,1,1).expand(*x.shape),
+                              scale = torch.tensor(params["sig_z"]).view(b,1,1,1,1).expand(*x.shape),)
+        x    = x * pz0.sample().to(x.device)
+        x    = torch.clip(x, min=0., max=1.)
+        return x
 
 class Blur(nn.Module):
-    def __init__(self, params, device, use_fftconv=False):
+    def __init__(self, params):
         super().__init__()
-        self.params      = params
-        self.device      = device
-        self.use_fftconv = use_fftconv
-        gibson_lanni     = GibsonLanniModel(params)
-        self.psf_rz      = nn.Parameter(torch.tensor(gibson_lanni.PSF_rz, requires_grad=True).float().to(self.device))
+        self.device      = params["device"]
+        self.use_fftconv = params["use_fftconv"]
+        if params["blur_mode"] == "gaussian":
+            psf_model     = GaussianModel(params)
+        elif params["blur_mode"] == "gibsonlanni":
+            psf_model     = GibsonLanniModel(params)
+        else:
+            raise(NotImplementedError(f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
+        self.psf_rz      = nn.Parameter(torch.tensor(psf_model.PSF_rz, requires_grad=True).float().to(self.device))
         self.psf_rz_s0   = self.psf_rz.shape[0]
         xy               = torch.meshgrid(torch.arange(params["size_y"]),
                                           torch.arange(params["size_x"]),
                                           indexing='ij')
-        #self.psf      = nn.Parameter(torch.zeros((self.params["size_z"], self.params["size_x"],  self.params["size_y"]), device=self.device), requires_grad=True)
-        r = torch.tensor(gibson_lanni.r)
+        r = torch.tensor(psf_model.r)
         x0 = (params["size_x"] - 1) / 2
         y0 = (params["size_y"] - 1) / 2
         r_pixel = torch.sqrt((xy[1] - x0) ** 2 + (xy[0] - y0) ** 2) * params["res_lateral"]
@@ -369,7 +354,7 @@ class Blur(nn.Module):
         r_index = torch.argmin(torch.abs(r_e- r_pixel_e), dim=0)
         r_index_fe = r_index.flatten().expand(self.psf_rz_s0, -1)
         self.r_index_fe = r_index_fe.to(self.device)
-        self.z_pad   = int((params["size_z"] - self.params["res_axial"] // self.params["res_lateral"] + 1) // 2)
+        self.z_pad   = int((params["size_z"] - params["res_axial"] // params["res_lateral"] + 1) // 2)
         self.x_pad   = (params["size_x"]) // 2
         self.y_pad   = (params["size_y"]) // 2
         self.stride  = (params["scale"], 1, 1)
@@ -398,6 +383,26 @@ class Blur(nn.Module):
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         return psf
 
+
+class GaussianModel():
+    def __init__(self, params):
+        size_x = params["size_x"]
+        size_y = params["size_y"]
+        size_z = params["size_z"]
+        bet_xy = params["bet_xy"]
+        bet_z = params["bet_z" ]
+        x0 = (size_x - 1) / 2
+        y0 = (size_y - 1) / 2
+        z0 = (size_z - 1) / 2
+        max_radius = round(np.sqrt((size_x - x0) * (size_x - x0) + (size_y - y0) * (size_y - y0)))
+        xy = np.meshgrid(np.arange(params["size_z"]), np.arange(max_radius), indexing="ij")
+        distance = np.sqrt((xy[1] / bet_xy) ** 2 + ((xy[0] - z0) / bet_z) ** 2)
+        self.psf_rz = np.exp(- distance ** 2)
+
+    def __call__(self):
+        return self.psf_rz
+
+
 class GibsonLanniModel():
     def __init__(self, params):
         size_x = params["size_x"]#256 # # # # param # # # #
@@ -413,17 +418,17 @@ class GibsonLanniModel():
         NA          = params["NA"]        #1.1   # # # # param # # # #
         wavelength  = params["wavelength"]#0.910 # microns # # # # param # # # #
         M           = params["M"]         #25    # magnification # # # # param # # # #
-        ns          = 1.33                       # specimen refractive index (RI)
-        ng0         = 1.5                        # coverslip RI design value
-        ng          = 1.5                        # coverslip RI experimental value
-        ni0         = 1.5                        # immersion medium RI design value
-        ni          = 1.5                        # immersion medium RI experimental value
-        ti0         = 150                        # microns, working distance (immersion medium thickness) design value
-        tg0         = 170                        # microns, coverslip thickness design value
-        tg          = 170                        # microns, coverslip thickness experimental value
-        res_lateral = params["res_lateral"]#0.05 # microns # # # # param # # # #
-        res_axial   = params["res_axial"]#0.5    # microns # # # # param # # # #
-        pZ          = 2                          # microns, particle distance from coverslip
+        ns          = params["ns"] #1.33  # specimen refractive index (RI)
+        ng0         = params["ng0"]#1.5   # coverslip RI design value
+        ng          = params["ng"] #1.5   # coverslip RI experimental value
+        ni0         = params["ni0"]#1.5   # immersion medium RI design value
+        ni          = params["ni"] #1.5   # immersion medium RI experimental value
+        ti0         = params["ti0"]#150   # microns, working distance (immersion medium thickness) design value
+        tg0         = params["tg0"]#170   # microns, coverslip thickness design value
+        tg          = params["tg"] #170   # microns, coverslip thickness experimental value
+        res_lateral = params["res_lateral"]#0.05  # microns # # # # param # # # #
+        res_axial   = params["res_axial"]#0.5   # microns # # # # param # # # #
+        pZ          = params["pZ"]       # 2 microns, particle distance from coverslip
 
         # Scaling factors for the Fourier-Bessel series expansion
         min_wavelength = 0.436 # microns
@@ -467,7 +472,6 @@ class Noise(nn.Module):
         return x
 
 
-
 class PreProcess(nn.Module):
     def __init__(self, min, max):
         super().__init__()
@@ -481,35 +485,16 @@ class PreProcess(nn.Module):
 
 
 class ImagingProcess(nn.Module):
-    def __init__(self, device, params,
-                 z, x, y, postmin=0., postmax=1.,
-                 mode:str="train", dist="double_exp",
-                 apply_hill=False, use_fftconv=False):
+    def __init__(self, params):
         super().__init__()
-        self.device = device
-        self.z = z
-        self.x = x
-        self.y = y
-        self.postmin = postmin
-        self.postmax = postmax
-        if mode == "train":
-            self.mu_z       = params["mu_z"]
-            self.sig_z      = params["sig_z"]
-            self.log_ez0    = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(device), requires_grad=True)
-        elif mode == "dataset":
-            self.mu_z    = nn.Parameter(torch.tensor(params["mu_z"  ]), requires_grad=False)
-            self.sig_z   = nn.Parameter(torch.tensor(params["sig_z" ]), requires_grad=False)
-        else:
-            raise(NotImplementedError())
-        self.emission   = Emission(mu_z    = self.mu_z ,
-                                   sig_z   = self.sig_z,
-                                   log_ez0 = self.log_ez0,)
-        self.blur       = Blur(params      = params         ,
-                               device      = device         ,
-                               use_fftconv = use_fftconv    ,)
+        self.device     = params["device"]
+        self.mu_z       = params["mu_z"]
+        self.sig_z      = params["sig_z"]
+        self.log_ez0    = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(self.device), requires_grad=True)
+        self.emission   = Emission(params, log_ez0 = self.log_ez0,)
+        self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
-        self.preprocess = PreProcess(min=postmin, max=postmax)
-
+        self.preprocess = PreProcess(min=0., max=1.)
 
     def forward(self, x):
         x = self.emission(x)
@@ -518,69 +503,44 @@ class ImagingProcess(nn.Module):
         return x
 
 
-class SuperResolutionLayer(nn.Module):
-    def __init__(self, in_channels, scale_list, nblocks, dropout):
-        super().__init__()
-        self.sr = nn.ModuleList([
-                SuperResolutionBlock(scale_factor = scale_factor ,
-                                     in_channels  = in_channels  ,
-                                     nblocks      = nblocks      ,
-                                     dropout      = dropout      ,
-                                    )
-                                 for scale_factor in scale_list])
-        
-    def forward(self, x):
-        for f in self.sr:
-            x = f(x)
-        return x
-
-
 class JNet(nn.Module):
     def __init__(self, params):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
-        scale_factor            = (params["scale"], 1, 1)
-        hidden_channels_list    =  params["hidden_channels_list"].copy()
-        attn_list    =  params["attn_list"].copy()
-        hidden_channels = hidden_channels_list.pop(0)
+        scale_factor         = (params["scale"], 1, 1)
+        hidden_channels_list =  params["hidden_channels_list"].copy()
+        attn_list            =  params["attn_list"].copy()
+        hidden_channels      = hidden_channels_list.pop(0)
         attn_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
                                 out_channels = hidden_channels,)
         self.prev  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                               hidden_channels = hidden_channels,
-                                              dropout         = dropout        ,
-                                              ) for _ in range(nblocks)])
+                                              dropout         = params["dropout"]        ,
+                                               ) for _ in range(params["nblocks"])])
         self.mid   = JNetLayer(in_channels           = hidden_channels      ,
                                hidden_channels_list  = hidden_channels_list ,
                                attn_list             = attn_list            ,
-                               nblocks               = nblocks              ,
-                               dropout               = dropout              ,
+                               nblocks               = params["nblocks"]              ,
+                               dropout               = params["dropout"]              ,
                                ) if hidden_channels_list else nn.Identity()
         self.post  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
                                               hidden_channels = hidden_channels,
-                                              dropout         = dropout        ,
-                                              ) for _ in range(nblocks)])
+                                              dropout         = params["dropout"]      ,
+                                               ) for _ in range(params["nblocks"])])
         self.post0 = JNetBlockN(in_channels  = hidden_channels ,
                                 out_channels = 2               ,)
-        self.image = ImagingProcess(device       = device           ,
-                                    params       = params           ,
-                                    z            = z                ,
-                                    x            = x                ,
-                                    y            = y                ,
-                                    mode         = "train"          ,
-                                    dist         = blur_mode        ,
-                                    use_fftconv  = use_fftconv      ,
-                                    )
+        self.image = ImagingProcess(params = params,)
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
-        self.activation  = activation
-        self.superres    = superres
-        self.reconstruct = reconstruct
-        self.apply_vq    = apply_vq
-        self.vq = VectorQuantizer(device=device)
+        self.activation  = params["activation"]
+        self.superres    = params["superres"]
+        self.reconstruct = params["reconstruct"]
+        self.apply_vq    = params["apply_vq"]
+        self.vq = VectorQuantizer(device=params["device"])
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
-        self.use_x_quantized = use_x_quantized
+        self.use_x_quantized = params["use_x_quantized"]
 
     def forward(self, x):
         if self.superres:
@@ -602,7 +562,8 @@ class JNet(nn.Module):
         out = {"enhanced_image" : x,
                "reconstruction" : r,
                }
-        vqd = {"quantized_loss" : qloss} if self.apply_vq else {"quantized_loss" : None}
+        vqd = {"quantized_loss" : qloss} if self.apply_vq\
+            else {"quantized_loss" : None}
         out = dict(**out, **vqd)
         return out
 
@@ -618,7 +579,7 @@ if __name__ == '__main__':
     activation           = nn.ReLU(inplace=True)
     dropout              = 0.5
     partial              = None #(56, 184)
-    superres = True
+    superres             = True
     params               = {"mu_z"       : 0.2    ,
                             "sig_z"      : 0.2    ,
                             "log_bet_z"  : 23.5329,
