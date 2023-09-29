@@ -71,7 +71,7 @@ pretrained_model_name = 'JNet_326_1_4_cross_attn_1'
 params     = {"hidden_channels_list" : [4, 8, 16, 32, 64]                 ,
               "attn_list"            : [False, False, False, False, True] ,     
               "nblocks"              : 2                                  ,     
-              "activation "          : nn.ReLU(inplace=True)              ,     
+              "activation"           : nn.ReLU(inplace=True)              ,     
               "dropout"              : 0.5                                ,     
               "superres"             : True                               ,     
               "reconstruct"          : True                               ,     
@@ -80,6 +80,7 @@ params     = {"hidden_channels_list" : [4, 8, 16, 32, 64]                 ,
               "use_x_quantized"      : True                               ,     
               "mu_z"                 : 0.1                                ,
               "sig_z"                : 0.1                                ,
+              "blur_mode"            : "gaussian"                         ,
               "size_x"               : 51                                 ,
               "size_y"               : 51                                 ,
               "size_z"               : 161                                ,
@@ -90,6 +91,8 @@ params     = {"hidden_channels_list" : [4, 8, 16, 32, 64]                 ,
               "res_axial"            : 0.5                                ,
               "sig_eps"              : 0.01                               ,
               "scale"                : 10                                 ,
+              "device"               : device                             ,
+              
               }
 
 JNet = model.JNet(params)

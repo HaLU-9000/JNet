@@ -536,16 +536,13 @@ class SuperResolutionLayer(nn.Module):
 
 
 class JNet(nn.Module):
-    def __init__(self, hidden_channels_list, attn_list, nblocks, activation,
-                 dropout, params, superres:bool, reconstruct=False,
-                 apply_vq=False, use_fftconv=False,
-                 use_x_quantized=True, blur_mode="gaussian", device='cuda',
-                 z=161, x=3, y=3):
+    def __init__(self, params):
         super().__init__()
         t1 = time.time()
         print('initializing model...')
         scale_factor            = (params["scale"], 1, 1)
-        hidden_channels_list    = hidden_channels_list.copy()
+        hidden_channels_list    =  params["hidden_channels_list"].copy()
+        attn_list    =  params["attn_list"].copy()
         hidden_channels = hidden_channels_list.pop(0)
         attn_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
