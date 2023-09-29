@@ -16,9 +16,9 @@ print(f"Training on device {device}.")
 scale    = 6
 surround = False
 surround_size = [32, 4, 4]
-model_name = 'JNet_342_gaussianpsf_pretrain' # 318_pretrain_b1
+model_name = 'JNet_343_physicspsf_pretrain_woattn' # 318_pretrain_b1
 params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
-              "attn_list"             : [False, False, False, False, True],     
+              "attn_list"             : [False, False, False, False, False],     
               "nblocks"               : 2                                 ,     
               "activation"            : nn.ReLU(inplace=True)             ,     
               "dropout"               : 0.5                               ,     
@@ -30,7 +30,7 @@ params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
               "use_x_quantized"       : False                             ,     
               "mu_z"                  : 0.1                               ,
               "sig_z"                 : 0.1                               ,
-              "blur_mode"             : "gaussian"                        ,
+              "blur_mode"             : "gibsonlanni"                      ,
               "size_x"                : 51                                ,
               "size_y"                : 51                                ,
               "size_z"                : 161                               ,
