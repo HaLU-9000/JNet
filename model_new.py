@@ -8,6 +8,7 @@ from torch.utils.checkpoint import checkpoint
 import torch.special as S
 from scipy.stats import lognorm
 from fft_conv_pytorch import fft_conv
+import matplotlib.pyplot as plt
 import time
 
 from utils import tt
@@ -391,6 +392,11 @@ class Blur(nn.Module):
                             )
         return _x
 
+    def show_psf_3d(self):
+        psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
+        psf = psf / torch.sum(psf)
+        psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
+        return psf
 
 class GibsonLanniModel():
     def __init__(self, params):
@@ -404,20 +410,20 @@ class GibsonLanniModel():
         oversampling = 1    # Defines the upsampling ratio on the image space grid for computations
 
         # Microscope parameters
-        NA          = params["NA"]#1.1   # # # # param # # # #
+        NA          = params["NA"]        #1.1   # # # # param # # # #
         wavelength  = params["wavelength"]#0.910 # microns # # # # param # # # #
-        M           = params["M"]#25    # magnification # # # # param # # # #
-        ns          = 1.33  # specimen refractive index (RI)
-        ng0         = 1.5   # coverslip RI design value
-        ng          = 1.5   # coverslip RI experimental value
-        ni0         = 1.5   # immersion medium RI design value
-        ni          = 1.5   # immersion medium RI experimental value
-        ti0         = 150   # microns, working distance (immersion medium thickness) design value
-        tg0         = 170   # microns, coverslip thickness design value
-        tg          = 170   # microns, coverslip thickness experimental value
-        res_lateral = params["res_lateral"]#0.05  # microns # # # # param # # # #
-        res_axial   = params["res_axial"]#0.5   # microns # # # # param # # # #
-        pZ          = 2     # microns, particle distance from coverslip
+        M           = params["M"]         #25    # magnification # # # # param # # # #
+        ns          = 1.33                       # specimen refractive index (RI)
+        ng0         = 1.5                        # coverslip RI design value
+        ng          = 1.5                        # coverslip RI experimental value
+        ni0         = 1.5                        # immersion medium RI design value
+        ni          = 1.5                        # immersion medium RI experimental value
+        ti0         = 150                        # microns, working distance (immersion medium thickness) design value
+        tg0         = 170                        # microns, coverslip thickness design value
+        tg          = 170                        # microns, coverslip thickness experimental value
+        res_lateral = params["res_lateral"]#0.05 # microns # # # # param # # # #
+        res_axial   = params["res_axial"]#0.5    # microns # # # # param # # # #
+        pZ          = 2                          # microns, particle distance from coverslip
 
         # Scaling factors for the Fourier-Bessel series expansion
         min_wavelength = 0.436 # microns

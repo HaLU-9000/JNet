@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from dataset import RealDensityDataset
-import model
+import model_new as model
 
 vis_mseloss = False
 
@@ -52,35 +52,41 @@ val_dataset   = RealDensityDataset(folderpath      =  'beadsdata4' ,
                                   )
 
 
-model_name           = 'JNet_266_30_finetuning'
-hidden_channels_list = [16, 32, 64, 128, 256]
-scale_factor         = (scale, 1, 1)
+model_name            = 'JNet_338_physics'
+pretrained_model_name = 'JNet_326_1_4_cross_attn_1'
+hidden_channels_list = [4, 8, 16, 32, 64]
 nblocks              = 2
 s_nblocks            = 2
 activation           = nn.ReLU(inplace=True)
 dropout              = 0.5
 partial              = None #(56, 184)
-superres             = True if scale > 1 else False
-reconstruct          = True
-params               = {"mu_z"       : 0.2               ,
-                        "sig_z"      : 0.2               ,
-                        "log_bet_z"  : np.log(30.).item(),
-                        "log_bet_xy" : np.log(1.).item() ,
-                        "log_alpha"  : np.log(1.).item() ,
-                        "sig_eps": 0.01                  ,
-                        "scale"  : 10                    ,
-                        }             
+superres = True if scale > 1 else False
+params = {"mu_z"       : 0.1    ,
+              "sig_z"      : 0.1    ,
+              "size_x"     : 51     ,
+              "size_y"     : 51     ,
+              "size_z"     : 161    ,
+              "NA"         : 1.33   ,
+              "wavelength" : 0.910  ,
+              "M"          : 25     ,
+              "res_lateral": 0.05   ,
+              "res_axial"  : 0.5    ,
+              "sig_eps"    : 0.01   ,
+              "scale"      : 10
+              }
 reconstruct = True
-param_estimation_list = [False, False, False, False, True]
+attn_list = [False, False, False, False, True]
+
 JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
+                  attn_list             = attn_list            , 
                   nblocks               = nblocks              ,
                   activation            = activation           ,
                   dropout               = dropout              ,
                   params                = params               ,
-                  param_estimation_list = param_estimation_list,
                   superres              = superres             ,
-                  reconstruct           = reconstruct          ,
+                  reconstruct           = True                 ,
                   apply_vq              = True                 ,
+                  use_fftconv           = True                 ,
                   use_x_quantized       = True                 ,
                   )
 JNet = JNet.to(device = device)

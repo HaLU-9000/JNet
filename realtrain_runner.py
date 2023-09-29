@@ -67,41 +67,32 @@ val_data    = DataLoader(val_dataset                   ,
 
 model_name            = 'JNet_338_physics'
 pretrained_model_name = 'JNet_326_1_4_cross_attn_1'
-hidden_channels_list = [4, 8, 16, 32, 64]
-nblocks              = 2
-s_nblocks            = 2
-activation           = nn.ReLU(inplace=True)
-dropout              = 0.5
-partial              = None #(56, 184)
-superres = True if scale > 1 else False
-params = {"mu_z"       : 0.1    ,
-              "sig_z"      : 0.1    ,
-              "size_x"     : 51     ,
-              "size_y"     : 51     ,
-              "size_z"     : 161    ,
-              "NA"         : 1.33   ,
-              "wavelength" : 0.910  ,
-              "M"          : 25     ,
-              "res_lateral": 0.05   ,
-              "res_axial"  : 0.5    ,
-              "sig_eps"    : 0.01   ,
-              "scale"      : 10
-              }
-reconstruct = True
-attn_list = [False, False, False, False, True]
 
-JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
-                  attn_list             = attn_list            , 
-                  nblocks               = nblocks              ,
-                  activation            = activation           ,
-                  dropout               = dropout              ,
-                  params                = params               ,
-                  superres              = superres             ,
-                  reconstruct           = True                 ,
-                  apply_vq              = True                 ,
-                  use_fftconv           = True                 ,
-                  use_x_quantized       = True                 ,
-                  )
+params     = {"hidden_channels_list" : [4, 8, 16, 32, 64]                 ,
+              "attn_list"            : [False, False, False, False, True] ,     
+              "nblocks"              : 2                                  ,     
+              "activation "          : nn.ReLU(inplace=True)              ,     
+              "dropout"              : 0.5                                ,     
+              "superres"             : True                               ,     
+              "reconstruct"          : True                               ,     
+              "apply_vq"             : True                               ,     
+              "use_fftconv"          : True                               ,     
+              "use_x_quantized"      : True                               ,     
+              "mu_z"                 : 0.1                                ,
+              "sig_z"                : 0.1                                ,
+              "size_x"               : 51                                 ,
+              "size_y"               : 51                                 ,
+              "size_z"               : 161                                ,
+              "NA"                   : 1.33                               ,
+              "wavelength"           : 0.910                              ,
+              "M"                    : 25                                 ,
+              "res_lateral"          : 0.05                               ,
+              "res_axial"            : 0.5                                ,
+              "sig_eps"              : 0.01                               ,
+              "scale"                : 10                                 ,
+              }
+
+JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{pretrained_model_name}.pt'),
                      strict=False)
@@ -162,10 +153,10 @@ train_loop(
     augment          = None        ,
     val_augment      = None        ,
     ewc              = ewc         ,
-    partial          = partial     ,
+    partial          = params["partial"]     ,
     scheduler        = scheduler   ,
     es_patience      = 20          ,
-    reconstruct      = reconstruct ,
+    reconstruct      = params["reconstruct"] ,
     check_middle     = False       ,
     midloss_fn       = midloss_fn  ,
     is_vibrate       = True        ,
