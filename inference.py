@@ -13,62 +13,69 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-scale    = 6
-surround = False
-surround_size = [32, 4, 4]
-model_name           = 'JNet_294_pretrain'
-hidden_channels_list = [16, 32, 64, 128, 256]
-nblocks              = 2
-s_nblocks            = 2
-activation           = nn.ReLU(inplace=True)
-dropout              = 0.5
-partial              = None #(56, 184)
-superres = True if scale > 1 else False
-params               = {"mu_z"       : 0.2               ,
-                        "sig_z"      : 0.2               ,
-                        "log_bet_z"  : np.log(30.).item(),
-                        "log_bet_xy" : np.log(3.).item() ,
-                        "log_alpha"  : np.log(1.).item() ,
-                        "sig_eps": 0.01                  ,
-                        "scale"  : 6                    ,
-                        
-                        }
-reconstruct = True
-JNet = model.JNet(hidden_channels_list  = hidden_channels_list ,
-                  nblocks               = nblocks              ,
-                  activation            = activation           ,
-                  dropout               = dropout              ,
-                  params                = params               ,
-                  superres              = superres             ,
-                  reconstruct           = False                ,
-                  apply_vq              = True                ,
-                  use_x_quantized       = False                 ,
-                  use_fftconv           = True                ,
-                  z                     = 161                  , 
-                  x                     = 31                   , 
-                  y                     = 31                   ,
-                  )
+model_name            = 'JNet_346_gaussianpsf_finetuning'
+pretrained_model_name = 'JNet_344_gaussianpsf_pretrain_woattn'
+
+params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
+              "attn_list"             : [False, False, False, False, False],     
+              "nblocks"               : 2                                 ,     
+              "activation"            : nn.ReLU(inplace=True)             ,     
+              "dropout"               : 0.5                               ,     
+              "superres"              : True                              ,     
+              "partial"               : None                              ,
+              "reconstruct"           : True                              ,     
+              "apply_vq"              : True                              ,     
+              "use_fftconv"           : True                              ,     
+              "use_x_quantized"       : True                              ,     
+              "mu_z"                  : 0.1                               ,
+              "sig_z"                 : 0.1                               ,
+              "blur_mode"             : "gaussian"                        , # "gaussian" or "gibsonlanni"
+              "size_x"                : 51                                ,
+              "size_y"                : 51                                ,
+              "size_z"                : 161                               ,
+              "NA"                    : 0.80                              , # # # # param # # # #
+              "wavelength"            : 0.910                             , # microns # # # # param # # # #
+              "M"                     : 25                                , # magnification # # # # param # # # #
+              "ns"                    : 1.4                               , # specimen refractive index (RI)
+              "ng0"                   : 1.5                               , # coverslip RI design value
+              "ng"                    : 1.5                               , # coverslip RI experimental value
+              "ni0"                   : 1.5                               , # immersion medium RI design value
+              "ni"                    : 1.5                               , # immersion medium RI experimental value
+              "ti0"                   : 150                               , # microns, working distance (immersion medium thickness) design value
+              "tg0"                   : 170                               , # microns, coverslip thickness design value
+              "tg"                    : 170                               , # microns, coverslip thickness experimental value
+              "res_lateral"           : 0.05                              , # microns # # # # param # # # #
+              "res_axial"             : 0.05                              , # microns # # # # param # # # #
+              "pZ"                    : 0                                 , # microns, particle distance from coverslip
+              "bet_z"                 : 30.                               ,
+              "bet_xy"                :  3.                               ,
+              "sig_eps"               : 0.01                              ,
+              "scale"                 : 6                                ,
+              "device"                : device                            ,
+              }
+
+JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
 val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur'   ,  ###
-                                 imagename   =  f'_x{scale}'            ,     ## scale
+                                 imagename   =  f'_x{params["scale"]}'            ,     ## scale
                                  labelname   =  '_label'                ,
                                  size        =  (1200, 500, 500)        ,
                                  cropsize    =  ( 240, 112, 112)        ,
                                  I             =  20                    ,
                                  low           =  19                    ,
                                  high          =  20                    ,
-                                 scale         =  scale                 ,   ## scale
+                                 scale         =  params["scale"]                ,   ## scale
                                  train         =  False                 ,
                                  mask          =  False                 ,
-                                 surround      =  surround              ,
-                                 surround_size =  surround_size         ,
+                                 surround      =  False              ,
+                                 surround_size =  [32, 4, 4]            ,
                                  seed          =  907                   ,
                                 ) 
 j = 120
 i = 64
-j_s = j // scale
+j_s = j // params["scale"]
 
 val_loader  = DataLoader(val_dataset                   ,
                          batch_size  = 1               ,
@@ -116,7 +123,7 @@ for n, val_data in enumerate(val_loader):
         ax3.imshow(label[0, j, :, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax4.imshow(image[0, :, i, :],
-                cmap='gray', vmin=0.0, aspect=scale)
+                cmap='gray', vmin=0.0, aspect= params["scale"])
         ax5.imshow(output[0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(label[0, :, i, :],
