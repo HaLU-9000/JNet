@@ -321,8 +321,9 @@ class Emission(nn.Module):
     
     def sample(self, x, params):
         b = x.shape[0]
-        pz0  = dist.LogNormal(loc   = torch.tensor(params["mu_z"]).view( b,1,1,1,1).expand(*x.shape),
-                              scale = torch.tensor(params["sig_z"]).view(b,1,1,1,1).expand(*x.shape),)
+        print(params["mu_z"])
+        pz0  = dist.LogNormal(loc   = torch.tensor(float(params["mu_z"])).view( b,1,1,1,1).expand(*x.shape),
+                              scale = torch.tensor(float(params["sig_z"])).view(b,1,1,1,1).expand(*x.shape),)
         x    = x * pz0.sample().to(x.device)
         x    = torch.clip(x, min=0., max=1.)
         return x

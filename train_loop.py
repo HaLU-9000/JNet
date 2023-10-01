@@ -16,25 +16,20 @@ def calc_loss(pred, label, loss_function, partial):
     return loss_function(divide(pred , partial), 
                          divide(label, partial),)
 
-def branch_calc_loss(out, rec, image, label, loss_function, midloss_function,
-                     partial, reconstruct, check_middle):
+def branch_calc_loss(out, rec, image, label, loss_function,
+                     partial, reconstruct,):
     if reconstruct:
         loss = calc_loss(rec, image, loss_function, partial)
-        if check_middle:
-            midloss = calc_loss(out, label, midloss_function, partial)
-        else:
-            midloss = torch.tensor(0)
     else:
         loss = calc_loss(out, label, loss_function, partial)
-        midloss = torch.tensor(0)
-    return loss, midloss
+    return loss
 
 vibrate = Vibrate()
 
 def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                device, path, savefig_path, model_name, ewc, params, partial=None,
                scheduler=None, es_patience=10,
-               reconstruct=False, check_middle=False, midloss_fn=None, 
+               reconstruct=False,
                is_instantblur=False, is_vibrate=False,
                loss_weight=1, qloss_weight = 1/100):
     earlystopping = EarlyStopping(name        = model_name ,
@@ -69,9 +64,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
             qloss = outdict["quantized_loss"]
-            loss, midloss = branch_calc_loss(out, rec, image, label,
-                                             loss_fn, midloss_fn, partial,
-                                             reconstruct, check_middle)
+            loss  = branch_calc_loss(out, rec, image, label,
+                                     loss_fn, partial, reconstruct)
             loss *= loss_weight
             if ewc is not None:
                 loss += ewc.calc_ewc_loss(100000)
@@ -81,8 +75,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             loss.backward(retain_graph=False)
             optimizer.step()
             loss_sum += loss.detach().item()
-            if check_middle:
-                midloss_sum += midloss.detach().item()
         model.eval()
         with torch.no_grad():
             for val_data in val_loader:
@@ -106,28 +98,22 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
                 qloss = outdict["quantized_loss"]
-                vloss, vmid_loss = branch_calc_loss(out, rec, image, label,
-                                                    loss_fn,midloss_fn,partial,
-                                                    reconstruct, check_middle)
+                vloss = branch_calc_loss(out, rec, image, label,
+                                                    loss_fn, partial,
+                                                    reconstruct)
                 vloss_sum += vloss.detach().item() * loss_weight
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                if check_middle:
-                    vmidloss_sum += vmid_loss.detach().item()
         num  = len(train_loader)
         vnum = len(val_loader)
         
         loss_list.append(loss_sum / num)
-        midloss_list.append(midloss_sum / num) if check_middle else 0
         vloss_list.append(vloss_sum / vnum)
-        vmidloss_list.append(vmidloss_sum / vnum) if check_middle else 0
         writer.add_scalar('train loss', loss_sum / num, epoch)
-        writer.add_scalar('train middle loss', midloss_sum / num, epoch) if check_middle else 0
         writer.add_scalar('val loss', vloss_sum / vnum, epoch)
         writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
-        writer.add_scalar('val middle loss', vmidloss_sum / vnum, epoch) if check_middle else 0
         writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
@@ -139,9 +125,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
-    if check_middle:
-        plt.plot(midloss_list, label='train loss (middle)')
-        plt.plot(vmidloss_list , label='validation loss (middle)')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
 
