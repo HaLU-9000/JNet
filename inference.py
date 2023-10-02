@@ -1,4 +1,6 @@
 import os
+import argparse
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,65 +15,36 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-model_name            = 'JNet_346_gaussianpsf_finetuning'
-pretrained_model_name = 'JNet_344_gaussianpsf_pretrain_woattn'
+parser = argparse.ArgumentParser(description='inference for simulation data')
+parser.add_argument('model_name')
+parser.add_argument("--check_pretrained", default=False)
+args   = parser.parse_args()
 
-params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
-              "attn_list"             : [False, False, False, False, False],     
-              "nblocks"               : 2                                 ,     
-              "activation"            : nn.ReLU(inplace=True)             ,     
-              "dropout"               : 0.5                               ,     
-              "superres"              : True                              ,     
-              "partial"               : None                              ,
-              "reconstruct"           : True                              ,     
-              "apply_vq"              : True                              ,     
-              "use_fftconv"           : True                              ,     
-              "use_x_quantized"       : True                              ,     
-              "mu_z"                  : 0.1                               ,
-              "sig_z"                 : 0.1                               ,
-              "blur_mode"             : "gaussian"                        , # "gaussian" or "gibsonlanni"
-              "size_x"                : 51                                ,
-              "size_y"                : 51                                ,
-              "size_z"                : 161                               ,
-              "NA"                    : 0.80                              , # # # # param # # # #
-              "wavelength"            : 0.910                             , # microns # # # # param # # # #
-              "M"                     : 25                                , # magnification # # # # param # # # #
-              "ns"                    : 1.4                               , # specimen refractive index (RI)
-              "ng0"                   : 1.5                               , # coverslip RI design value
-              "ng"                    : 1.5                               , # coverslip RI experimental value
-              "ni0"                   : 1.5                               , # immersion medium RI design value
-              "ni"                    : 1.5                               , # immersion medium RI experimental value
-              "ti0"                   : 150                               , # microns, working distance (immersion medium thickness) design value
-              "tg0"                   : 170                               , # microns, coverslip thickness design value
-              "tg"                    : 170                               , # microns, coverslip thickness experimental value
-              "res_lateral"           : 0.05                              , # microns # # # # param # # # #
-              "res_axial"             : 0.05                              , # microns # # # # param # # # #
-              "pZ"                    : 0                                 , # microns, particle distance from coverslip
-              "bet_z"                 : 30.                               ,
-              "bet_xy"                :  3.                               ,
-              "sig_eps"               : 0.01                              ,
-              "scale"                 : 6                                ,
-              "device"                : device                            ,
-              }
+configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
+configs              = json.load(configs)
+params               = configs["params"]
+
+val_dataset_params   = configs["pretrain_val_dataset"]
 
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
+JNet.load_state_dict(torch.load(f'model/{args.model_name}.pt'), strict=False)
 
-val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur'   ,  ###
-                                 imagename   =  f'_x{params["scale"]}'            ,     ## scale
-                                 labelname   =  '_label'                ,
-                                 size        =  (1200, 500, 500)        ,
-                                 cropsize    =  ( 240, 112, 112)        ,
-                                 I             =  20                    ,
-                                 low           =  19                    ,
-                                 high          =  20                    ,
-                                 scale         =  params["scale"]       ,   ## scale
-                                 train         =  False                 ,
-                                 mask          =  False                 ,
-                                 surround      =  False                 ,
-                                 surround_size =  [32, 4, 4]            ,
-                                 seed          =  907                   ,
+val_dataset   = RandomCutDataset(folderpath    = val_dataset_params["folderpath"]   ,
+                                 imagename     = val_dataset_params["imagename"]    , 
+                                 labelname     = val_dataset_params["labelname"]    ,
+                                 size          = val_dataset_params["size"]         ,
+                                 cropsize      = val_dataset_params["cropsize"]     , 
+                                 I             = val_dataset_params["I"]            ,
+                                 low           = val_dataset_params["low"]          ,
+                                 high          = val_dataset_params["high"]         ,
+                                 scale         = val_dataset_params["scale"]        ,  ## scale
+                                 mask          = val_dataset_params["mask"]         ,
+                                 mask_size     = val_dataset_params["mask_size"]    ,
+                                 mask_num      = val_dataset_params["mask_num"]     ,  #( 1% of image)
+                                 surround      = val_dataset_params["surround"]     ,
+                                 surround_size = val_dataset_params["surround_size"],
+                                 seed          = val_dataset_params["seed"]         ,
                                 ) 
 j = 120
 i = 64
@@ -128,5 +101,5 @@ for n, val_data in enumerate(val_loader):
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
         ax6.imshow(label[0, :, i, :],
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-        plt.savefig(f'result/{model_name}_result_{n}.png',
+        plt.savefig(f'result/{args.model_name}_result_{n}.png',
                     format='png', dpi=250)
