@@ -14,7 +14,7 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Inference on device {device}.")
 
-model_name            = 'JNet_343_physicspsf_pretrain_woattn'
+model_name            = 'JNet_346_gaussianpsf_finetuning'
 #pretrained_model_name = 'JNet_344_gaussianpsf_pretrain_woattn'
 
 params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,

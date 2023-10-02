@@ -66,10 +66,10 @@ val_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur
                                  I             =  20                    ,
                                  low           =  19                    ,
                                  high          =  20                    ,
-                                 scale         =  params["scale"]                ,   ## scale
+                                 scale         =  params["scale"]       ,   ## scale
                                  train         =  False                 ,
                                  mask          =  False                 ,
-                                 surround      =  False              ,
+                                 surround      =  False                 ,
                                  surround_size =  [32, 4, 4]            ,
                                  seed          =  907                   ,
                                 ) 

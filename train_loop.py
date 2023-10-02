@@ -119,7 +119,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
-            scheduler.step(vloss_sum / vnum)
+            scheduler.step()
         earlystopping((vloss_sum / vnum), model, condition=True)
         if earlystopping.early_stop:
             break

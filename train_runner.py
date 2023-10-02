@@ -21,9 +21,9 @@ args   = parser.parse_args()
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs              = json.load(configs)
 params               = configs["params"]
-train_dataset_params = configs["train_dataset"]
-val_dataset_params   = configs["val_dataset"]
-train_loop_params    = configs["train_loop"]
+train_dataset_params = configs["pretrain_dataset"]
+val_dataset_params   = configs["pretrain_val_dataset"]
+train_loop_params    = configs["pretrain_loop"]
 params["device"]     = device
 
 JNet = model.JNet(params)
@@ -32,7 +32,10 @@ train_params = JNet.parameters()
 
 def warmup_func(epoch):
     return min(0.1 + 0.1 * epoch, 1.0)
-print(torch.tensor(params["mu_z"]))
+
+optimizer = optim.Adam(train_params, lr = train_loop_params['lr'])
+scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = warmup_func)
+        
 train_dataset = RandomCutDataset(folderpath    = train_dataset_params["folderpath"]   ,
                                  imagename     = train_dataset_params["imagename"]    , 
                                  labelname     = train_dataset_params["labelname"]    ,
@@ -78,26 +81,26 @@ val_data    = DataLoader(val_dataset                   ,
                          num_workers = os.cpu_count()  ,
                          )
 
-print(f"============= model {args.model_name} train started =============")
+print(f'============= model {configs["pretrained_model"]} train started =============')
 model_path = 'model'
-train_loop(n_epochs         = train_loop_params["n_epochs"      ]  , ####
-           optimizer        = train_loop_params["optimizer"     ]  ,
-           scheduler        = train_loop_params["scheduler"     ]  ,
-           loss_fn          = train_loop_params["loss_fn"       ]  ,
-           path             = train_loop_params["path"          ]  ,
-           savefig_path     = train_loop_params["savefig_path"  ]  ,
-           model_name       = train_loop_params["model_name"    ]  ,
-           partial          = train_loop_params["partial"       ]  ,
-           ewc              = train_loop_params["ewc"           ]  ,
-           params           = train_loop_params["params"        ]  ,
+train_loop(n_epochs         = train_loop_params["n_epochs"      ]  ,
+           loss_fn          = eval(train_loop_params["loss_fn"])   ,
+           path             = train_loop_params["path"]            ,
+           savefig_path     = train_loop_params["savefig_path"]    ,
+           partial          = eval(train_loop_params["partial"])   ,
+           ewc              = train_loop_params["ewc"]             ,
            es_patience      = train_loop_params["es_patience"   ]  ,
            reconstruct      = train_loop_params["reconstruct"   ]  ,
            is_instantblur   = train_loop_params["is_instantblur"]  ,
            is_vibrate       = train_loop_params["is_vibrate"    ]  ,
            loss_weight      = train_loop_params["loss_weight"   ]  ,
            qloss_weight     = train_loop_params["qloss_weight"  ]  ,
-           model            = JNet                 ,
-           train_loader     = train_data           ,
-           val_loader       = val_data             ,
-           device           = device               ,
+           model            = JNet                        ,
+           model_name       = configs["pretrained_model"] ,
+           params           = params                      ,
+           train_loader     = train_data                  ,
+           val_loader       = val_data                    ,
+           device           = device                      ,
+           optimizer        = optimizer                   ,
+           scheduler        = scheduler                   ,
            )

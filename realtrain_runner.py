@@ -1,4 +1,6 @@
 import os
+import argparse
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,127 +14,98 @@ device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
-scale    = 10
-surround = False
-surround_size = [32, 4, 4]
-train_score   = torch.load('./_stackbeadsscore/002_score.pt') #torch.load('./sparsebeadslikescore/_x10_score.pt') #torch.load('./beadsscore/001_score.pt')
-val_score     = torch.load('./_stackbeadsscore/002_score.pt') #None #torch.load('./sparsebeadslikescore/_x10_score.pt') #
+parser = argparse.ArgumentParser(description='Pretraining model.')
+parser.add_argument('model_name')
+args   = parser.parse_args()
 
-train_dataset = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
-                                   scorefolderpath =  '_stackbeadsscore'    ,
-                                   imagename       =  '002'            ,
-                                   size            =   (650, 512, 512) , # size after segmentation
-                                   cropsize        =  ( 240, 112, 112) , # size after segmentation
-                                   I               =  200               ,
-                                   low             =   0               ,
-                                   high            =   1               ,
-                                   scale           =  scale            ,   ## scale
-                                   train           =  True             ,
-                                   mask            =  True             ,
-                                   mask_num        =  10               ,
-                                   mask_size       =  [1, 10, 10]      ,
-                                   surround        =  surround         ,
-                                   surround_size   =  surround_size    ,
-                                   score           =  train_score      ,
-                                  )
-val_dataset   = RealDensityDataset(folderpath      =  '_stackbeadsdata'     ,
-                                   scorefolderpath =  '_stackbeadsscore'    ,
-                                   imagename       =  '002'            ,
-                                   size            =  ( 650, 512, 512) , # size after segmentation
-                                   cropsize        =  ( 240, 112, 112) ,
-                                   I               =  20              ,
-                                   low             =   0               ,
-                                   high            =   1               ,
-                                   scale           =  scale            ,
-                                   train           =  False            ,
-                                   mask            =  False            ,
-                                   surround        =  False            ,
-                                   surround_size   =  [64, 8, 8]       ,
-                                   seed            =  1204             ,
-                                   score           =  val_score        ,
+configs = open(os.path.join("experiments/configs",f"{args.model_name}.json"))
+configs              = json.load(configs)
+params               = configs["params"]
+train_dataset_params = configs["train_dataset"]
+ewc_dataset_params   = configs["pretrain_dataset"]
+val_dataset_params   = configs["val_dataset"]
+train_loop_params    = configs["train_loop"]
+
+params["reconstruct"]     = True
+params["apply_vq"]        = True
+params["use_x_quantized"] = True
+
+train_dataset = RealDensityDataset(folderpath      = train_dataset_params["folderpath"     ]        ,
+                                   scorefolderpath = train_dataset_params["scorefolderpath"]        ,
+                                   imagename       = train_dataset_params["imagename"      ]        ,
+                                   size            = train_dataset_params["size"           ]        , # size after segmentation
+                                   cropsize        = train_dataset_params["cropsize"       ]        , # size after segmentation
+                                   I               = train_dataset_params["I"              ]        ,
+                                   low             = train_dataset_params["low"            ]        ,
+                                   high            = train_dataset_params["high"           ]        ,
+                                   scale           = train_dataset_params["scale"          ]        , ## scale
+                                   train           = train_dataset_params["train"          ]        ,
+                                   mask            = train_dataset_params["mask"           ]        ,
+                                   mask_num        = train_dataset_params["mask_num"       ]        ,
+                                   mask_size       = train_dataset_params["mask_size"      ]        ,
+                                   surround        = train_dataset_params["surround"       ]        ,
+                                   surround_size   = train_dataset_params["surround_size"  ]        ,
+                                   score           = torch.load(train_dataset_params["score_path"]) ,
                                   )
 
-train_data  = DataLoader(train_dataset                 ,
-                         batch_size  = 1               ,
-                         shuffle     = True            ,
-                         pin_memory  = True            ,
-                         num_workers = os.cpu_count()  ,
-                         )
-val_data    = DataLoader(val_dataset                   ,
-                         batch_size  = 1               ,
-                         shuffle     = False           ,
-                         pin_memory  = True            ,
-                         num_workers = os.cpu_count()  ,
+val_dataset   = RealDensityDataset(folderpath      = val_dataset_params["folderpath"     ]         ,
+                                   scorefolderpath = val_dataset_params["scorefolderpath"]         ,
+                                   imagename       = val_dataset_params["imagename"      ]         ,
+                                   size            = val_dataset_params["size"           ]         , # size after segmentation
+                                   cropsize        = val_dataset_params["cropsize"       ]         ,
+                                   I               = val_dataset_params["I"              ]         ,
+                                   low             = val_dataset_params["low"            ]         ,
+                                   high            = val_dataset_params["high"           ]         ,
+                                   scale           = val_dataset_params["scale"          ]         ,
+                                   train           = val_dataset_params["train"          ]         ,
+                                   mask            = val_dataset_params["mask"           ]         ,
+                                   mask_size       = val_dataset_params["mask_size"      ]         ,
+                                   mask_num        = val_dataset_params["mask_num"       ]         ,
+                                   surround        = val_dataset_params["surround"       ]         ,
+                                   surround_size   = val_dataset_params["surround_size"  ]         ,
+                                   seed            = val_dataset_params["seed"           ]         ,
+                                   score           = torch.load(val_dataset_params["score_path"])  ,
+                                  )
+
+train_data  = DataLoader(train_dataset                                 ,
+                         batch_size  = train_loop_params["batch_size"] ,
+                         shuffle     = True                            ,
+                         pin_memory  = True                            ,
+                         num_workers = os.cpu_count()                  ,
                          )
 
-model_name            = 'JNet_346_gaussianpsf_finetuning'
-pretrained_model_name = 'JNet_344_gaussianpsf_pretrain_woattn'
-
-params     = {"hidden_channels_list"  : [4, 8, 16, 32, 64]                ,
-              "attn_list"             : [False, False, False, False, False],     
-              "nblocks"               : 2                                 ,     
-              "activation"            : nn.ReLU(inplace=True)             ,     
-              "dropout"               : 0.5                               ,     
-              "superres"              : True                              ,     
-              "partial"               : None                              ,
-              "reconstruct"           : True                              ,     
-              "apply_vq"              : True                              ,     
-              "use_fftconv"           : True                              ,     
-              "use_x_quantized"       : True                              ,     
-              "mu_z"                  : 0.1                               ,
-              "sig_z"                 : 0.1                               ,
-              "blur_mode"             : "gaussian"                        , # "gaussian" or "gibsonlanni"
-              "size_x"                : 51                                ,
-              "size_y"                : 51                                ,
-              "size_z"                : 161                               ,
-              "NA"                    : 0.80                              , # # # # param # # # #
-              "wavelength"            : 0.910                             , # microns # # # # param # # # #
-              "M"                     : 25                                , # magnification # # # # param # # # #
-              "ns"                    : 1.4                               , # specimen refractive index (RI)
-              "ng0"                   : 1.5                               , # coverslip RI design value
-              "ng"                    : 1.5                               , # coverslip RI experimental value
-              "ni0"                   : 1.5                               , # immersion medium RI design value
-              "ni"                    : 1.5                               , # immersion medium RI experimental value
-              "ti0"                   : 150                               , # microns, working distance (immersion medium thickness) design value
-              "tg0"                   : 170                               , # microns, coverslip thickness design value
-              "tg"                    : 170                               , # microns, coverslip thickness experimental value
-              "res_lateral"           : 0.05                              , # microns # # # # param # # # #
-              "res_axial"             : 0.05                              , # microns # # # # param # # # #
-              "pZ"                    : 0                                 , # microns, particle distance from coverslip
-              "bet_z"                 : 30.                               ,
-              "bet_xy"                :  3.                               ,
-              "sig_eps"               : 0.01                              ,
-              "scale"                 : 10                                ,
-              "device"                : device                            ,
-              }
+val_data    = DataLoader(val_dataset                                   ,
+                         batch_size  = train_loop_params["batch_size"] ,
+                         shuffle     = False                           ,
+                         pin_memory  = True                            ,
+                         num_workers = os.cpu_count()                  ,
+                         )
 
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load(f'model/{pretrained_model_name}.pt'),
+JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
                      strict=False)
 #print([i for i in JNet.parameters()][-4:])
 
 train_params = JNet.parameters()
 
-optimizer            = optim.Adam(train_params, lr = 1e-3)
+optimizer            = optim.Adam(train_params, lr = train_loop_params["lr"])
 scheduler            = None #= optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
-loss_fn              = nn.MSELoss()
-midloss_fn           = nn.BCELoss()
 
-ewc_dataset   = RandomCutDataset(folderpath  =  '_var_num_beadsdata2_30_fft_blur' ,  ###
-                                 imagename   =  f'_x6'                , 
-                                 labelname   =  '_label'              ,
-                                 size        =  (1200, 500, 500)      ,
-                                 cropsize    =  ( 240, 112, 112)      , 
-                                 I             = 800                  ,
-                                 low           =   0                  ,
-                                 high          =  16                  ,
-                                 scale         =  scale               ,  ## scale
-                                 mask          =  True                ,
-                                 mask_size     =  [ 1, 10, 10]        ,
-                                 mask_num      =  30                  ,  #( 1% of image)
-                                 surround      =  surround            ,
-                                 surround_size =  surround_size       ,
+ewc_dataset   = RandomCutDataset(folderpath    = ewc_dataset_params["folderpath"]   ,
+                                 imagename     = ewc_dataset_params["imagename"]    , 
+                                 labelname     = ewc_dataset_params["labelname"]    ,
+                                 size          = ewc_dataset_params["size"]         ,
+                                 cropsize      = ewc_dataset_params["cropsize"]     , 
+                                 I             = ewc_dataset_params["I"]            ,
+                                 low           = ewc_dataset_params["low"]          ,
+                                 high          = ewc_dataset_params["high"]         ,
+                                 scale         = ewc_dataset_params["scale"]        ,  ## scale
+                                 mask          = ewc_dataset_params["mask"]         ,
+                                 mask_size     = ewc_dataset_params["mask_size"]    ,
+                                 mask_num      = ewc_dataset_params["mask_num"]     ,  #( 1% of image)
+                                 surround      = ewc_dataset_params["surround"]     ,
+                                 surround_size = ewc_dataset_params["surround_size"],
                                  )
 
 ewc_data    = DataLoader(ewc_dataset                   ,
@@ -149,28 +122,26 @@ ewc_data    = DataLoader(ewc_dataset                   ,
 #                                 device          = device,
 #                                 skip_register   = False  )
 #torch.save(JNet.state_dict(), f'model/JNet_265_vibration.pt')
-ewc = None
-print(f"============= model {model_name} train started =============")
+print(f"============= model {args.model_name} train started =============")
 train_loop(
-    n_epochs         = 500         , ####
-    optimizer        = optimizer   ,
-    model            = JNet        ,
-    loss_fn          = loss_fn     ,
-    train_loader     = train_data  ,
-    val_loader       = val_data    ,
-    device           = device      ,
-    path             = 'model'     ,
-    savefig_path     = 'train'     ,
-    model_name       = model_name  ,
-    ewc              = ewc         ,
-    params           = params      ,
-    partial          = params["partial"]     ,
-    scheduler        = scheduler   ,
-    es_patience      = 20          ,
-    reconstruct      = params["reconstruct"] ,
-    check_middle     = False       ,
-    midloss_fn       = midloss_fn  ,
-    is_vibrate       = True        ,
-    loss_weight      = 1           ,
-    qloss_weight     = 1           ,
+    n_epochs         = train_loop_params["n_epochs"      ]  , ####
+    loss_fn          = eval(train_loop_params["loss_fn"])   ,
+    path             = train_loop_params["path"]            ,
+    savefig_path     = train_loop_params["savefig_path"]    ,
+    ewc              = eval(train_loop_params["partial"])   ,
+    partial          = train_loop_params["ewc"]             ,
+    es_patience      = train_loop_params["es_patience"   ]  ,
+    reconstruct      = train_loop_params["reconstruct"   ]  ,
+    is_instantblur   = train_loop_params["is_instantblur"]  ,
+    is_vibrate       = train_loop_params["is_vibrate"    ]  ,
+    loss_weight      = train_loop_params["loss_weight"   ]  ,
+    qloss_weight     = train_loop_params["qloss_weight"  ]  ,
+    model            = JNet                  ,
+    model_name       = args.model_name       ,
+    params           = params                ,
+    train_loader     = train_data            ,
+    val_loader       = val_data              ,
+    device           = device                ,
+    optimizer        = optimizer             ,
+    scheduler        = scheduler             ,
     )
