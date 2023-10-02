@@ -4,6 +4,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
+import pandas as pd
 from dataset import Vibrate
 
 
@@ -39,6 +40,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                                   metric      = "median"   ,
                                   verbose     = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')
+    train_curve = pd.DataFrame([["epoch", "training loss", "validatation loss"]])
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     vibrate = Vibrate()
     for epoch in range(1, n_epochs + 1):
@@ -115,6 +117,11 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
         writer.add_scalar('val loss', vloss_sum / vnum, epoch)
         writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
         writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
+        row = pd.DataFrame([[epoch, loss_list[-1], vloss_list[-1]]],
+                           columns = train_curve.columns)
+        train_curve = train_curve.append(row, ignore_index=True)
+        train_curve.to_csv(f"./experiments/traincurves/{model_name}.csv", index=False)
+        
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
