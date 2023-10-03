@@ -11,12 +11,14 @@ import model_new as model
 import old_model
 from dataset import Vibrate
 
-
 vibrate = Vibrate()
 
 class PretrainingInference():
     def __init__(self, model_name):
         self.model_name = model_name
+        self.device = (torch.device('cuda') if torch.cuda.is_available()
+              else torch.device('cpu'))
+        
 
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
         self.configs         = json.load(config)
@@ -25,7 +27,7 @@ class PretrainingInference():
         val_dataset_params   = self.configs["pretrain_val_dataset"]
 
         JNet = model.JNet(self.params)
-        self.JNet = JNet.to(device = device)
+        self.JNet = JNet.to(device = self.device)
         self.JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
         val_dataset   = RandomCutDataset(
@@ -56,7 +58,7 @@ class PretrainingInference():
     def get_result(self, num_results)->list:
         results = []
         for n, val_data in enumerate(self.val_loader):
-            if n >= 5:
+            if n >= num_results:
                 break
             if self.configs["pretrain_loop"]["is_instantblur"]:
                 label = val_data[1].to(device = self.device)
@@ -65,79 +67,87 @@ class PretrainingInference():
                 image = self.JNet.image.noise(image)
                 image = self.JNet.image.preprocess(image)
             else:
-                image    = val_data[0].to(device = device)
-                label    = val_data[1].to(device = device)
+                image    = val_data[0].to(device = self.device)
+                label    = val_data[1].to(device = self.device)
             image   = vibrate(image).detach().clone()
             outdict = self.JNet(image)
             output  = outdict["enhanced_image"]
             qloss   = outdict["quantized_loss"]
+            qloss = qloss.item() if qloss is not None else 0
             image   = image[0].detach().cpu().numpy()
             label   = label[0].detach().cpu().numpy()
             output  = output[0].detach().cpu().numpy()
-            results.append([image, output, label, qloss.item()])
+            results.append([image, output, label, qloss])
         return results
         
     def evaluate(self, results)->list:
         mses = []
         bces = []
-        for n, [image, output, label, qloss] in results:
+        for n, [image, output, label, qloss] in enumerate(results):
             mse = np.mean(((label - output) ** 2).flatten())
-            bce = np.mean((label*np.log(output) + (1. - label)*np.log(1. - output)).flatten())
+            bce = np.mean(-(label*np.log(output) + (1. - label)*np.log(1. - output)).flatten())
             mses.append(mse)
             bces.append(bce)
         return {"MSE": mses,
                 "BCE": bces,}
 
-    def visualize(self, results, path):
-        for n, [image, output, label, qloss] in results:
-            j   = 12
+    def visualize(self, results):
+        for n, [image, output, label, qloss] in enumerate(results):
+            path = self.configs["visualization"]["path"] 
+            j   = self.configs["visualization"]["z_stack"]
             j_s = j // self.params["scale"]
-            i = 64
+            i   = self.configs["visualization"]["x_slice"]
             mip = self.configs["visualization"]["mip"]
             mip_s = mip * self.params["scale"]
 
             image_xy  = np.max(image [0, j_s:j_s+mip_s, :, :], axis=0)
-            output_xy = np.max(output[0, j  :j+mip, :, :], axis=0)
-            label_xy  = np.max(label [0, j  :j+mip, :, :], axis=0)
-            image_z   = np.max(image [0, :  , i:i+mip, :], axis=0)
-            output_z  = np.max(output[0, :  , i:i+mip, :], axis=0)
-            label_z   = np.max(label [0, :  , i:i+mip, :], axis=0)
-            fig = plt.figure()
-            fig.imshow(image_xy, cmap='gray', vmin=0.0, aspect=1)
-            plt.savefig()
+            output_xy = np.max(output[0, j  :j+mip, :, :]    , axis=0)
+            label_xy  = np.max(label [0, j  :j+mip, :, :]    , axis=0)
+            image_z   = np.max(image [0, :  , i:i+mip, :]    , axis=0)
+            output_z  = np.max(output[0, :  , i:i+mip, :]    , axis=0)
+            label_z   = np.max(label [0, :  , i:i+mip, :]    , axis=0)
+            #fig = plt.figure()
+            plt.axis("off")
+            plt.imshow(image_xy, cmap='gray', vmin=0.0, aspect=1)
+            plt.savefig(path + f'/{self.model_name}_{n}_original_plane.png', 
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
-            fig = plt.figure()
-            fig.imshow(output_xy, cmap='gray', vmin=0.0, aspect=1)
-            plt.savefig()
+            plt.axis("off")
+            plt.imshow(output_xy, cmap='gray', vmin=0.0, aspect=1)
+            plt.savefig(path + f'/{self.model_name}_{n}_output_plane.png',
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
-            fig = plt.figure()
-            fig.imshow(label_xy, cmap='gray', vmin=0.0, aspect=1)
-            plt.savefig()
+            plt.axis("off")
+            plt.imshow(label_xy, cmap='gray', vmin=0.0, aspect=1)
+            plt.savefig(path + f'/{self.model_name}_{n}_label_plane.png',
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
-            fig = plt.figure()
-            fig.imshow(image_z, cmap='gray', vmin=0.0, aspect=self.params["scale"])
-            plt.savefig()
+            plt.axis("off")
+            plt.imshow(image_z, cmap='gray', vmin=0.0, aspect=self.params["scale"])
+            plt.savefig(path + f'/{self.model_name}_{n}_original_depth.png',
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
-            fig = plt.figure()
-            fig.imshow(output_z, cmap='gray', vmin=0.0, aspect=1)
-            plt.savefig()
+            plt.axis("off")
+            plt.imshow(output_z, cmap='gray', vmin=0.0, aspect=1)
+            plt.savefig(path + f'/{self.model_name}_{n}_output_depth.png',
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
-            fig = plt.figure()
-            fig.imshow(label_z, cmap='gray', vmin=0.0, aspect=1)
-            plt.savefig()
+            plt.axis("off")
+            plt.imshow(label_z, cmap='gray', vmin=0.0, aspect=1)
+            plt.savefig(path + f'/{self.model_name}_{n}_label_depth.png',
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
-
 
     def visualize_oldversion(self, results, path='result'):
-        j   = 12
+        j   = self.configs["visualization"]["z_stack"]
         j_s = j // self.params["scale"]
-        i = 64
+        i   = self.configs["visualization"]["x_slice"]
         for n, [image, output, label, qloss] in enumerate(results):
             fig = plt.figure(figsize=(25, 15))
             ax1 = fig.add_subplot(231)
@@ -167,12 +177,12 @@ class PretrainingInference():
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
             plt.savefig(path + f'/{self.model_name}_result_{n}.png',
                 format='png', dpi=250)
-            
-device = (torch.device('cuda') if torch.cuda.is_available()
-          else torch.device('cpu'))
-print(f"Training on device {device}.")
 
-parser = argparse.ArgumentParser(description='inference for simulation data')
-parser.add_argument('model_name')
-parser.add_argument("--check_pretrained", default=False)
-args   = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='inference for simulation data')
+    parser.add_argument('model_name')
+    args   = parser.parse_args()
+    inference = PretrainingInference(args.model_name)
+    results = inference.get_result(5)
+    print(inference.evaluate(results))
+    inference.visualize(results)
