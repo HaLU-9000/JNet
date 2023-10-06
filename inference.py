@@ -26,7 +26,7 @@ class PretrainingInference():
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
-        self.JNet.load_state_dict(torch.load(f'model/{model_name}.pt'),
+        self.JNet.load_state_dict(torch.load(f'model/{self.configs["pretrained_model"]}.pt'),
                                   strict=False)
         self.JNet.eval()
 
