@@ -10,56 +10,143 @@ from dataset import RealDensityDataset, sequentialflip
 
 import model_new as model
 
-device = (torch.device('cuda') if torch.cuda.is_available()
-          else torch.device('cpu'))
-print(f"Inference on device {device}.")
+#device = (torch.device('cuda') if torch.cuda.is_available()
+#          else torch.device('cpu'))
+#print(f"Inference on device {device}.")
+#
+#parser = argparse.ArgumentParser(description='inference with bead images.')
+#parser.add_argument('model_name')
+#args   = parser.parse_args()
+#
+#configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
+#configs              = json.load(configs)
+#params               = configs["params"]
+#
+#JNet = model.JNet(params)
+#JNet = JNet.to(device = device)
+#j   = 12
+#j_s = j // params["scale"]
+#i = 64
+#
+#JNet.load_state_dict(torch.load(f'model/{args.model_name}.pt'), strict=False)
+#JNet.eval()
+#dirpath = "_beads_roi_extracted_stackreg"
+#images = [os.path.join(dirpath, f) for f in sorted(os.listdir(dirpath))]
+#print(images)
+#outputs = []
+#loss_fn = nn.MSELoss()
+#for image_name in images[:-1]:
+#    image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
+#    image = image_#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
+#    outdict = JNet(image.to("cuda").unsqueeze(0))
+#    output  = outdict["enhanced_image"]
+#    output  = output.detach().cpu()
+#    reconst = outdict["reconstruction"]
+#    #loss    = loss_fn(reconst, image).item()
+#    qloss   = outdict["quantized_loss"]
+#    print("output ", torch.sum(output).item() * (0.05 * 0.05 * 0.05))
+#    outputs.append(torch.sum(output).item() * (0.05 * 0.05 * 0.05))
+#    reconst = reconst.squeeze(0).detach().cpu().numpy()
+#    #losses.append(loss)
+#    fig = plt.figure(figsize=(10, 10))
+#    ax1 = fig.add_subplot(121)
+#    ax2 = fig.add_subplot(122)
+#    ax1.set_axis_off()
+#    ax2.set_axis_off()
+#    ax1.set_title('original image')
+#    ax2.set_title(f'reconstruct image\n{args.model_name}')
+#    plt.subplots_adjust(hspace=-0.0)
+#    ax1.imshow(image_[0, :, i, :].to(device='cpu'),
+#            cmap='gray', vmin=0.0, vmax=1.0, aspect=params["scale"])
+#    ax2.imshow(output[0, 0, :, i, :],
+#            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
+#    plt.savefig(f'result/{args.model_name}_new_{image_name[30:-3]}.png', format='png', dpi=250)
+#print(args.model_name)
+#print(np.mean(np.array(outputs)))
 
-parser = argparse.ArgumentParser(description='inference with bead images.')
-parser.add_argument('model_name')
-args   = parser.parse_args()
+class BeadsInference():
+    def __init__(self, model_name):
+        self.model_name = model_name
+        self.device = (torch.device('cuda') if torch.cuda.is_available()
+              else torch.device('cpu'))
+        config = open(os.path.join("experiments/configs", f"{model_name}.json"))
+        self.configs = json.load(config)
+        self.params  = self.configs["params"]
+        self.params["reconstruct"]     = True
+        self.params["apply_vq"]        = True
+        self.params["use_x_quantized"] = True
 
-configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
-configs              = json.load(configs)
-params               = configs["params"]
+        JNet = model.JNet(self.params)
+        self.JNet = JNet.to(device = self.device)
+        self.JNet.load_state_dict(torch.load(f'model/{model_name}.pt'),
+                                  strict=False)
+    
+    def get_result(self, datapath="_beads_roi_extracted_stackreg"):
+        self.images  = [os.path.join(datapath, f) for f in sorted(os.listdir(datapath))]
+        self.datapath = datapath
+        results  = []
+        for image_name in self.images[:-1]:
+            image   = torch.load(image_name,
+                                 map_location=self.device).to(torch.float32)
+            outdict = self.JNet(image.to(self.device).unsqueeze(0))
+            output  = outdict["enhanced_image"]
+            output  = output.squeeze(0).detach().cpu().numpy()
+            qloss   = outdict["quantized_loss"]
+            qloss   = qloss.item() if qloss is not None else 0
+            reconst = outdict["reconstruction"]
+            reconst = reconst.squeeze(0).detach().cpu().numpy()
+            image   = image.detach().cpu().numpy()
+            results.append([image, output, reconst, qloss])
+        return results
+    
+    def evaluate(self, results):
+        volumes = []
+        mses    = []
+        qlosses = []
+        for [image, output, reconst, qloss] in results:
+            volume = np.sum(output).item() * \
+                (self.params["res_lateral"] ** 2 * self.params["res_axial"])
+            mse = np.mean(((image - reconst) ** 2).flatten())
+            volumes.append(volume)
+            mses.append(mse)
+            qlosses.append(qloss)
+        return {"volume": volumes,
+                "MSE"   : mses   ,
+                "qloss" : qlosses }
+            
+    def visualize(self, results):
+        for n, [image, output, reconst, qloss] in enumerate(results):
+            path = self.configs["visualization"]["path"] 
+            j    = self.configs["visualization"]["z_stack"]
+            i    = self.configs["visualization"]["x_slice"]
+            mip  = self.configs["visualization"]["mip"]
+            image_z   = np.max(image [0,  : , i:i+mip, :], axis=1)
+            output_z  = np.max(output[0,  : , i:i+mip, :], axis=1)
+            reconst_z = np.max(reconst[0, : , i:i+mip, :], axis=1)
+            plt.axis("off")
+            plt.imshow(image_z, cmap='gray', vmin=0.0, aspect=self.params["scale"])
+            plt.savefig(path + f'/{self.model_name}_{self.images[n][len(self.datapath)+1:]}_original_depth.png', 
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
+            plt.clf()
+            plt.close()
+            plt.axis("off")
+            plt.imshow(output_z, cmap='gray', vmin=0.0, aspect=1)
+            plt.savefig(path + f'/{self.model_name}_{self.images[n][len(self.datapath)+1:]}_output_depth.png', 
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
+            plt.clf()
+            plt.close()
+            plt.axis("off")
+            plt.imshow(reconst_z, cmap='gray', vmin=0.0, aspect=self.params["scale"])
+            plt.savefig(path + f'/{self.model_name}_{self.images[n][len(self.datapath)+1:]}_reconst_depth.png', 
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
+            plt.clf()
+            plt.close()
 
-JNet = model.JNet(params)
-JNet = JNet.to(device = device)
-j   = 12
-j_s = j // params["scale"]
-i = 64
-
-JNet.load_state_dict(torch.load(f'model/{args.model_name}.pt'), strict=False)
-JNet.eval()
-dirpath = "_beads_roi_extracted_stackreg"
-images = [os.path.join(dirpath, f) for f in sorted(os.listdir(dirpath))]
-print(images)
-outputs = []
-loss_fn = nn.MSELoss()
-for image_name in images[:-1]:
-    image_ = torch.load(image_name, map_location="cuda").to(torch.float32)
-    image = image_#(torch.clip(image_, min=0.1, max=1.) - 0.1) / (1.0 - 0.1)
-    outdict = JNet(image.to("cuda").unsqueeze(0))
-    output  = outdict["enhanced_image"]
-    output  = output.detach().cpu()
-    reconst = outdict["reconstruction"]
-    #loss    = loss_fn(reconst, image).item()
-    qloss   = outdict["quantized_loss"]
-    print("output ", torch.sum(output).item() * (0.05 * 0.05 * 0.05))
-    outputs.append(torch.sum(output).item()* (0.05 * 0.05 * 0.05))
-    reconst = reconst.squeeze(0).detach().cpu().numpy()
-    #losses.append(loss)
-    fig = plt.figure(figsize=(10, 10))
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
-    ax1.set_axis_off()
-    ax2.set_axis_off()
-    ax1.set_title('original image')
-    ax2.set_title(f'reconstruct image\n{args.model_name}')
-    plt.subplots_adjust(hspace=-0.0)
-    ax1.imshow(image_[0, :, i, :].to(device='cpu'),
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=params["scale"])
-    ax2.imshow(output[0, 0, :, i, :],
-            cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
-    plt.savefig(f'result/{args.model_name}_new_{image_name[30:-3]}.png', format='png', dpi=250)
-print(args.model_name)
-print(np.mean(np.array(outputs)))
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='inference with bead images.')
+    parser.add_argument('model_name')
+    args   = parser.parse_args()
+    binfer = BeadsInference(args.model_name)
+    results = binfer.get_result()
+    print(binfer.evaluate(results))
+    binfer.visualize(results)
