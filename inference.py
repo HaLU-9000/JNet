@@ -332,11 +332,22 @@ class BeadsInference():
             plt.close()
 
     def psf_visualize(self):
-        psfpre  = self.psf_pretrain
-        psfpost = self.psf_post
-        
-        plt.clf()
+        psfpre  = self.psf_pretrain.detach().cpu().numpy()
+        psfpost = self.psf_post.detach().cpu().numpy()
 
+        plt.clf()
+        plt.close()
+        plt.axis("off")
+        plt.imshow(psfpre[:, self.params["size_x"]//2, :])
+        plt.savefig(f'./{self.configs["visualization"]["path"]}/{self.model_name}_psf_pre.png', 
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
+        plt.clf()
+        plt.close()
+        plt.axis("off")
+        plt.imshow(psfpost[:, self.params["size_x"]//2, :])
+        plt.savefig(f'./{self.configs["visualization"]["path"]}/{self.model_name}_psf_post.png', 
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='inference for simulation data')
     parser.add_argument('model_name')
