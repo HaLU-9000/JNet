@@ -14,19 +14,18 @@ from dataset import Vibrate
 vibrate = Vibrate()
 
 class PretrainingInference():
-    def __init__(self, model_name):
-        self.model_name = model_name
+    def __init__(self, model_name, pretrain=True):
         self.device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
         self.configs         = json.load(config)
+        self.model_name      = self.configs["pretrained_model"] if pretrain else model_name
         self.params          = self.configs["params"]
-
         val_dataset_params   = self.configs["pretrain_val_dataset"]
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
-        self.JNet.load_state_dict(torch.load(f'model/{self.configs["pretrained_model"]}.pt'),
+        self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
                                   strict=False)
         self.JNet.eval()
 
@@ -252,8 +251,7 @@ import model_new as model
 
 
 class BeadsInference():
-    def __init__(self, model_name):
-        self.model_name = model_name
+    def __init__(self, model_name, pretrain=True):
         self.device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
@@ -265,8 +263,11 @@ class BeadsInference():
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
-        self.JNet.load_state_dict(torch.load(f'model/{model_name}.pt'),
+        self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
+        self.model_name = self.configs["pretrained_model"] if pretrain else model_name
+        self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
                                   strict=False)
+        self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
     
     def get_result(self, datapath="_beads_roi_extracted_stackreg"):
@@ -286,6 +287,7 @@ class BeadsInference():
             image   = image.detach().cpu().numpy()
             results.append([image, output, reconst, qloss])
         return results
+    
     def evaluate(self, results):
         volumes = []
         mses    = []
@@ -328,6 +330,12 @@ class BeadsInference():
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
+
+    def psf_visualize(self):
+        psfpre  = self.psf_pretrain
+        psfpost = self.psf_post
+        
+        plt.clf()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='inference for simulation data')
