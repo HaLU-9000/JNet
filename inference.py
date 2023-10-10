@@ -25,8 +25,9 @@ class PretrainingInference():
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
-        self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
-                                  strict=False)
+        if os.path.isfile(f'model/{self.model_name}.pt'):
+            self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
+                                      strict=False)
         self.JNet.eval()
 
         val_dataset   = RandomCutDataset(
@@ -265,8 +266,9 @@ class BeadsInference():
         self.JNet = JNet.to(device = self.device)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
         self.model_name = self.configs["pretrained_model"] if pretrain else model_name
-        self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
-                                  strict=False)
+        if os.path.isfile(f'model/{self.model_name}.pt'):
+            self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
+                                      strict=False)
         self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
     
@@ -352,7 +354,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='inference for simulation data')
     parser.add_argument('model_name')
     args   = parser.parse_args()
-    inference = PretrainingInference(args.model_name)
-    results = inference.get_result(5)
-    print(inference.evaluate(results))
-    inference.visualize(results)
+    inference = BeadsInference(args.model_name, pretrain=True)
+    inference.psf_visualize()
+    #inference = PretrainingInference(args.model_name)
+    #results = inference.get_result(5)
+    #print(inference.evaluate(results))
+    #inference.visualize(results)

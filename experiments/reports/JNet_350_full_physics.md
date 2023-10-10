@@ -387,20 +387,20 @@ JNet(
 ![finetuned]
 ## Results
   
-mean MSE: 0.020022694021463394, mean BCE: 0.07360906153917313
+mean MSE: 0.019873296841979027, mean BCE: 0.07586642354726791
 ### 0
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_0_original_plane]|![JNet_349_pretrain_0_output_plane]|![JNet_349_pretrain_0_label_plane]|
   
-MSE: 0.02589576691389084, BCE: 0.09322133660316467  
+MSE: 0.02481347694993019, BCE: 0.1102108582854271  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_0_original_depth]|![JNet_349_pretrain_0_output_depth]|![JNet_349_pretrain_0_label_depth]|
   
-MSE: 0.02589576691389084, BCE: 0.09322133660316467  
+MSE: 0.02481347694993019, BCE: 0.1102108582854271  
 
 ### 1
 
@@ -408,13 +408,13 @@ MSE: 0.02589576691389084, BCE: 0.09322133660316467
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_1_original_plane]|![JNet_349_pretrain_1_output_plane]|![JNet_349_pretrain_1_label_plane]|
   
-MSE: 0.021626217290759087, BCE: 0.07995110750198364  
+MSE: 0.017249174416065216, BCE: 0.062210652977228165  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_1_original_depth]|![JNet_349_pretrain_1_output_depth]|![JNet_349_pretrain_1_label_depth]|
   
-MSE: 0.021626217290759087, BCE: 0.07995110750198364  
+MSE: 0.017249174416065216, BCE: 0.062210652977228165  
 
 ### 2
 
@@ -422,13 +422,13 @@ MSE: 0.021626217290759087, BCE: 0.07995110750198364
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_2_original_plane]|![JNet_349_pretrain_2_output_plane]|![JNet_349_pretrain_2_label_plane]|
   
-MSE: 0.019559554755687714, BCE: 0.07431060820817947  
+MSE: 0.020704779773950577, BCE: 0.07845329493284225  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_2_original_depth]|![JNet_349_pretrain_2_output_depth]|![JNet_349_pretrain_2_label_depth]|
   
-MSE: 0.019559554755687714, BCE: 0.07431060820817947  
+MSE: 0.020704779773950577, BCE: 0.07845329493284225  
 
 ### 3
 
@@ -436,13 +436,13 @@ MSE: 0.019559554755687714, BCE: 0.07431060820817947
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_3_original_plane]|![JNet_349_pretrain_3_output_plane]|![JNet_349_pretrain_3_label_plane]|
   
-MSE: 0.02220495231449604, BCE: 0.08130636811256409  
+MSE: 0.014767303131520748, BCE: 0.05138268321752548  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_3_original_depth]|![JNet_349_pretrain_3_output_depth]|![JNet_349_pretrain_3_label_depth]|
   
-MSE: 0.02220495231449604, BCE: 0.08130636811256409  
+MSE: 0.014767303131520748, BCE: 0.05138268321752548  
 
 ### 4
 
@@ -450,28 +450,28 @@ MSE: 0.02220495231449604, BCE: 0.08130636811256409
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_4_original_plane]|![JNet_349_pretrain_4_output_plane]|![JNet_349_pretrain_4_label_plane]|
   
-MSE: 0.010826977901160717, BCE: 0.039255883544683456  
+MSE: 0.021831754595041275, BCE: 0.07707460224628448  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_349_pretrain_4_original_depth]|![JNet_349_pretrain_4_output_depth]|![JNet_349_pretrain_4_label_depth]|
   
-MSE: 0.010826977901160717, BCE: 0.039255883544683456  
+MSE: 0.021831754595041275, BCE: 0.07707460224628448  
   
-mean MSE: 0.03559223562479019, mean BCE: nan
+mean MSE: 0.03056936524808407, mean BCE: nan
 ### 0
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_0_original_plane]|![JNet_350_full_physics_0_output_plane]|![JNet_350_full_physics_0_label_plane]|
   
-MSE: 0.033629290759563446, BCE: nan  
+MSE: 0.023425210267305374, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_0_original_depth]|![JNet_350_full_physics_0_output_depth]|![JNet_350_full_physics_0_label_depth]|
   
-MSE: 0.033629290759563446, BCE: nan  
+MSE: 0.023425210267305374, BCE: nan  
 
 ### 1
 
@@ -479,13 +479,13 @@ MSE: 0.033629290759563446, BCE: nan
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_1_original_plane]|![JNet_350_full_physics_1_output_plane]|![JNet_350_full_physics_1_label_plane]|
   
-MSE: 0.03429707512259483, BCE: nan  
+MSE: 0.032218512147665024, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_1_original_depth]|![JNet_350_full_physics_1_output_depth]|![JNet_350_full_physics_1_label_depth]|
   
-MSE: 0.03429707512259483, BCE: nan  
+MSE: 0.032218512147665024, BCE: nan  
 
 ### 2
 
@@ -493,13 +493,13 @@ MSE: 0.03429707512259483, BCE: nan
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_2_original_plane]|![JNet_350_full_physics_2_output_plane]|![JNet_350_full_physics_2_label_plane]|
   
-MSE: 0.03674015402793884, BCE: nan  
+MSE: 0.023318253457546234, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_2_original_depth]|![JNet_350_full_physics_2_output_depth]|![JNet_350_full_physics_2_label_depth]|
   
-MSE: 0.03674015402793884, BCE: nan  
+MSE: 0.023318253457546234, BCE: nan  
 
 ### 3
 
@@ -507,13 +507,13 @@ MSE: 0.03674015402793884, BCE: nan
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_3_original_plane]|![JNet_350_full_physics_3_output_plane]|![JNet_350_full_physics_3_label_plane]|
   
-MSE: 0.03434119001030922, BCE: nan  
+MSE: 0.03080722503364086, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_3_original_depth]|![JNet_350_full_physics_3_output_depth]|![JNet_350_full_physics_3_label_depth]|
   
-MSE: 0.03434119001030922, BCE: nan  
+MSE: 0.03080722503364086, BCE: nan  
 
 ### 4
 
@@ -521,13 +521,13 @@ MSE: 0.03434119001030922, BCE: nan
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_4_original_plane]|![JNet_350_full_physics_4_output_plane]|![JNet_350_full_physics_4_label_plane]|
   
-MSE: 0.03895346820354462, BCE: nan  
+MSE: 0.04307762160897255, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_350_full_physics_4_original_depth]|![JNet_350_full_physics_4_output_depth]|![JNet_350_full_physics_4_label_depth]|
   
-MSE: 0.03895346820354462, BCE: nan  
+MSE: 0.04307762160897255, BCE: nan  
 
 ### beads_001_roi000
 

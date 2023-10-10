@@ -73,30 +73,31 @@ for name in [
 #####################
 ## Training Curves ##
 #####################
-md.new_header(level=2, title="Training Curves")
-md.new_line()
-md.new_header(level=3, title="Pretraining")
-df = pd.read_csv(f'experiments/traincurves/{configs["pretrained_model"]}.csv')
-df.plot()
-plt.xlabel("epoch")
-plt.ylabel(configs["pretrain_loop"]["loss_fn"])
-path = f'./experiments/tmp/{configs["pretrained_model"]}_train.png'
-plt.savefig(path)
-md.new_line(md.new_reference_image(text="pretrained_model", path=path[1:]))
-md.new_header(level=3, title="Finetuning")
-df = pd.read_csv(f'experiments/traincurves/{args.model_name}.csv')
-df.plot()
-plt.xlabel("epoch")
-loss_metrics = configs["train_loop"]["loss_fn"]+" + "\
-    +"qloss "+"* "+str(configs["train_loop"]["qloss_weight"])
-if configs["train_loop"]["ewc"] is not None:
-    loss_metrics += "ewc"
-plt.ylabel(loss_metrics)
-path = f'./experiments/tmp/{args.model_name}_train.png'
-plt.savefig(path)
-md.new_line(md.new_reference_image(text="finetuned", path=path[1:]))
-plt.clf()
-plt.close()
+if os.path.isfile(f'experiments/traincurves/{args.model_name}.csv'):
+    md.new_header(level=2, title="Training Curves")
+    md.new_line()
+    md.new_header(level=3, title="Pretraining")
+    df = pd.read_csv(f'experiments/traincurves/{configs["pretrained_model"]}.csv')
+    df.plot()
+    plt.xlabel("epoch")
+    plt.ylabel(configs["pretrain_loop"]["loss_fn"])
+    path = f'./experiments/tmp/{configs["pretrained_model"]}_train.png'
+    plt.savefig(path)
+    md.new_line(md.new_reference_image(text="pretrained_model", path=path[1:]))
+    md.new_header(level=3, title="Finetuning")
+    df = pd.read_csv(f'experiments/traincurves/{args.model_name}.csv')
+    df.plot()
+    plt.xlabel("epoch")
+    loss_metrics = configs["train_loop"]["loss_fn"]+" + "\
+        +"qloss "+"* "+str(configs["train_loop"]["qloss_weight"])
+    if configs["train_loop"]["ewc"] is not None:
+        loss_metrics += "ewc"
+    plt.ylabel(loss_metrics)
+    path = f'./experiments/tmp/{args.model_name}_train.png'
+    plt.savefig(path)
+    md.new_line(md.new_reference_image(text="finetuned", path=path[1:]))
+    plt.clf()
+    plt.close()
 #############
 ## Results ##
 #############
