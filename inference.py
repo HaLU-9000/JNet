@@ -56,6 +56,7 @@ class PretrainingInference():
                          )
     
     def get_result(self, num_results)->list:
+        #with torch.no_grad():
         results = []
         for n, val_data in enumerate(self.val_loader):
             if n >= num_results:
@@ -178,6 +179,10 @@ class PretrainingInference():
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
             plt.savefig(path + f'/{self.model_name}_result_{n}.png',
                 format='png', dpi=250)
+    
+    def del_model(self):
+        self.JNet = self.JNet.cpu()
+        del self.JNet
             
 import os
 import argparse
@@ -262,6 +267,7 @@ class BeadsInference():
         self.JNet = JNet.to(device = self.device)
         self.JNet.load_state_dict(torch.load(f'model/{model_name}.pt'),
                                   strict=False)
+        self.JNet.eval()
     
     def get_result(self, datapath="_beads_roi_extracted_stackreg"):
         self.images  = [os.path.join(datapath, f) for f in sorted(os.listdir(datapath))]

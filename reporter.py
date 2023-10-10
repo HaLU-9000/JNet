@@ -4,6 +4,7 @@ import argparse
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from mdutils.mdutils import MdUtils
 import pandas as pd
 import model_new as model
@@ -114,11 +115,13 @@ for n in range(num_result):
     for slice in slice_list:
         im_list = []    
         for tp in type_list:
-            path = f'./experiments/imagetests/{args.model_name}_{n}_{tp}_{slice}.png'
+            path = f'./{configs["visualization"]["path"]}/{args.model_name}_{n}_{tp}_{slice}.png'
             im_list.append(md.new_reference_image(text=f"{n}_{tp}_{slice}", path=path[1:]))
         md.new_table(columns=3, rows=2, text=[*type_list, *im_list],)
         md.new_line(f'MSE: {evals["MSE"][n]}, BCE: {evals["BCE"][n]}')
         md.new_line()
+infer.del_model()
+torch.cuda.empty_cache()
 
 btype_list = ["original", "output", "reconst"]
 binfer = inference.BeadsInference(args.model_name)
@@ -130,7 +133,7 @@ for n in range(len(results)):
     md.new_header(level=3, title=image_name)
     im_list = []
     for tp in btype_list:
-        path = f'./experiments/imagetests/{args.model_name}_{image_name}_{tp}_depth.png'
+        path = f'./{configs["visualization"]["path"]}/{args.model_name}_{image_name}_{tp}_depth.png'
         im_list.append(md.new_reference_image(text=f"{image_name}_{tp}_{slice}", path=path[1:]))
     md.new_table(columns=3, rows=2, text=[*btype_list, *im_list],)
     md.new_line(f'volume: {bevals["volume"][n]}, MSE: {bevals["MSE"][n]}, quantized loss: {bevals["qloss"][n]}')
