@@ -204,6 +204,16 @@ class Augmentation():
         image = Crop(icoords, scaled_cropsize)(image)
         
         return image, label
+    
+class Mask():
+    def __init__(self):
+        pass
+
+    def apply_mask(self, mask, image, mask_size, mask_num):
+        if mask:
+            image = mask_(image, mask_size, mask_num)
+        return image
+
 
 class RandomCutDataset(Dataset):
     '''

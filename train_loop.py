@@ -5,7 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
 import pandas as pd
-from dataset import Vibrate
+from dataset import Vibrate, Mask
 
 
 def divide(x, partial):
@@ -28,7 +28,7 @@ def branch_calc_loss(out, rec, image, label, loss_function,
 vibrate = Vibrate()
 
 def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
-               device, path, savefig_path, model_name, ewc, params, partial=None,
+               device, path, savefig_path, model_name, ewc, params, train_dataset_params, val_dataset_params, partial=None,
                scheduler=None, es_patience=10,
                reconstruct=False,
                is_instantblur=False, is_vibrate=False,
@@ -43,6 +43,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     train_curve = pd.DataFrame(columns=["training loss", "validatation loss"] )
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     vibrate = Vibrate()
+    mask = Mask()
     for epoch in range(1, n_epochs + 1):
         loss_sum, midloss_sum, vloss_sum, vqloss_sum, vmidloss_sum, \
         vparam_loss_sum = 0., 0., 0., 0., 0., 0.
@@ -62,6 +63,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 vimage = vibrate(image)
             else:
                 vimage = image
+            vimage = mask.apply_mask(train_dataset_params["mask"], vimage,
+                                     train_dataset_params["mask_size"],
+                                     train_dataset_params["mask_num"] ,)
             outdict = model(vimage)
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
@@ -96,6 +100,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     vimage = vibrate(image)
                 else:
                     vimage = image
+                vimage = mask.apply_mask(val_dataset_params["mask"], vimage,
+                                         val_dataset_params["mask_size"],
+                                         val_dataset_params["mask_num"] ,)
                 outdict = model(vimage)
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
