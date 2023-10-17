@@ -472,6 +472,7 @@ class Noise(nn.Module):
         self.sig_eps = sig_eps
 
     def forward(self, x):
+        x = x + torch.randn_like(x) * self.sig_eps
         return x
 
 
