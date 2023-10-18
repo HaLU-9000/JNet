@@ -12,14 +12,14 @@ pretrained model : JNet_361_pretrain
 |Parameter|Value|Comment|
 | :--- | :--- | :--- |
 |hidden_channels_list|[16, 32, 64, 128, 256]||
-|attn_list|[False, False, False, False, True]||
+|attn_list|[False, False, False, False, False]||
 |nblocks|2||
 |activation|nn.ReLU(inplace=True)||
 |dropout|0.5||
 |superres|True||
 |partial|None||
 |reconstruct|False||
-|apply_vq|False||
+|apply_vq|True||
 |use_x_quantized|False||
 |use_fftconv|True||
 |mu_z|0.1||
@@ -140,17 +140,7 @@ JNet(
             )  
           )  
           (mid): Identity()  
-          (attn): CrossAttentionBlock(  
-            (attn): CrossAttention(  
-              (to_q): Linear(in_features=256, out_features=256, bias=False)  
-              (to_k): Linear(in_features=256, out_features=256, bias=False)  
-              (to_v): Linear(in_features=256, out_features=256, bias=False)  
-              (to_out): Sequential(  
-                (0): Linear(in_features=256, out_features=256, bias=True)  
-              )  
-            )  
-            (norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)  
-          )  
+          (attn): Identity()  
           (post): ModuleList(  
             (0-1): 2 x JNetBlock(  
               (bn1): BatchNorm3d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  
@@ -364,7 +354,7 @@ JNet(
 |is_instantblur|True|
 |is_vibrate|True|
 |loss_weight|1|
-|qloss_weight|0|
+|qloss_weight|0.1|
 
 ### train_loop
 
@@ -386,22 +376,31 @@ JNet(
 |loss_weight|1|
 |qloss_weight|1|
 
+## Training Curves
+  
+
+### Pretraining
+  
+![pretrained_model]
+### Finetuning
+  
+![finetuned]
 ## Results
   
-mean MSE: 0.2820992171764374, mean BCE: 0.7574471235275269
+mean MSE: 0.0380285382270813, mean BCE: nan
 ### 0
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_0_original_plane]|![JNet_361_pretrain_0_output_plane]|![JNet_361_pretrain_0_label_plane]|
   
-MSE: 0.28204047679901123, BCE: 0.757329523563385  
+MSE: 0.031081924214959145, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_0_original_depth]|![JNet_361_pretrain_0_output_depth]|![JNet_361_pretrain_0_label_depth]|
   
-MSE: 0.28204047679901123, BCE: 0.757329523563385  
+MSE: 0.031081924214959145, BCE: nan  
 
 ### 1
 
@@ -409,13 +408,13 @@ MSE: 0.28204047679901123, BCE: 0.757329523563385
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_1_original_plane]|![JNet_361_pretrain_1_output_plane]|![JNet_361_pretrain_1_label_plane]|
   
-MSE: 0.28436845541000366, BCE: 0.7619986534118652  
+MSE: 0.0480983592569828, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_1_original_depth]|![JNet_361_pretrain_1_output_depth]|![JNet_361_pretrain_1_label_depth]|
   
-MSE: 0.28436845541000366, BCE: 0.7619986534118652  
+MSE: 0.0480983592569828, BCE: nan  
 
 ### 2
 
@@ -423,13 +422,13 @@ MSE: 0.28436845541000366, BCE: 0.7619986534118652
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_2_original_plane]|![JNet_361_pretrain_2_output_plane]|![JNet_361_pretrain_2_label_plane]|
   
-MSE: 0.2828574776649475, BCE: 0.7589715719223022  
+MSE: 0.03942655026912689, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_2_original_depth]|![JNet_361_pretrain_2_output_depth]|![JNet_361_pretrain_2_label_depth]|
   
-MSE: 0.2828574776649475, BCE: 0.7589715719223022  
+MSE: 0.03942655026912689, BCE: nan  
 
 ### 3
 
@@ -437,13 +436,13 @@ MSE: 0.2828574776649475, BCE: 0.7589715719223022
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_3_original_plane]|![JNet_361_pretrain_3_output_plane]|![JNet_361_pretrain_3_label_plane]|
   
-MSE: 0.28101596236228943, BCE: 0.7552724480628967  
+MSE: 0.02762409672141075, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_3_original_depth]|![JNet_361_pretrain_3_output_depth]|![JNet_361_pretrain_3_label_depth]|
   
-MSE: 0.28101596236228943, BCE: 0.7552724480628967  
+MSE: 0.02762409672141075, BCE: nan  
 
 ### 4
 
@@ -451,28 +450,28 @@ MSE: 0.28101596236228943, BCE: 0.7552724480628967
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_4_original_plane]|![JNet_361_pretrain_4_output_plane]|![JNet_361_pretrain_4_label_plane]|
   
-MSE: 0.28021371364593506, BCE: 0.7536635994911194  
+MSE: 0.04391176253557205, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_4_original_depth]|![JNet_361_pretrain_4_output_depth]|![JNet_361_pretrain_4_label_depth]|
   
-MSE: 0.28021371364593506, BCE: 0.7536635994911194  
+MSE: 0.04391176253557205, BCE: nan  
   
-mean MSE: 0.26444298028945923, mean BCE: 0.7220429182052612
+mean MSE: 0.03395520895719528, mean BCE: nan
 ### 0
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_362_0_original_plane]|![JNet_362_0_output_plane]|![JNet_362_0_label_plane]|
   
-MSE: 0.26446542143821716, BCE: 0.7220878601074219  
+MSE: 0.034291625022888184, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_362_0_original_depth]|![JNet_362_0_output_depth]|![JNet_362_0_label_depth]|
   
-MSE: 0.26446542143821716, BCE: 0.7220878601074219  
+MSE: 0.034291625022888184, BCE: nan  
 
 ### 1
 
@@ -480,13 +479,13 @@ MSE: 0.26446542143821716, BCE: 0.7220878601074219
 | :---: | :---: | :---: |
 |![JNet_362_1_original_plane]|![JNet_362_1_output_plane]|![JNet_362_1_label_plane]|
   
-MSE: 0.2646002173423767, BCE: 0.7223570346832275  
+MSE: 0.037715572863817215, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_362_1_original_depth]|![JNet_362_1_output_depth]|![JNet_362_1_label_depth]|
   
-MSE: 0.2646002173423767, BCE: 0.7223570346832275  
+MSE: 0.037715572863817215, BCE: nan  
 
 ### 2
 
@@ -494,13 +493,13 @@ MSE: 0.2646002173423767, BCE: 0.7223570346832275
 | :---: | :---: | :---: |
 |![JNet_362_2_original_plane]|![JNet_362_2_output_plane]|![JNet_362_2_label_plane]|
   
-MSE: 0.2637953758239746, BCE: 0.720747709274292  
+MSE: 0.028482740744948387, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_362_2_original_depth]|![JNet_362_2_output_depth]|![JNet_362_2_label_depth]|
   
-MSE: 0.2637953758239746, BCE: 0.720747709274292  
+MSE: 0.028482740744948387, BCE: nan  
 
 ### 3
 
@@ -508,13 +507,13 @@ MSE: 0.2637953758239746, BCE: 0.720747709274292
 | :---: | :---: | :---: |
 |![JNet_362_3_original_plane]|![JNet_362_3_output_plane]|![JNet_362_3_label_plane]|
   
-MSE: 0.2649853825569153, BCE: 0.7231284379959106  
+MSE: 0.0388764888048172, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_362_3_original_depth]|![JNet_362_3_output_depth]|![JNet_362_3_label_depth]|
   
-MSE: 0.2649853825569153, BCE: 0.7231284379959106  
+MSE: 0.0388764888048172, BCE: nan  
 
 ### 4
 
@@ -522,13 +521,13 @@ MSE: 0.2649853825569153, BCE: 0.7231284379959106
 | :---: | :---: | :---: |
 |![JNet_362_4_original_plane]|![JNet_362_4_output_plane]|![JNet_362_4_label_plane]|
   
-MSE: 0.26436847448349, BCE: 0.7218936681747437  
+MSE: 0.03040962480008602, BCE: nan  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_362_4_original_depth]|![JNet_362_4_output_depth]|![JNet_362_4_label_depth]|
   
-MSE: 0.26436847448349, BCE: 0.7218936681747437  
+MSE: 0.03040962480008602, BCE: nan  
 
 ### beads_001_roi000
 
@@ -536,7 +535,7 @@ MSE: 0.26436847448349, BCE: 0.7218936681747437
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_001_roi000_original_depth]|![JNet_361_pretrain_beads_001_roi000_output_depth]|![JNet_361_pretrain_beads_001_roi000_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.532200276851654, quantized loss: 0.24088191986083984  
+volume: 0.0, MSE: 0.009335086680948734, quantized loss: 0.0  
 
 ### beads_001_roi001
 
@@ -544,7 +543,7 @@ volume: 491.5200000000001, MSE: 0.532200276851654, quantized loss: 0.24088191986
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_001_roi001_original_depth]|![JNet_361_pretrain_beads_001_roi001_output_depth]|![JNet_361_pretrain_beads_001_roi001_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.5208145380020142, quantized loss: 0.23988686501979828  
+volume: 0.0, MSE: 0.014853984117507935, quantized loss: 0.0  
 
 ### beads_001_roi002
 
@@ -552,7 +551,7 @@ volume: 491.5200000000001, MSE: 0.5208145380020142, quantized loss: 0.2398868650
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_001_roi002_original_depth]|![JNet_361_pretrain_beads_001_roi002_output_depth]|![JNet_361_pretrain_beads_001_roi002_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.5362014770507812, quantized loss: 0.24106796085834503  
+volume: 0.0, MSE: 0.009056191891431808, quantized loss: 0.0  
 
 ### beads_001_roi003
 
@@ -560,7 +559,7 @@ volume: 491.5200000000001, MSE: 0.5362014770507812, quantized loss: 0.2410679608
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_001_roi003_original_depth]|![JNet_361_pretrain_beads_001_roi003_output_depth]|![JNet_361_pretrain_beads_001_roi003_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.5194132328033447, quantized loss: 0.23993229866027832  
+volume: 0.0, MSE: 0.015940722078084946, quantized loss: 0.0  
 
 ### beads_001_roi004
 
@@ -568,7 +567,7 @@ volume: 491.5200000000001, MSE: 0.5194132328033447, quantized loss: 0.2399322986
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_001_roi004_original_depth]|![JNet_361_pretrain_beads_001_roi004_output_depth]|![JNet_361_pretrain_beads_001_roi004_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.5328969955444336, quantized loss: 0.240861177444458  
+volume: 0.0, MSE: 0.010938753373920918, quantized loss: 0.0  
 
 ### beads_002_roi000
 
@@ -576,7 +575,7 @@ volume: 491.5200000000001, MSE: 0.5328969955444336, quantized loss: 0.2408611774
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_002_roi000_original_depth]|![JNet_361_pretrain_beads_002_roi000_output_depth]|![JNet_361_pretrain_beads_002_roi000_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.5308762192726135, quantized loss: 0.24072612822055817  
+volume: 0.0, MSE: 0.012265910394489765, quantized loss: 0.0  
 
 ### beads_002_roi001
 
@@ -584,7 +583,7 @@ volume: 491.5200000000001, MSE: 0.5308762192726135, quantized loss: 0.2407261282
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_002_roi001_original_depth]|![JNet_361_pretrain_beads_002_roi001_output_depth]|![JNet_361_pretrain_beads_002_roi001_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.5341352820396423, quantized loss: 0.24092625081539154  
+volume: 0.0, MSE: 0.010307948105037212, quantized loss: 0.0  
 
 ### beads_002_roi002
 
@@ -592,7 +591,7 @@ volume: 491.5200000000001, MSE: 0.5341352820396423, quantized loss: 0.2409262508
 | :---: | :---: | :---: |
 |![JNet_361_pretrain_beads_002_roi002_original_depth]|![JNet_361_pretrain_beads_002_roi002_output_depth]|![JNet_361_pretrain_beads_002_roi002_reconst_depth]|
   
-volume: 491.5200000000001, MSE: 0.5327744483947754, quantized loss: 0.24085097014904022  
+volume: 0.0, MSE: 0.011078033596277237, quantized loss: 0.0  
 
 ### beads_001_roi000
 
@@ -600,7 +599,7 @@ volume: 491.5200000000001, MSE: 0.5327744483947754, quantized loss: 0.2408509701
 | :---: | :---: | :---: |
 |![JNet_362_beads_001_roi000_original_depth]|![JNet_362_beads_001_roi000_output_depth]|![JNet_362_beads_001_roi000_reconst_depth]|
   
-volume: 0.7535000000000002, MSE: 0.009032287634909153, quantized loss: 0.23789648711681366  
+volume: 0.0, MSE: 0.009335086680948734, quantized loss: 0.0  
 
 ### beads_001_roi001
 
@@ -608,7 +607,7 @@ volume: 0.7535000000000002, MSE: 0.009032287634909153, quantized loss: 0.2378964
 | :---: | :---: | :---: |
 |![JNet_362_beads_001_roi001_original_depth]|![JNet_362_beads_001_roi001_output_depth]|![JNet_362_beads_001_roi001_reconst_depth]|
   
-volume: 1.3823750000000004, MSE: 0.01433609426021576, quantized loss: 0.23698118329048157  
+volume: 0.0, MSE: 0.014853984117507935, quantized loss: 0.0  
 
 ### beads_001_roi002
 
@@ -616,7 +615,7 @@ volume: 1.3823750000000004, MSE: 0.01433609426021576, quantized loss: 0.23698118
 | :---: | :---: | :---: |
 |![JNet_362_beads_001_roi002_original_depth]|![JNet_362_beads_001_roi002_output_depth]|![JNet_362_beads_001_roi002_reconst_depth]|
   
-volume: 0.6433750000000001, MSE: 0.008825917728245258, quantized loss: 0.23818811774253845  
+volume: 0.0, MSE: 0.009056191891431808, quantized loss: 0.0  
 
 ### beads_001_roi003
 
@@ -624,7 +623,7 @@ volume: 0.6433750000000001, MSE: 0.008825917728245258, quantized loss: 0.2381881
 | :---: | :---: | :---: |
 |![JNet_362_beads_001_roi003_original_depth]|![JNet_362_beads_001_roi003_output_depth]|![JNet_362_beads_001_roi003_reconst_depth]|
   
-volume: 0.8637500000000002, MSE: 0.015565279871225357, quantized loss: 0.23611852526664734  
+volume: 0.0, MSE: 0.015940722078084946, quantized loss: 0.0  
 
 ### beads_001_roi004
 
@@ -632,7 +631,7 @@ volume: 0.8637500000000002, MSE: 0.015565279871225357, quantized loss: 0.2361185
 | :---: | :---: | :---: |
 |![JNet_362_beads_001_roi004_original_depth]|![JNet_362_beads_001_roi004_output_depth]|![JNet_362_beads_001_roi004_reconst_depth]|
   
-volume: 0.8618750000000002, MSE: 0.010591001249849796, quantized loss: 0.23789721727371216  
+volume: 0.0, MSE: 0.010938753373920918, quantized loss: 0.0  
 
 ### beads_002_roi000
 
@@ -640,7 +639,7 @@ volume: 0.8618750000000002, MSE: 0.010591001249849796, quantized loss: 0.2378972
 | :---: | :---: | :---: |
 |![JNet_362_beads_002_roi000_original_depth]|![JNet_362_beads_002_roi000_output_depth]|![JNet_362_beads_002_roi000_reconst_depth]|
   
-volume: 1.0087500000000003, MSE: 0.01184847205877304, quantized loss: 0.23772020637989044  
+volume: 0.0, MSE: 0.012265910394489765, quantized loss: 0.0  
 
 ### beads_002_roi001
 
@@ -648,7 +647,7 @@ volume: 1.0087500000000003, MSE: 0.01184847205877304, quantized loss: 0.23772020
 | :---: | :---: | :---: |
 |![JNet_362_beads_002_roi001_original_depth]|![JNet_362_beads_002_roi001_output_depth]|![JNet_362_beads_002_roi001_reconst_depth]|
   
-volume: 0.8417500000000002, MSE: 0.009971690364181995, quantized loss: 0.23800252377986908  
+volume: 0.0, MSE: 0.010307948105037212, quantized loss: 0.0  
 
 ### beads_002_roi002
 
@@ -656,7 +655,7 @@ volume: 0.8417500000000002, MSE: 0.009971690364181995, quantized loss: 0.2380025
 | :---: | :---: | :---: |
 |![JNet_362_beads_002_roi002_original_depth]|![JNet_362_beads_002_roi002_output_depth]|![JNet_362_beads_002_roi002_reconst_depth]|
   
-volume: 0.8737500000000002, MSE: 0.010725263506174088, quantized loss: 0.2378915250301361  
+volume: 0.0, MSE: 0.011078033596277237, quantized loss: 0.0  
 
 |pre|post|
 | :---: | :---: |
@@ -775,3 +774,5 @@ volume: 0.8737500000000002, MSE: 0.010725263506174088, quantized loss: 0.2378915
 [JNet_362_beads_002_roi002_reconst_depth]: /experiments/images/JNet_362_beads_002_roi002_reconst_depth.png
 [JNet_362_psf_post]: /experiments/images/JNet_362_psf_post.png
 [JNet_362_psf_pre]: /experiments/images/JNet_362_psf_pre.png
+[finetuned]: /experiments/tmp/JNet_362_train.png
+[pretrained_model]: /experiments/tmp/JNet_361_pretrain_train.png

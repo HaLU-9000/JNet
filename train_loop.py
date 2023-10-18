@@ -57,7 +57,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     image = model.image.noise(image)
                     image = model.image.preprocess(image)
                 image = mask.apply_mask(train_dataset_params["mask"]      ,
-                                        vimage                            ,
+                                        image                             ,
                                         train_dataset_params["mask_size"] ,
                                         train_dataset_params["mask_num"]  ,)
             else:
