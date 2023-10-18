@@ -56,6 +56,10 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     image = model.image.blur(image)
                     image = model.image.noise(image)
                     image = model.image.preprocess(image)
+                image = mask.apply_mask(train_dataset_params["mask"]      ,
+                                        vimage                            ,
+                                        train_dataset_params["mask_size"] ,
+                                        train_dataset_params["mask_num"]  ,)
             else:
                 image    = train_data[0].to(device = device)
                 label    = train_data[1].to(device = device)
@@ -63,9 +67,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 vimage = vibrate(image)
             else:
                 vimage = image
-            vimage = mask.apply_mask(train_dataset_params["mask"], vimage,
-                                     train_dataset_params["mask_size"],
-                                     train_dataset_params["mask_num"] ,)
+            
             outdict = model(vimage)
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
@@ -100,9 +102,6 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     vimage = vibrate(image)
                 else:
                     vimage = image
-                vimage = mask.apply_mask(val_dataset_params["mask"], vimage,
-                                         val_dataset_params["mask_size"],
-                                         val_dataset_params["mask_num"] ,)
                 outdict = model(vimage)
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
