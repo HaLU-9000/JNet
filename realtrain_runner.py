@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
-import timm
+import timm.scheduler
 
 import model_new as model
 from dataset import RealDensityDataset, RandomCutDataset
