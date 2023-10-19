@@ -100,7 +100,7 @@ lr = train_loop_params["lr"]
 optimizer            = optim.Adam(train_params, lr = lr)
 scheduler            = timm.scheduler.PlateauLRScheduler(
     optimizer      = optimizer   ,
-    patience_t     = 10          ,
+    patience_t     = 5           ,
     warmup_lr_init = lr * 0.1    ,
     warmup_t       = 10          ,)
 

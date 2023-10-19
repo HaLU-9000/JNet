@@ -477,15 +477,24 @@ class Noise(nn.Module):
 
 
 class PreProcess(nn.Module):
-    def __init__(self, min, max):
+    def __init__(self, min, max, params):
         super().__init__()
         self.min = min
         self.max = max
-
+        self.background = nn.Parameter((torch.tensor(params["background"])))
+        self.gamma = dist.Gamma(torch.tensor([1.0]),
+                                torch.tensor(params["background"]))
     def forward(self, x):
+        x = x + self.background
         x = torch.clip(x, min=self.min, max=self.max)
         x = (x - self.min) / (self.max - self.min)
         return x
+    def sample(self, x):
+        x = x + self.gamma.sample().item()
+        x = torch.clip(x, min=self.min, max=self.max)
+        x = (x - self.min) / (self.max - self.min)
+        return x
+    
 
 
 class ImagingProcess(nn.Module):
@@ -498,7 +507,8 @@ class ImagingProcess(nn.Module):
         self.emission   = Emission(params, log_ez0 = self.log_ez0,)
         self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
-        self.preprocess = PreProcess(min=0., max=1.)
+        
+        self.preprocess = PreProcess(min=0., max=1., params=params)
 
     def forward(self, x):
         x = self.emission(x)
