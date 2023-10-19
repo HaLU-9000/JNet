@@ -481,11 +481,11 @@ class PreProcess(nn.Module):
         super().__init__()
         self.min = min
         self.max = max
-        self.background = nn.Parameter((torch.tensor(params["background"])))
+        self.background = nn.Parameter(torch.log(torch.tensor(params["background"])))
         self.gamma = dist.Gamma(torch.tensor([1.0]),
                                 torch.tensor(params["background"]))
     def forward(self, x):
-        x = x + self.background
+        x = x + torch.exp(self.background)
         x = torch.clip(x, min=self.min, max=self.max)
         x = (x - self.min) / (self.max - self.min)
         return x
