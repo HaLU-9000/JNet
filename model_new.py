@@ -508,12 +508,12 @@ class ImagingProcess(nn.Module):
         self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         
-        #self.preprocess = PreProcess(min=0., max=1., params=params)
+        self.preprocess = PreProcess(min=0., max=1., params=params)
 
     def forward(self, x):
         x = self.emission(x)
         x = self.blur(x)
-        #x = self.preprocess(x)
+        x = self.preprocess(x)
         return x
 
 

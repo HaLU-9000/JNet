@@ -55,7 +55,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     image = model.image.emission.sample(label, params)
                     image = model.image.blur(image)
                     image = model.image.noise(image)
-                    #image = model.image.preprocess.sample(image)
+                    image = model.image.preprocess(image)
                 image = mask.apply_mask(train_dataset_params["mask"]      ,
                                         image                             ,
                                         train_dataset_params["mask_size"] ,
@@ -91,7 +91,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     image = model.image.emission.sample(label, params)
                     image = model.image.blur(image)
                     image = model.image.noise(image)
-                    #image = model.image.preprocess.sample(image)
+                    image = model.image.preprocess(image)
                 else:
                     image    = val_data[0].to(device = device)
                     label    = val_data[1].to(device = device)
