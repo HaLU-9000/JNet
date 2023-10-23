@@ -487,12 +487,12 @@ class PreProcess(nn.Module):
     def forward(self, x):
         x = x + torch.exp(self.background)
         x = torch.clip(x, min=self.min, max=self.max)
-        x = (x - self.min) / (self.max - self.min)
+        #x = (x - self.min) / (self.max - self.min)
         return x
     def sample(self, x):
         x = x + self.gamma.sample().item()
         x = torch.clip(x, min=self.min, max=self.max)
-        x = (x - self.min) / (self.max - self.min)
+        #x = (x - self.min) / (self.max - self.min)
         return x
     
 
@@ -508,7 +508,8 @@ class ImagingProcess(nn.Module):
         self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         
-        self.preprocess = PreProcess(min=0., max=1., params=params)
+        self.preprocess = PreProcess(min=params["background"],
+                                     max=1., params=params)
 
     def forward(self, x):
         x = self.emission(x)

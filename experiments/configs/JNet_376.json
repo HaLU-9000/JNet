@@ -1,5 +1,5 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_376. deterministic background simulation training. no  noise",
+    "explanation":"the parameters to replicate the results of JNet_376. deterministic background simulation training. no  noise.",
     "pretrained_model":"JNet_375_pretrain"                           ,
     "params":
         {
@@ -37,7 +37,7 @@
             "bet_z"                 : 30.0                                     ,
             "bet_xy"                : 3.0                                      ,
             "sig_eps"               : 0.00                                     ,
-            "background"            : 0.02                                    ,
+            "background"            : 0.01                                    ,
             "scale"                 : 10                                       ,
             "device"                : "cuda"
         }                                                                      ,  "$params" : "model configs",
