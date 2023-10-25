@@ -107,6 +107,7 @@ train_loop(
     is_vibrate           = train_loop_params["is_vibrate"    ]  ,
     loss_weight          = train_loop_params["loss_weight"   ]  ,
     qloss_weight         = train_loop_params["qloss_weight"  ]  ,
+    ploss_weight         = train_loop_params["ploss_weight"  ]  ,
     model                = JNet                                 ,
     model_name           = configs["pretrained_model"]          ,
     params               = params                               ,
