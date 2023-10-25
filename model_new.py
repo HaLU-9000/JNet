@@ -338,7 +338,8 @@ class Blur(nn.Module):
             psf_model     = GibsonLanniModel(params)
         else:
             raise(NotImplementedError(f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
-        self.psf_rz      = nn.Parameter(torch.tensor(psf_model.PSF_rz, requires_grad=True).float().to(self.device))
+        self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=True).float().to(self.device)
+        self.psf_rz      = nn.Parameter(self.init_psf_rz.detach().clone())
         self.psf_rz_s0   = self.psf_rz.shape[0]
         xy               = torch.meshgrid(torch.arange(params["size_y"]),
                                           torch.arange(params["size_x"]),
@@ -382,6 +383,9 @@ class Blur(nn.Module):
         psf = psf / torch.sum(psf)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         return psf
+    
+    def l2_psf_rz(self):
+        return torch.mean((self.psf_rz - self.init_psf_rz) ** 2)
 
 
 class GaussianModel():
@@ -507,9 +511,7 @@ class ImagingProcess(nn.Module):
         self.emission   = Emission(params, log_ez0 = self.log_ez0,)
         self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
-        
-        self.preprocess = PreProcess(min=params["background"],
-                                     max=1., params=params)
+        self.preprocess = PreProcess(min=0., max=1., params=params)
 
     def forward(self, x):
         x = self.emission(x)
@@ -580,6 +582,9 @@ class JNet(nn.Module):
         vqd = {"quantized_loss" : qloss} if self.apply_vq\
             else {"quantized_loss" : None}
         out = dict(**out, **vqd)
+        psl = {"psf_loss": self.image.blur.l2_psf_rz()} if self.reconstruct\
+            else {"psf_loss": None}
+        out = dict(**out, **psl)
         return out
 
 

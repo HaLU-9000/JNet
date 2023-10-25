@@ -66,7 +66,7 @@ class PretrainingInference():
                 image = self.JNet.image.emission.sample(label, self.params)
                 image = self.JNet.image.blur(image)
                 image = self.JNet.image.noise(image)
-                #image = self.JNet.image.preprocess(image)
+                image = self.JNet.image.preprocess(image)
             else:
                 image    = val_data[0].to(device = self.device)
                 label    = val_data[1].to(device = self.device)

@@ -32,7 +32,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                scheduler=None, es_patience=10,
                reconstruct=False,
                is_instantblur=False, is_vibrate=False,
-               loss_weight=1, qloss_weight = 1/100):
+               loss_weight=1, qloss_weight = 1/100, ploss_weight = 1/100):
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
                                   patience    = es_patience,
@@ -72,6 +72,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             out   = outdict["enhanced_image"]
             rec   = outdict["reconstruction"]
             qloss = outdict["quantized_loss"]
+            ploss = outdict["psf_loss"]
             loss  = branch_calc_loss(out, rec, image, label,
                                      loss_fn, partial, reconstruct)
             loss *= loss_weight
@@ -79,6 +80,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 loss += ewc.calc_ewc_loss(100000)
             if qloss is not None:
                 loss += qloss * qloss_weight
+            if ploss is not None:
+                loss += ploss * ploss_weight
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             optimizer.step()
@@ -106,6 +109,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 out   = outdict["enhanced_image"]
                 rec   = outdict["reconstruction"]
                 qloss = outdict["quantized_loss"]
+                ploss = outdict["psf_loss"]
                 vloss = branch_calc_loss(out, rec, image, label,
                                                     loss_fn, partial,
                                                     reconstruct)
@@ -114,6 +118,10 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
                     vqloss_sum += qloss
+                if ploss is not None:
+                    ploss = ploss.detach().item() * ploss_weight
+                    vloss_sum += ploss
+
         num  = len(train_loader)
         vnum = len(val_loader)
         
