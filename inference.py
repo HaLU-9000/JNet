@@ -260,7 +260,8 @@ class BeadsInference():
         self.params  = self.configs["params"]
         self.params["reconstruct"]     = True
         self.params["apply_vq"]        = True
-        self.params["use_x_quantized"] = True
+        if pretrain == False:
+            self.params["use_x_quantized"] = True
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
