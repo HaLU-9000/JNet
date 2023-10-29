@@ -12,6 +12,7 @@ import timm.scheduler
 import model_new as model
 from dataset import RealDensityDataset, RandomCutDataset
 from   train_loop import train_loop, ElasticWeightConsolidation
+from inference import PretrainingInference
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -29,9 +30,18 @@ ewc_dataset_params   = configs["pretrain_dataset"]
 val_dataset_params   = configs["val_dataset"]
 train_loop_params    = configs["train_loop"]
 
+infer = PretrainingInference(args.model_name, pretrain=True)
+results = infer.get_result(10)
+threshold = infer.threshold_argmax_f1score(results)
+params["threshold"] = threshold
+
 params["reconstruct"]     = True
 params["apply_vq"]        = True
 params["use_x_quantized"] = True
+
+with open(os.path.join("experiments/configs",
+                       f"{args.model_name}.json"), "w") as f:
+    json.dump(configs, f, indent=4)
 
 train_dataset = RealDensityDataset(
     folderpath      = train_dataset_params["folderpath"     ]        ,

@@ -252,11 +252,12 @@ class CrossAttention(nn.Module):
         return self.to_out(out)
 
 class VectorQuantizer(nn.Module):
-    def __init__(self, device):
+    def __init__(self, threshold, device):
         super().__init__()
+        self.t = threshold
         self.device = device
     def forward(self, x):
-        x_quantized = (x >= 0.5).to(self.device).float()
+        x_quantized = (x >= self.t).to(self.device).float()
         x_quantized = x + (x_quantized - x).detach()
         quantize_loss = F.mse_loss(x_quantized.detach(), x)
         return x_quantized, quantize_loss
@@ -485,7 +486,8 @@ class PreProcess(nn.Module):
         super().__init__()
         self.min = min
         self.max = max
-        self.background = nn.Parameter(torch.log(torch.tensor(params["background"])))
+        self.background = nn.Parameter(
+            torch.log(torch.tensor(params["background"])))
         self.gamma = dist.Gamma(torch.tensor([1.0]),
                                 torch.tensor(params["background"]))
     def forward(self, x):
@@ -507,7 +509,10 @@ class ImagingProcess(nn.Module):
         self.device     = params["device"]
         self.mu_z       = params["mu_z"]
         self.sig_z      = params["sig_z"]
-        self.log_ez0    = nn.Parameter((torch.tensor(params["mu_z"] + 0.5 * params["sig_z"] ** 2)).to(self.device), requires_grad=True)
+        self.log_ez0    = nn.Parameter(
+            (torch.tensor(params["mu_z"] + 0.5 \
+                        * params["sig_z"] ** 2)).to(self.device),
+            requires_grad=True)
         self.emission   = Emission(params, log_ez0 = self.log_ez0,)
         self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
@@ -532,29 +537,38 @@ class JNet(nn.Module):
         attn_list.pop(0)
         self.prev0 = JNetBlock0(in_channels  = 1              ,
                                 out_channels = hidden_channels,)
-        self.prev  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
-                                              hidden_channels = hidden_channels,
-                                              dropout         = params["dropout"]        ,
-                                               ) for _ in range(params["nblocks"])])
-        self.mid   = JNetLayer(in_channels           = hidden_channels      ,
-                               hidden_channels_list  = hidden_channels_list ,
-                               attn_list             = attn_list            ,
-                               nblocks               = params["nblocks"]              ,
-                               dropout               = params["dropout"]              ,
-                               ) if hidden_channels_list else nn.Identity()
-        self.post  = nn.ModuleList([JNetBlock(in_channels     = hidden_channels,
-                                              hidden_channels = hidden_channels,
-                                              dropout         = params["dropout"]      ,
-                                               ) for _ in range(params["nblocks"])])
-        self.post0 = JNetBlockN(in_channels  = hidden_channels ,
-                                out_channels = 2               ,)
-        self.image = ImagingProcess(params = params,)
+        self.prev  = nn.ModuleList(
+            [JNetBlock(
+                in_channels     = hidden_channels,
+                hidden_channels = hidden_channels,
+                dropout         = params["dropout"],
+                ) for _ in range(params["nblocks"])
+            ])
+        self.mid   = JNetLayer(
+            in_channels           = hidden_channels      ,
+            hidden_channels_list  = hidden_channels_list ,
+            attn_list             = attn_list            ,
+            nblocks               = params["nblocks"]    ,
+            dropout               = params["dropout"]    ,
+            ) if hidden_channels_list else nn.Identity()
+        self.post  = nn.ModuleList(
+            [JNetBlock(in_channels     = hidden_channels,
+                       hidden_channels = hidden_channels,
+                       dropout         = params["dropout"],
+                        ) for _ in range(params["nblocks"])
+                        ])
+        self.post0 = JNetBlockN(
+            in_channels  = hidden_channels ,
+            out_channels = 2               ,
+            )
+        self.image = ImagingProcess(params = params)
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = params["activation"]
         self.superres    = params["superres"]
         self.reconstruct = params["reconstruct"]
         self.apply_vq    = params["apply_vq"]
-        self.vq = VectorQuantizer(device=params["device"])
+        self.vq = VectorQuantizer(threshold=params["threshold"],
+                                  device=params["device"])
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
         self.use_x_quantized = params["use_x_quantized"]
