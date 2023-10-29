@@ -35,13 +35,13 @@ results = infer.get_result(10)
 threshold = infer.threshold_argmax_f1score(results)
 params["threshold"] = threshold
 
-params["reconstruct"]     = True
-params["apply_vq"]        = True
-params["use_x_quantized"] = True
-
 with open(os.path.join("experiments/configs",
                        f"{args.model_name}.json"), "w") as f:
     json.dump(configs, f, indent=4)
+
+params["reconstruct"]     = True
+params["apply_vq"]        = True
+params["use_x_quantized"] = True
 
 train_dataset = RealDensityDataset(
     folderpath      = train_dataset_params["folderpath"     ]        ,
