@@ -91,6 +91,26 @@ class PretrainingInference():
             bces.append(bce)
         return {"MSE": mses,
                 "BCE": bces }
+    
+    def threshold_argmax_f1score(self, results):
+        best_ths = []
+        for [_, output, label, _] in results:
+            scores = []
+            for threshold in range(100):
+                t = threshold / 100
+                score = self.calc_f1_score(output, label, t)
+                scores.append(score)
+            best_th = np.argmax(scores)
+            best_ths.append(best_th)
+        return np.mean(best_ths) / 100
+    
+    def calc_f1_score(self, pred, label, threshold):
+        pred = pred >= threshold
+        tp = np.sum(pred * label)
+        fp = np.sum(pred * (1 - label))
+        fn = np.sum((1 - pred) * label)
+        score = tp / (tp + 1/2 * (fp + fn))
+        return score
 
     def visualize(self, results):
         for n, [image, output, label, qloss] in enumerate(results):

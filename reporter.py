@@ -107,6 +107,8 @@ num_result = 5
 for pretrain in [True, False]:
     infer = inference.PretrainingInference(args.model_name, pretrain=pretrain)
     results = infer.get_result(num_result)
+    threshold = infer.threshold_argmax_f1score(results)
+    print(threshold)
     evals = infer.evaluate(results)
     md.new_line(f'mean MSE: {np.mean(evals["MSE"])}, mean BCE: {np.mean(evals["BCE"])}')
     infer.visualize(results)
