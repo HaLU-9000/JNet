@@ -70,7 +70,8 @@ class PretrainingInference():
             else:
                 image    = val_data[0].to(device = self.device)
                 label    = val_data[1].to(device = self.device)
-            image   = vibrate(image).detach().clone()
+            if self.configs["pretrain_loop"]["is_vibrate"]:
+                image   = vibrate(image).detach().clone()
             outdict = self.JNet(image)
             output  = outdict["enhanced_image"]
             qloss   = outdict["quantized_loss"]
