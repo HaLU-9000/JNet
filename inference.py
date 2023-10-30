@@ -104,6 +104,18 @@ class PretrainingInference():
             best_ths.append(best_th)
         return np.mean(best_ths) / 100
     
+    def threshold_argmax_jaccardscore(self, results):
+        best_ths = []
+        for [_, output, label, _] in results:
+            scores = []
+            for threshold in range(100):
+                t = threshold / 100
+                score = self.calc_jaccard_score(output, label, t)
+                scores.append(score)
+            best_th = np.argmax(scores)
+            best_ths.append(best_th)
+        return np.mean(best_ths) / 100
+
     def calc_f1_score(self, pred, label, threshold):
         pred = pred >= threshold
         tp = np.sum(pred * label)
@@ -111,7 +123,15 @@ class PretrainingInference():
         fn = np.sum((1 - pred) * label)
         score = tp / (tp + 1/2 * (fp + fn))
         return score
-
+    
+    def calc_jaccard_score(self, pred, label, threshold):
+        pred = pred >= threshold
+        tp = np.sum(pred * label)
+        fp = np.sum(pred * (1 - label))
+        fn = np.sum((1 - pred) * label)
+        score = tp / (tp + (fp + fn))
+        return score
+        
     def visualize(self, results):
         for n, [image, output, label, qloss] in enumerate(results):
             path = self.configs["visualization"]["path"] 
@@ -166,11 +186,13 @@ class PretrainingInference():
             plt.clf()
             plt.close()
 
-    def visualize_oldversion(self, results, path='result'):
+    def visualize_oldversion(self, results, path='result', verbose=False, threshold=-1):
         j   = self.configs["visualization"]["z_stack"]
         j_s = j // self.params["scale"]
         i   = self.configs["visualization"]["x_slice"]
         for n, [image, output, label, qloss] in enumerate(results):
+            if threshold != -1:
+                output = output >= threshold
             fig = plt.figure(figsize=(25, 15))
             ax1 = fig.add_subplot(231)
             ax2 = fig.add_subplot(232)
@@ -199,6 +221,8 @@ class PretrainingInference():
                 cmap='gray', vmin=0.0, vmax=1.0, aspect=1)
             plt.savefig(path + f'/{self.model_name}_result_{n}.png',
                 format='png', dpi=250)
+            if verbose:
+                plt.show()
     
     def del_model(self):
         self.JNet = self.JNet.cpu()
@@ -272,7 +296,7 @@ import model_new as model
 
 
 class BeadsInference():
-    def __init__(self, model_name, pretrain=True):
+    def __init__(self, model_name, pretrain=True, threshold=-1):
         self.device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
@@ -280,9 +304,10 @@ class BeadsInference():
         self.params  = self.configs["params"]
         self.params["reconstruct"]     = True
         self.params["apply_vq"]        = True
-        if pretrain == False:
-            self.params["use_x_quantized"] = True
-
+        #if pretrain == False:
+        #    self.params["use_x_quantized"] = True
+        if threshold != -1:
+            self.params["threshold"] = threshold
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
