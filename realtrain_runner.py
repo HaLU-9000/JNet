@@ -30,10 +30,10 @@ ewc_dataset_params   = configs["pretrain_dataset"]
 val_dataset_params   = configs["val_dataset"]
 train_loop_params    = configs["train_loop"]
 
-infer = PretrainingInference(args.model_name, pretrain=True)
-results = infer.get_result(10)
-threshold = infer.threshold_argmax_f1score(results)
-params["threshold"] = threshold
+#infer = PretrainingInference(args.model_name, pretrain=True)
+#results = infer.get_result(10)
+#threshold = infer.threshold_argmax_f1score(results)
+#params["threshold"] = threshold
 
 with open(os.path.join("experiments/configs",
                        f"{args.model_name}.json"), "w") as f:
