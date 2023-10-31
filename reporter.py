@@ -38,20 +38,6 @@ for param in configs["params"]:
         params_list.extend([param, configs["params"][param], comment])
         n += 1
 md.new_table(columns=3, rows=n+1, text=params_list, text_align="left")
-##################
-## Architecture ##
-##################
-print(model.JNet(configs["params"]), file = codecs.open("experiments/tmp/"+args.model_name+".txt", "w", "utf-8"))
-md.new_header(level=2, title="Architecture")
-md.new_line()
-md.new_line("```")
-with open("experiments/tmp/"+args.model_name+".txt") as f:
-    lines = f.readlines()
-    for line in lines:
-        md.new_line(line.rstrip("\n"))
-    f.close()
-md.new_line("```")
-md.new_line()
 ##############
 ## Datasets ##
 ##############
@@ -107,8 +93,6 @@ num_result = 5
 for pretrain in [True, False]:
     infer = inference.PretrainingInference(args.model_name, pretrain=pretrain)
     results = infer.get_result(num_result)
-    threshold = infer.threshold_argmax_f1score(results)
-    print(threshold)
     evals = infer.evaluate(results)
     md.new_line(f'mean MSE: {np.mean(evals["MSE"])}, mean BCE: {np.mean(evals["BCE"])}')
     infer.visualize(results)
@@ -150,6 +134,21 @@ for t in timing_list:
     path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_psf_{t}.png'
     psf_list.append(md.new_reference_image(text=f"{binfer.model_name}_psf_{t}", path=path[1:]))
 md.new_table(columns=2, rows=2, text=[*timing_list, *psf_list])
+
+##################
+## Architecture ##
+##################
+print(model.JNet(configs["params"]), file = codecs.open("experiments/tmp/"+args.model_name+".txt", "w", "utf-8"))
+md.new_header(level=2, title="Architecture")
+md.new_line()
+md.new_line("```")
+with open("experiments/tmp/"+args.model_name+".txt") as f:
+    lines = f.readlines()
+    for line in lines:
+        md.new_line(line.rstrip("\n"))
+    f.close()
+md.new_line("```")
+md.new_line()
 
 #########
 ## End ##
