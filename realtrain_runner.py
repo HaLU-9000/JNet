@@ -105,9 +105,11 @@ JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
 #print([i for i in JNet.parameters()][-4:])
 
 train_params = JNet.parameters()
+for param in JNet.image.parameters():
+    param.requires_grad = False
 lr = train_loop_params["lr"]
 
-optimizer            = optim.Adam(train_params, lr = lr)
+optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)
 scheduler            = timm.scheduler.PlateauLRScheduler(
     optimizer      = optimizer   ,
     patience_t     = 5           ,
