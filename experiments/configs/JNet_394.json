@@ -59,7 +59,7 @@
             "mask_num"     : 30                                                ,
             "surround"     : false                                             ,
             "surround_size": [32, 4, 4]          
-        }                                                                      , "pre$train_dataset comments" :"pretrain_dataset configs",
+        }                                                                      , "$pretrain_dataset" :"pretrain_dataset configs",
 
     "pretrain_val_dataset":
         {
@@ -124,7 +124,7 @@
             "high"            : 1                                              ,
             "scale"           : 10                                             ,
             "train"           : true                                           ,
-            "mask"            : true                                           ,
+            "mask"            : false                                          ,
             "mask_size"       : [1, 10, 10]                                    ,
             "mask_num"        : 10                                             ,
             "surround"        : false                                          ,

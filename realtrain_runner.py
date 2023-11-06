@@ -105,7 +105,7 @@ JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
 #print([i for i in JNet.parameters()][-4:])
 
 train_params = JNet.parameters()
-for param in JNet.image.parameters():
+for param in JNet.image.blur.parameters():
     param.requires_grad = False
 lr = train_loop_params["lr"]
 

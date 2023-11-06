@@ -361,8 +361,6 @@ class RealDensityDataset(Dataset):
             self.scores = score
         if train == False:
             np.random.seed(seed)
-            self.indiceslist = self.gen_indices(I, low, high)
-            self.coordslist  = self.gen_coords(I, self.icoords_size)
 
     def gen_scores(self, images, icoords_size, scsize):
         _scores = torch.zeros((len(images), 1, *icoords_size))
@@ -420,8 +418,14 @@ class RealDensityDataset(Dataset):
             image = self.apply_mask(self.mask, image, self.mask_size, self.mask_num)
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         else:
-            _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
-            icoords = self.coordslist[:, idx]
+            r, s = 1, 0
+            while not r < s:
+                _idx     = self.gen_indices(1, self.low, self.high).item()
+                icoords = self.gen_coords( 1 , self.icoords_size)
+                icoords = icoords[:, 0]
+                z, x, y = icoords
+                r = np.random.uniform(0, 1)
+                s = self.scores[_idx, 0, z, x, y]
             image   = Crop(icoords, self.scsize)(torch.load(self.images[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
         return image, 0
