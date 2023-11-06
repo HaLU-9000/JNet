@@ -7,7 +7,7 @@
             "attn_list"             : [false, false, false, false, false]      ,     
             "nblocks"               : 2                                        ,     
             "activation"            : "nn.ReLU(inplace=True)"                  ,     
-            "dropout"               : 0.0                                      ,
+            "dropout"               : 0.5                                      ,
             "superres"              : true                                     ,     
             "partial"               : null                                     ,
             "reconstruct"           : false                                    ,     
@@ -124,7 +124,7 @@
             "high"            : 1                                              ,
             "scale"           : 10                                             ,
             "train"           : true                                           ,
-            "mask"            : false                                          ,
+            "mask"            : true                                           ,
             "mask_size"       : [1, 10, 10]                                    ,
             "mask_num"        : 10                                             ,
             "surround"        : false                                          ,
@@ -169,7 +169,7 @@
             "is_instantblur"    : false                                        ,
             "is_vibrate"        : false                                        ,
             "loss_weight"       : 1                                            ,
-            "qloss_weight"      : 0.1                                          ,
+            "qloss_weight"      : 1                                            ,
             "ploss_weight"      : 0.00                                            
         }                                                                      , "$train_loop" : "",
     
