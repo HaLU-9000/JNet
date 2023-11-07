@@ -40,8 +40,8 @@ train_loop_params    = configs["train_loop"]
 #    json.dump(configs, f, indent=4)
 
 params["reconstruct"]     = True
-#params["apply_vq"]        = True
-#params["use_x_quantized"] = True
+params["apply_vq"]        = True
+params["use_x_quantized"] = True
 
 train_dataset = RealDensityDataset(
     folderpath      = train_dataset_params["folderpath"     ]        ,
@@ -105,8 +105,8 @@ JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
 #print([i for i in JNet.parameters()][-4:])
 
 train_params = JNet.parameters()
-for param in JNet.image.blur.parameters():
-    param.requires_grad = False
+#for param in JNet.image.blur.parameters():
+#    param.requires_grad = False
 lr = train_loop_params["lr"]
 
 optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)

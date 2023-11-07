@@ -44,8 +44,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     vibrate = Vibrate()
     mask = Mask()
-    tau = tau_init
-    model.tau = tau
+    #tau = tau_init
+    #model.tau = tau
     for epoch in range(1, n_epochs + 1):
         loss_sum, midloss_sum, vloss_sum, vqloss_sum, vmidloss_sum, \
         vparam_loss_sum = 0., 0., 0., 0., 0., 0.
@@ -88,9 +88,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             loss.backward(retain_graph=False)
             optimizer.step()
             loss_sum += loss.detach().item()
-        tau = model.tau
+        #tau = model.tau
         model.eval()
-        model.tau = tau_last
+        #model.tau = tau_last
         with torch.no_grad():
             for val_data in val_loader:
                 if is_instantblur:
@@ -125,7 +125,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
-        model.tau = max(tau_last, tau * tau_sche)
+#        model.tau = max(tau_last, tau * tau_sche)
 
         num  = len(train_loader)
         vnum = len(val_loader)
@@ -146,7 +146,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        earlystopping((vloss_sum / vnum), model, condition = tau == tau_last)
+        earlystopping((vloss_sum / vnum), model, condition = True)#tau == tau_last)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
