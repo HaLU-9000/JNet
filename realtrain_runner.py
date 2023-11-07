@@ -40,7 +40,7 @@ train_loop_params    = configs["train_loop"]
 #    json.dump(configs, f, indent=4)
 
 params["reconstruct"]     = True
-params["apply_vq"]        = True
+#params["apply_vq"]        = True
 #params["use_x_quantized"] = True
 
 train_dataset = RealDensityDataset(

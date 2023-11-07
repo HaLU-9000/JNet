@@ -45,7 +45,7 @@ class EarlyStopping():
             self.best_stat = moving_stat
             self.checkpoint(moving_stat, model)
         
-        elif condition:
+        elif not condition:
             self.checkpoint(moving_stat, model)
             self.best_stat = moving_stat
             self.counter = 0

@@ -1,6 +1,6 @@
 {
     "explanation":"the parameters to replicate the results of JNet_403. all image params fixed",
-    "pretrained_model":"JNet_379_pretrain"                           ,
+    "pretrained_model":"JNet_385_pretrain"                           ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
