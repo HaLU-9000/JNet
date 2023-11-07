@@ -44,17 +44,24 @@ class EarlyStopping():
         if self.best_stat is None:
             self.best_stat = moving_stat
             self.checkpoint(moving_stat, model)
-        elif self.mode * moving_stat > self.mode * self.best_stat or f'{moving_stat:.6f}' == 'nan' and condition:
-            self.counter += 1
-            if self.verbose:
-                print(f' Current Loss ({moving_stat:.6f}) EarlyStopping counter: {self.counter} out of {self.patience}')
-            if self.counter >= self.patience:
-                self.early_stop = True
-                print('EarlyStopping!')
-        else:
+        
+        elif condition:
             self.checkpoint(moving_stat, model)
             self.best_stat = moving_stat
             self.counter = 0
+
+        else:
+            if (self.mode * moving_stat > self.mode * self.best_stat or f'{moving_stat:.6f}' == 'nan'):
+                self.counter += 1
+                if self.verbose:
+                    print(f' Current Loss ({moving_stat:.6f}) EarlyStopping counter: {self.counter} out of {self.patience}')
+                if self.counter >= self.patience:
+                    self.early_stop = True
+                    print('EarlyStopping!')
+            else:
+                self.checkpoint(moving_stat, model)
+                self.best_stat = moving_stat
+                self.counter = 0
 
     def checkpoint(self, moving_stat, model):
         if self.verbose:

@@ -41,7 +41,7 @@ train_loop_params    = configs["train_loop"]
 
 params["reconstruct"]     = True
 params["apply_vq"]        = True
-params["use_x_quantized"] = True
+#params["use_x_quantized"] = True
 
 train_dataset = RealDensityDataset(
     folderpath      = train_dataset_params["folderpath"     ]        ,
