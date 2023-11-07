@@ -1,5 +1,5 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_403 vq loss=0.1, all image params fixed",
+    "explanation":"the parameters to replicate the results of JNet_403. all image params fixed",
     "pretrained_model":"JNet_379_pretrain"                           ,
     "params":
         {

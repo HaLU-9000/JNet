@@ -318,6 +318,7 @@ class BeadsInference():
                                       strict=False)
         self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
+        self.JNet.tau = 0.1
     
     def get_result(self, datapath="_beads_roi_extracted_stackreg"):
         self.images  = [os.path.join(datapath, f) for f in sorted(os.listdir(datapath))]

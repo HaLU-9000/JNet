@@ -32,7 +32,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                scheduler=None, es_patience=10,
                reconstruct=False,
                is_instantblur=False, is_vibrate=False,
-               loss_weight=1, qloss_weight = 1/100, ploss_weight = 1/100):
+               loss_weight=1, qloss_weight = 1/100, ploss_weight = 1/100, tau_init=1, tau_last=0.1, tau_sche=0.9999):
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
                                   patience    = es_patience,
@@ -44,6 +44,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     vibrate = Vibrate()
     mask = Mask()
+    tau = tau_init
+    model.tau = tau
     for epoch in range(1, n_epochs + 1):
         loss_sum, midloss_sum, vloss_sum, vqloss_sum, vmidloss_sum, \
         vparam_loss_sum = 0., 0., 0., 0., 0., 0.
@@ -86,7 +88,9 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             loss.backward(retain_graph=False)
             optimizer.step()
             loss_sum += loss.detach().item()
+        tau = model.tau
         model.eval()
+        model.tau = tau_last
         with torch.no_grad():
             for val_data in val_loader:
                 if is_instantblur:
@@ -121,6 +125,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
+        model.tau = max(tau_last, tau * tau_sche)
 
         num  = len(train_loader)
         vnum = len(val_loader)
@@ -141,7 +146,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
             #torch.save(model.state_dict(), f'{path}/{model_name}_e{epoch}.pt')
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        earlystopping((vloss_sum / vnum), model, condition=True)
+        earlystopping((vloss_sum / vnum), model, condition = model.tau == tau_last)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')

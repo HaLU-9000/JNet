@@ -572,6 +572,7 @@ class JNet(nn.Module):
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
         self.use_x_quantized = params["use_x_quantized"]
+        self.tau = 1.
 
     def forward(self, x):
         if self.superres:
@@ -583,7 +584,7 @@ class JNet(nn.Module):
         for f in self.post:
             x = f(x)
         x = self.post0(x)
-        x = F.softmax(input = x, dim = 1)[:, :1,] # softmax with temperature
+        x = F.softmax(input = x / self.tau, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
             if self.use_x_quantized:
                 x, qloss = self.vq(x)
