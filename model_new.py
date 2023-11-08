@@ -369,7 +369,7 @@ class Blur(nn.Module):
         psf = F.upsample(
             input = psf[None, None, :],
             size  = (self.size_z, self.rps0, self.rps1),
-            #mode  = "nearest"
+            mode  = "nearest",
             )[0, 0]
         if self.use_fftconv:
             _x   = fft_conv(signal  = x                                    ,
