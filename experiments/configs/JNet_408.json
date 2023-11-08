@@ -1,6 +1,6 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_404. psf loss test. deterministic background simulation training. no  noise.",
-    "pretrained_model":"JNet_377_pretrain"                           ,
+    "explanation":"the parameters to replicate the results of JNet_408. res_axial 0.5 test.",
+    "pretrained_model":"JNet_407_pretrain"                           ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -33,7 +33,7 @@
             "tg0"                   : 170                                      , "$tg0"          : "microns, coverslip thickness design value"                           ,
             "tg"                    : 170                                      , "$tg"           : "microns, coverslip thickness experimental value"                     ,
             "res_lateral"           : 0.05                                     , "$res_lateral"  : "microns"                                                             ,
-            "res_axial"             : 0.05                                     , "$res_axial"    : "microns"                                                             ,
+            "res_axial"             : 0.5                                      , "$res_axial"    : "microns"                                                             ,
             "pZ"                    : 0                                        , "$pZ"           : "microns, particle distance from coverslip"                           ,
             "bet_z"                 : 30.0                                     ,
             "bet_xy"                : 3.0                                      ,
@@ -85,7 +85,7 @@
            "batch_size"        : 1                                             ,
            "n_epochs"          : 200                                           ,
            "lr"                : 1e-3                                          ,
-           "loss_fn"           : "nn.BCEWithLogitsLoss(pos_weight=0.8)"        ,
+           "loss_fn"           : "nn.BCEWithLogitsLoss(pos_weight=torch.tensor([0.6], device=params['device']))"        ,
            "path"              : "model"                                       ,
            "savefig_path"      : "train"                                       ,
            "partial"           : "params['partial']"                           ,

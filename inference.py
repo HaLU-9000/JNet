@@ -73,7 +73,7 @@ class PretrainingInference():
             if self.configs["pretrain_loop"]["is_vibrate"]:
                 image   = vibrate(image).detach().clone()
             outdict = self.JNet(image)
-            output  = outdict["enhanced_image"]
+            output  = F.sigmoid(outdict["enhanced_image"])
             qloss   = outdict["quantized_loss"]
             qloss = qloss.item() if qloss is not None else 0
             image   = image[0].detach().cpu().numpy()
