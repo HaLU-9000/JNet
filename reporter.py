@@ -111,7 +111,7 @@ for pretrain in [True, False]:
     infer.del_model()
     torch.cuda.empty_cache()
 
-btype_list = ["original", "output", "reconst"]
+btype_list = ["original", "output", "reconst", "heatmap"]
 for pretrain in [True, False]:
     binfer = inference.BeadsInference(args.model_name, pretrain=pretrain)
     results = binfer.get_result()
@@ -124,9 +124,11 @@ for pretrain in [True, False]:
         for tp in btype_list:
             path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_{image_name}_{tp}_depth.png'
             im_list.append(md.new_reference_image(text=f"{binfer.model_name}_{image_name}_{tp}_{slice}", path=path[1:]))
-        md.new_table(columns=3, rows=2, text=[*btype_list, *im_list],)
+        md.new_table(columns=4, rows=2, text=[*btype_list, *im_list],)
         md.new_line(f'volume: {bevals["volume"][n]}, MSE: {bevals["MSE"][n]}, quantized loss: {bevals["qloss"][n]}')
         md.new_line()
+md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
+
 binfer.psf_visualize()
 psf_list = []
 timing_list = ["pre", "post"]
@@ -134,7 +136,6 @@ for t in timing_list:
     path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_psf_{t}.png'
     psf_list.append(md.new_reference_image(text=f"{binfer.model_name}_psf_{t}", path=path[1:]))
 md.new_table(columns=2, rows=2, text=[*timing_list, *psf_list])
-
 ##################
 ## Architecture ##
 ##################

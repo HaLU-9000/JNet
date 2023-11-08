@@ -368,15 +368,24 @@ class BeadsInference():
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
+
             plt.axis("off")
             plt.imshow(output_z, cmap='gray', vmin=0.0, aspect=1)
             plt.savefig(path + f'/{self.model_name}_{self.images[n][len(self.datapath)+1:-3]}_output_depth.png', 
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
+
             plt.axis("off")
             plt.imshow(reconst_z, cmap='gray', vmin=0.0, aspect=self.params["scale"])
             plt.savefig(path + f'/{self.model_name}_{self.images[n][len(self.datapath)+1:-3]}_reconst_depth.png', 
+                        format='png',dpi=250,bbox_inches='tight',pad_inches=0)
+            plt.clf()
+            plt.close()
+
+            plt.axis("off")
+            plt.imshow((reconst_z - image_z + 1) / 2,  vmin=0.0,  vmax=1.0, aspect=self.params["scale"], cmap='seismic')
+            plt.savefig(path + f'/{self.model_name}_{self.images[n][len(self.datapath)+1:-3]}_heatmap_depth.png',
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
             plt.clf()
             plt.close()
