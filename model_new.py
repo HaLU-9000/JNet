@@ -366,7 +366,11 @@ class Blur(nn.Module):
         psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
         psf = psf / torch.sum(psf)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
-        psf = F.upsample(psf[None, None, :], size=(self.size_z, self.rps0, self.rps1))[0, 0]
+        psf = F.upsample(
+            input = psf[None, None, :],
+            size  = (self.size_z, self.rps0, self.rps1),
+            #mode  = "nearest"
+            )[0, 0]
         if self.use_fftconv:
             _x   = fft_conv(signal  = x                                    ,
                             kernel  = psf                                  ,

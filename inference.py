@@ -344,7 +344,7 @@ class BeadsInference():
         qlosses = []
         for [image, output, reconst, qloss] in results:
             volume = np.sum(output).item() * \
-                (self.params["res_lateral"] ** 2 * self.params["res_axial"])
+                (self.params["res_lateral"] ** 3)
             mse = np.mean(((image - reconst) ** 2).flatten())
             volumes.append(volume)
             mses.append(mse)
@@ -359,9 +359,9 @@ class BeadsInference():
             j    = self.configs["visualization"]["z_stack"]
             i    = self.configs["visualization"]["x_slice"]
             mip  = self.configs["visualization"]["mip"]
-            image_z   = np.max(image [0,  : , i:i+mip, :], axis=1)
-            output_z  = np.max(output[0,  : , i:i+mip, :], axis=1)
-            reconst_z = np.max(reconst[0, : , i:i+mip, :], axis=1)
+            image_z   = np.max(image [0,  : , :, i:i+mip], axis=2)
+            output_z  = np.max(output[0,  : , :, i:i+mip], axis=2)
+            reconst_z = np.max(reconst[0, : , :, i:i+mip], axis=2)
             plt.axis("off")
             plt.imshow(image_z, cmap='gray', vmin=0.0, aspect=self.params["scale"])
             plt.savefig(path + f'/{self.model_name}_{self.images[n][len(self.datapath)+1:-3]}_original_depth.png', 
@@ -388,13 +388,13 @@ class BeadsInference():
         plt.clf()
         plt.close()
         plt.axis("off")
-        plt.imshow(psfpre[:, self.params["size_x"]//2, :])
+        plt.imshow(psfpre[:, self.params["size_x"]//2, :], aspect=10)
         plt.savefig(f'./{self.configs["visualization"]["path"]}/{self.model_name}_psf_pre.png', 
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
         plt.clf()
         plt.close()
         plt.axis("off")
-        plt.imshow(psfpost[:, self.params["size_x"]//2, :])
+        plt.imshow(psfpost[:, self.params["size_x"]//2, :], aspect=10)
         plt.savefig(f'./{self.configs["visualization"]["path"]}/{self.model_name}_psf_post.png', 
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
         
