@@ -342,6 +342,7 @@ class Blur(nn.Module):
         self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=True).float().to(self.device)
         self.psf_rz      = nn.Parameter(self.init_psf_rz.detach().clone())
         self.psf_rz_s0   = self.psf_rz.shape[0]
+        self.size_z = params["size_z"]
         xy               = torch.meshgrid(torch.arange(params["size_y"]),
                                           torch.arange(params["size_x"]),
                                           indexing='ij')
@@ -365,6 +366,7 @@ class Blur(nn.Module):
         psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
         psf = psf / torch.sum(psf)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
+        psf = F.upsample(psf[None, None, :], size=(self.size_z, self.rps0, self.rps1))[0, 0]
         if self.use_fftconv:
             _x   = fft_conv(signal  = x                                    ,
                             kernel  = psf                                  ,
@@ -415,7 +417,7 @@ class GibsonLanniModel():
     def __init__(self, params):
         size_x = params["size_x"]#256 # # # # param # # # #
         size_y = params["size_y"]#256 # # # # param # # # #
-        size_z = params["size_z"]#128 # # # # param # # # #
+        size_z = params["size_z"] // params["scale"]#128 # # # # param # # # #
 
         # Precision control
         num_basis    = 100  # Number of rescaled Bessels that approximate the phase function
@@ -559,7 +561,7 @@ class JNet(nn.Module):
                         ])
         self.post0 = JNetBlockN(
             in_channels  = hidden_channels ,
-            out_channels = 2               ,
+            out_channels = 1               ,
             )
         self.image = ImagingProcess(params = params)
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
@@ -584,8 +586,9 @@ class JNet(nn.Module):
         for f in self.post:
             x = f(x)
         x = self.post0(x)
-        x = F.softmax(input = x / self.tau, dim = 1)[:, :1,] # softmax with temperature
+        #x = F.softmax(input = x / self.tau, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
+            x = F.sigmoid(x)
             if self.use_x_quantized:
                 x, qloss = self.vq(x)
             else:
