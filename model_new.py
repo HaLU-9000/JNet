@@ -421,7 +421,7 @@ class GibsonLanniModel():
     def __init__(self, params):
         size_x = params["size_x"]#256 # # # # param # # # #
         size_y = params["size_y"]#256 # # # # param # # # #
-        size_z = params["size_z"] // 5 #params["scale"]#128 # # # # param # # # #
+        size_z = params["size_z"] // params["scale"]#128 # # # # param # # # #
 
         # Precision control
         num_basis    = 100  # Number of rescaled Bessels that approximate the phase function
