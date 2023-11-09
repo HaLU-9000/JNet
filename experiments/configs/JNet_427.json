@@ -1,6 +1,6 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_425. nearest interp of PSF, logit loss = 1.0, NA = 0.7 vq loss 1 psf upsampling by 5",
-    "pretrained_model":"JNet_424_pretrain"                           ,
+    "explanation":"the parameters to replicate the results of JNet_427. nearest interp of PSF, NA=0.7, mu_z = 0.6",
+    "pretrained_model":"JNet_426_pretrain"                           ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -15,7 +15,7 @@
             "use_x_quantized"       : false                                    ,     
             "threshold"             : 0.5                                      ,
             "use_fftconv"           : true                                     ,     
-            "mu_z"                  : 0.3                                      ,
+            "mu_z"                  : 0.6                                      ,
             "sig_z"                 : 0.3                                      ,
             "blur_mode"             : "gibsonlanni"                            , "$blur_mode"    : "`gaussian` or `gibsonlanni`"                                     ,
             "size_x"                : 51                                       ,

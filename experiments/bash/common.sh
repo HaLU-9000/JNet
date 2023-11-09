@@ -1,3 +1,9 @@
-python3 train_runner.py      JNet_425
-python3 realtrain_runner.py  JNet_425
-python3 reporter.py          JNet_425
+python3 train_runner.py      JNet_427
+python3 realtrain_runner.py  JNet_427
+python3 reporter.py          JNet_427
+python3 train_runner.py      JNet_429
+python3 realtrain_runner.py  JNet_429
+python3 reporter.py          JNet_429
+python3 train_runner.py      JNet_431
+python3 realtrain_runner.py  JNet_431
+python3 reporter.py          JNet_431
