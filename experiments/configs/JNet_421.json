@@ -1,6 +1,6 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_418. nearest interp of PSF, logit loss = 1.0, NA = 0.8",
-    "pretrained_model":"JNet_417_pretrain"                           ,
+    "explanation":"the parameters to replicate the results of JNet_421. nearest interp of PSF, logit loss = 1.0, NA = 1.0 vq loss 1 psf upsampling by 5",
+    "pretrained_model":"JNet_420_pretrain"                           ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -91,7 +91,7 @@
            "partial"           : "params['partial']"                           ,
            "ewc"               : null                                          ,
            "params"            : "params"                                      ,
-           "es_patience"       : 20                                            ,
+           "es_patience"       : 10                                            ,
            "reconstruct"       : false                                         ,
            "is_instantblur"    : true                                          ,
            "is_vibrate"        : true                                          ,
@@ -164,12 +164,12 @@
             "partial"           : "params['partial']"                          ,
             "ewc"               : null                                         ,
             "params"            : "params"                                     ,
-            "es_patience"       : 20                                           ,
+            "es_patience"       : 10                                           ,
             "reconstruct"       : true                                         ,
             "is_instantblur"    : false                                        ,
             "is_vibrate"        : true                                         ,
             "loss_weight"       : 1                                            ,
-            "qloss_weight"      : 0.1                                          ,
+            "qloss_weight"      : 1                                          ,
             "ploss_weight"      : 0.0                                            
         }                                                                      , "$train_loop" : "",
     

@@ -1,5 +1,5 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_418. nearest interp of PSF, logit loss = 1.0, NA = 0.8",
+    "explanation":"the parameters to replicate the results of JNet_419. nearest interp of PSF, logit loss = 1.0, NA = 1.0 vq loss 1",
     "pretrained_model":"JNet_417_pretrain"                           ,
     "params":
         {
@@ -169,7 +169,7 @@
             "is_instantblur"    : false                                        ,
             "is_vibrate"        : true                                         ,
             "loss_weight"       : 1                                            ,
-            "qloss_weight"      : 0.1                                          ,
+            "qloss_weight"      : 1                                          ,
             "ploss_weight"      : 0.0                                            
         }                                                                      , "$train_loop" : "",
     
