@@ -20,6 +20,7 @@ print(f"Training on device {device}.")
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
+parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
 args   = parser.parse_args()
 
 configs = open(os.path.join("experiments/configs",f"{args.model_name}.json"))
@@ -100,13 +101,26 @@ val_data    = DataLoader(
 
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
-JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
-                     strict=False)
-#print([i for i in JNet.parameters()][-4:])
+
+if args.train_mode == 'decoder' or args.train_mode == 'old':
+    JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
+                         strict=False)
+if args.train_mode == 'all':
+    JNet.load_state_dict(torch.load(f'model/{args.model_name}.pt'),
+                         strict=False)
 
 train_params = JNet.parameters()
-#for param in JNet.image.blur.parameters():
-#    param.requires_grad = False
+
+if args.train_mode == 'decoder':
+    for param in JNet.parameters():
+        param.requires_grad = False
+    for param in JNet.image.parameters():
+        param.requires_grad = True
+
+if args.train_mode == 'encoder':
+    for param in JNet.image.parameters():
+        param.requires_grad = False
+
 lr = train_loop_params["lr"]
 
 optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)

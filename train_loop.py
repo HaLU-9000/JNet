@@ -36,8 +36,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
                                   patience    = es_patience,
-                                  window_size = 10         ,
-                                  metric      = "median"   ,
+                                  window_size = 5          ,
+                                  metric      = "mean"     ,
                                   verbose     = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')
     train_curve = pd.DataFrame(columns=["training loss", "validatation loss"] )
