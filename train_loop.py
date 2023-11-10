@@ -20,7 +20,13 @@ def calc_loss(pred, label, loss_function, partial):
 def branch_calc_loss(out, rec, image, label, loss_function,
                      partial, reconstruct,):
     if reconstruct:
-        loss = calc_loss(rec, image, loss_function, partial)
+        e = 1e-7
+        cov = torch.mean((rec - torch.mean(rec)) * (image - torch.mean(image)))
+        var = (torch.mean((rec - torch.mean(rec)) ** 2))
+        beta  = (cov + e) / (var + e)
+        beta  = torch.clip(beta, min=0., max=30.)#;print("beta", beta)#;print("cov", torch.mean(torch.cov(torch.stack((rec.flatten(), image.flatten())))));print("var", torch.var(rec))
+        alpha = torch.mean(image) - beta * torch.mean(rec)#;        print("alpha", alpha)
+        loss  = calc_loss(alpha + beta * rec, image, loss_function, partial)#;print("loss", loss.item())
     else:
         loss = calc_loss(out, label, loss_function, partial)
     return loss
@@ -57,7 +63,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     image = model.image.emission.sample(label, params)
                     image = model.image.blur(image)
                     image = model.image.noise(image)
-                    image = model.image.preprocess(image)
+                    image = model.image.preprocess.sample(image)
                 image = mask.apply_mask(train_dataset_params["mask"]      ,
                                         image                             ,
                                         train_dataset_params["mask_size"] ,
@@ -98,7 +104,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                     image = model.image.emission.sample(label, params)
                     image = model.image.blur(image)
                     image = model.image.noise(image)
-                    image = model.image.preprocess(image)
+                    image = model.image.preprocess.sample(image)
                 else:
                     image    = val_data[0].to(device = device)
                     label    = val_data[1].to(device = device)

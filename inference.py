@@ -342,10 +342,15 @@ class BeadsInference():
         volumes = []
         mses    = []
         qlosses = []
-        for [image, output, reconst, qloss] in results:
+        for [image, output, rec, qloss] in results:
             volume = np.sum(output).item() * \
                 (self.params["res_lateral"] ** 3)
-            mse = np.mean(((image - reconst) ** 2).flatten())
+            e = 1e-7
+            cov = np.mean((rec - np.mean(rec)) * (image - np.mean(image)))
+            var = (np.mean((rec - np.mean(rec)) ** 2))
+            beta  = (cov + e) / (var + e)
+            alpha = np.mean(image) - beta * np.mean(rec)
+            mse = np.mean(((image - (alpha + beta * rec)) ** 2).flatten())
             volumes.append(volume)
             mses.append(mse)
             qlosses.append(qloss)
@@ -355,6 +360,13 @@ class BeadsInference():
             
     def visualize(self, results):
         for n, [image, output, reconst, qloss] in enumerate(results):
+            rec = reconst
+            e = 1e-7
+            cov = np.mean((rec - np.mean(rec)) * (image - np.mean(image)))
+            var = (np.mean((rec - np.mean(rec)) ** 2))
+            beta  = (cov + e) / (var + e)
+            alpha = np.mean(image) - beta * np.mean(rec)
+            reconst = alpha + beta * rec
             path = self.configs["visualization"]["path"] 
             j    = self.configs["visualization"]["z_stack"]
             i    = self.configs["visualization"]["x_slice"]

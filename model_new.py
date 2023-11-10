@@ -312,14 +312,9 @@ class JNetLayer(nn.Module):
         return x
 
 class Emission(nn.Module):
-    def __init__(self, params, log_ez0):
+    def __init__(self):
         super().__init__()
-        self.log_ez0  = log_ez0
 
-    def forward(self, x):
-        x = x * torch.exp(self.log_ez0)
-        return x
-    
     def sample(self, x, params):
         b = x.shape[0]
         pz0  = dist.LogNormal(loc   = torch.tensor(float(params["mu_z"])).view( b,1,1,1,1).expand(*x.shape),
@@ -492,17 +487,15 @@ class PreProcess(nn.Module):
         super().__init__()
         self.min = min
         self.max = max
-        self.background = nn.Parameter(
-            torch.log(torch.tensor(params["background"])))
+        self.background = torch.tensor(params["background"])
         self.gamma = dist.Gamma(torch.tensor([1.0]),
                                 torch.tensor(params["background"]))
     def forward(self, x):
-        x = x + torch.exp(self.background)
         x = torch.clip(x, min=self.min, max=self.max)
         #x = (x - self.min) / (self.max - self.min)
         return x
     def sample(self, x):
-        x = x + self.gamma.sample().item()
+        x = x + self.background
         x = torch.clip(x, min=self.min, max=self.max)
         #x = (x - self.min) / (self.max - self.min)
         return x
@@ -519,15 +512,13 @@ class ImagingProcess(nn.Module):
             (torch.tensor(params["mu_z"] + 0.5 \
                         * params["sig_z"] ** 2)).to(self.device),
             requires_grad=True)
-        self.emission   = Emission(params, log_ez0 = self.log_ez0,)
+        self.emission   = Emission()
         self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
         self.preprocess = PreProcess(min=0., max=1., params=params)
 
     def forward(self, x):
-        x = self.emission(x)
         x = self.blur(x)
-        x = self.preprocess(x)
         return x
 
 
