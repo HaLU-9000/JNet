@@ -395,7 +395,7 @@ class GaussianModel():
         oversampling = 1    # Defines the upsampling ratio on the image space grid for computations
         size_x = params["size_x"]
         size_y = params["size_y"]
-        size_z = params["size_z"]
+        size_z = params["size_z"] // params["scale"]
         bet_xy = params["bet_xy"]
         bet_z = params["bet_z" ]
         x0 = (size_x - 1) / 2
@@ -404,12 +404,13 @@ class GaussianModel():
         res_lateral = params["res_lateral"]#0.05  # microns # # # # param # # # #
         max_radius = round(np.sqrt((size_x - x0) * (size_x - x0) + (size_y - y0) * (size_y - y0)))
         self.r = res_lateral * np.arange(0, oversampling * max_radius) / oversampling
-        xy = np.meshgrid(np.arange(params["size_z"]), np.arange(max_radius), indexing="ij")
+        xy = np.meshgrid(np.arange(size_z), np.arange(max_radius), indexing="ij")
         distance = np.sqrt((xy[1] / bet_xy) ** 2 + ((xy[0] - z0) / bet_z) ** 2)
         self.PSF_rz = np.exp(- distance ** 2)
 
     def __call__(self):
         return self.PSF_rz
+
 
 
 class GibsonLanniModel():
