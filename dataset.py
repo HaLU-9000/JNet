@@ -368,8 +368,8 @@ class RealDensityDataset(Dataset):
         _scores = torch.zeros((len(images), 1, *icoords_size))
         for n, i in enumerate(images):
             print(f'(init) calcurating the score...({n+1}/{len(images)})')
-            _score = fft_conv(signal  = torch.load(i)          ,
-                              kernel  = torch.ones(1,1,*scsize),
+            _score = fft_conv(signal  = torch.load(i)        ,
+                              kernel  = torch.ones(1, 1, *scsize),
                               stride  = 1                      ,
                               padding = 0                      ,)
             _scores[n] = _score
