@@ -1,5 +1,5 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_460. vibrate in fine tuning, , mu_z = 1.2, sig_z = 1.27",
+    "explanation":"the parameters to replicate the results of JNet_460. ewc and vibrate in fine tuning, , mu_z = 1.2, sig_z = 1.27",
     "pretrained_model":"JNet_459_pretrain"                           ,
     "params":
         {
@@ -162,7 +162,7 @@
             "path"              : "model"                                      ,
             "savefig_path"      : "train"                                      ,
             "partial"           : "params['partial']"                          ,
-            "ewc"               : null                                         ,
+            "ewc"               : "ewc"                                        ,
             "params"            : "params"                                     ,
             "es_patience"       : 10                                           ,
             "reconstruct"       : true                                         ,
