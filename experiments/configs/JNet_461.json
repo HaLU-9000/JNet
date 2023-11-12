@@ -161,7 +161,7 @@
             "loss_fn"           : "nn.MSELoss()"                               ,
             "path"              : "model"                                      ,
             "savefig_path"      : "train"                                      ,
-            "partial"           : "params['partial']"                          ,
+            "partial"           : null                                         ,
             "ewc"               : "ewc"                                        ,
             "params"            : "params"                                     ,
             "es_patience"       : 10                                           ,
