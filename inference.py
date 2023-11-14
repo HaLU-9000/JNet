@@ -32,7 +32,6 @@ class PretrainingInference():
 
         val_dataset   = RandomCutDataset(
             folderpath    = val_dataset_params["folderpath"]   ,
-            imagename     = val_dataset_params["imagename"]    , 
             labelname     = val_dataset_params["labelname"]    ,
             size          = val_dataset_params["size"]         ,
             cropsize      = val_dataset_params["cropsize"]     , 

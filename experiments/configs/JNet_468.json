@@ -1,6 +1,6 @@
 {
-    "explanation":"the parameters to replicate the results of JNet_464. AXONS deconvolution! ewc and vibrate in fine tuning, , mu_z = 1.2, sig_z = 1.27",
-    "pretrained_model":"JNet_463_pretrain"                           ,
+    "explanation":"new data generation with more objects. axon deconv",
+    "pretrained_model":"JNet_467_pretrain"                            ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -45,15 +45,14 @@
 
     "pretrain_dataset":
         {
-            "folderpath"   : "_var_num_beadsdata2_30_fft_blur"                 ,
-            "imagename"    : "_x6"                                             ,
+            "folderpath"   : "_var_num_beadsdata3"                             ,
             "labelname"    : "_label"                                          ,
             "size"         : [1200, 500, 500]                                  ,
             "cropsize"     : [ 240, 112, 112]                                  ,
             "I"            : 200                                               ,
             "low"          : 0                                                 ,
             "high"         : 16                                                ,
-            "scale"        : 6                                                ,
+            "scale"        : 6                                                 ,
             "mask"         : true                                              ,
             "mask_size"    : [1, 10, 10]                                       ,
             "mask_num"     : 30                                                ,
@@ -63,15 +62,14 @@
 
     "pretrain_val_dataset":
         {
-            "folderpath"   : "_var_num_beadsdata2_30_fft_blur"                 ,
-            "imagename"    : "_x6"                                             ,
+            "folderpath"   : "_var_num_beadsdata3"                             ,
             "labelname"    : "_label"                                          ,
             "size"         : [1200, 500, 500]                                  ,
             "cropsize"     : [ 240, 112, 112]                                  ,
             "I"            : 20                                                ,
             "low"          : 16                                                ,
             "high"         : 20                                                ,
-            "scale"        : 6                                                ,
+            "scale"        : 6                                                 ,
             "mask"         : false                                             ,
             "mask_size"    : [1, 10, 10]                                       ,
             "mask_num"     : false                                             ,
@@ -102,20 +100,20 @@
 
     "simulation_data_generation":
         {
-            "dataset_name"         : "_var_num_beadsdata2"                     ,
+            "dataset_name"         : "_var_num_beadsdataset3"                  ,
             "train_num"            : 16                                        ,
             "valid_num"            : 4                                         ,
             "image_size"           : [1200, 500, 500]                          ,
-            "train_object_num_min" : 2400                                      ,
-            "train_object_num_max" : 7200                                      ,
-            "valid_object_num_min" : 4200                                      ,
-            "valid_object_num_max" : 5400
+            "train_object_num_min" : 2000                                      ,
+            "train_object_num_max" : 18000                                     ,
+            "valid_object_num_min" : 6000                                      ,
+            "valid_object_num_max" : 10000
         }                                                                      , "$simulation_data_generation":"",
 
     "train_dataset":
         {
-            "folderpath"      : "spinerawdata0"                              ,
-            "scorefolderpath" : "_spinerawscore0"                             ,
+            "folderpath"      : "spinedata0"                              ,
+            "scorefolderpath" : "_spinescore0"                             ,
             "imagename"       : "020",
             "size"            : [282, 512, 512]                                ,
             "cropsize"        : [240, 112, 112]                                ,
@@ -134,8 +132,8 @@
 
     "val_dataset":
         {
-            "folderpath"      : "spinerawdata0"                              ,
-            "scorefolderpath" : "_spinerawscore0"                             ,
+            "folderpath"      : "spinedata0"                              ,
+            "scorefolderpath" : "_spinescore0"                             ,
             "imagename"       : "020",
             "size"            : [282, 512, 512]                                ,
             "cropsize"        : [240, 112, 112]                                ,

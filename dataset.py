@@ -228,7 +228,7 @@ class RandomCutDataset(Dataset):
     low, high : use [low]th ~ [high]th files in folderpath as data.
     scale: scale (should be same as [imagename]'s int part.)
     '''
-    def __init__(self, folderpath:str, imagename:str,
+    def __init__(self, folderpath:str, 
                  labelname:str, size:list, cropsize:list, I:int, 
                  low:int, high:int, scale:int, num_folder=1,
                  train=True, pretrain=True, mask=True,
@@ -241,7 +241,6 @@ class RandomCutDataset(Dataset):
         self.scale         = scale
         self.size          = size
         self.labels        = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
-        self.images        = list(sorted(Path(folderpath).glob(f'*{imagename}.pt')))
         self.csize         = cropsize
         self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
         self.train         = train
@@ -283,22 +282,15 @@ class RandomCutDataset(Dataset):
             idx              = gen_indices(1, self.low, self.high).item()#;print('idx ', idx)
             lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
-            image, i, j      = Rotate(    )(Crop(icoords, self.ssize
-                                                )(torch.load(self.images[idx]))) # .unsqueeze(0) for beadslikedata5
-            label, _, _      = Rotate(i, j)(Crop(lcoords, self.csize
+            label, _, _      = Rotate(    )(Crop(lcoords, self.csize
                                                 )(torch.load(self.labels[idx])))
-            image, label = self.couple_randomflip(image, label)
-            image = apply_mask(self.mask, image, self.mask_size, self.mask_num)
-            image = apply_surround_mask(self.surround, image, self.surround_size)
+            label, label = self.couple_randomflip(label, label)
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
-            icoords = self.coordslist[1][:, idx]
             lcoords = self.coordslist[0][:, idx]
-            image   = Crop(icoords, self.ssize)(torch.load(self.images[_idx])) # .unsqueeze(0) for beadslikedata5
             label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
-            image, label = self.couple_randomflip(image, label)
-            image = apply_surround_mask(self.surround, image, self.surround_size)
-        return image, label
+            label, label = self.couple_randomflip(label, label)
+        return label, label
 
     def __len__(self):
         return self.I

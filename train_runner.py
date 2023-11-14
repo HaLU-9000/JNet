@@ -45,7 +45,6 @@ scheduler = timm.scheduler.PlateauLRScheduler(
         
 train_dataset = RandomCutDataset(
     folderpath    = train_dataset_params["folderpath"]   ,
-    imagename     = train_dataset_params["imagename"]    , 
     labelname     = train_dataset_params["labelname"]    ,
     size          = train_dataset_params["size"]         ,
     cropsize      = train_dataset_params["cropsize"]     , 
@@ -61,7 +60,6 @@ train_dataset = RandomCutDataset(
     )
 val_dataset   = RandomCutDataset(
     folderpath    = val_dataset_params["folderpath"]   ,
-    imagename     = val_dataset_params["imagename"]    , 
     labelname     = val_dataset_params["labelname"]    ,
     size          = val_dataset_params["size"]         ,
     cropsize      = val_dataset_params["cropsize"]     , 

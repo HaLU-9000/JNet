@@ -134,7 +134,6 @@ scheduler            = timm.scheduler.PlateauLRScheduler(
 
 ewc_dataset   = RandomCutDataset(
     folderpath    = ewc_dataset_params["folderpath"]   ,
-    imagename     = ewc_dataset_params["imagename"]    , 
     labelname     = ewc_dataset_params["labelname"]    ,
     size          = ewc_dataset_params["size"]         ,
     cropsize      = ewc_dataset_params["cropsize"]     , 
@@ -156,13 +155,13 @@ ewc_data    = DataLoader(
     pin_memory  = True            ,
     num_workers = os.cpu_count()  ,
     )
-#ewc = ElasticWeightConsolidation(model           = JNet,
-#                                 prev_dataloader = ewc_data,
-#                                 loss_fn         = nn.BCELoss(),
-#                                 init_num_batch  = 100,
-#                                 is_vibrate      = True,
-#                                 device          = device,
-#                                 skip_register   = False  )
+ewc = ElasticWeightConsolidation(model           = JNet,
+                                 prev_dataloader = ewc_data,
+                                 loss_fn         = nn.BCELoss(),
+                                 init_num_batch  = 100,
+                                 is_vibrate      = True,
+                                 device          = device,
+                                 skip_register   = False  )
 torch.save(JNet.state_dict(), f'model/JNet_265_vibration.pt')
 print(f"============= model {args.model_name} train started =============")
 train_loop(
@@ -170,7 +169,7 @@ train_loop(
     loss_fn          = eval(train_loop_params["loss_fn"])   ,
     path             = train_loop_params["path"]            ,
     savefig_path     = train_loop_params["savefig_path"]    ,
-    ewc              = None,#eval(train_loop_params["ewc"])   ,
+    ewc              = eval(train_loop_params["ewc"])   ,
     partial          = train_loop_params["partial"]             ,
     es_patience      = train_loop_params["es_patience"   ]  ,
     reconstruct      = train_loop_params["reconstruct"   ]  ,
