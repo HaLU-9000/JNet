@@ -1,4 +1,7 @@
 import os
+import argparse
+import json
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,42 +17,32 @@ from utils import tifpath_to_tensor, array_to_tif
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Inference on device {device}.")
+parser = argparse.ArgumentParser(description='inference')
+parser.add_argument('model_name')
+args   = parser.parse_args()
 
 image_folder = '_wakelabdata_processed/'
-image_name   = "MD495_1G2_D14_FINC1-T1.tif"
+image_name   = "1_Spine_structure_AD_175-11w-D3-xyz6-020C2-T1.tif"
 save_folder  = "_result_tif/"
-model_name           = 'JNet_314_ewc_finetuning'
-params               = {"mu_z"       : 0.2               ,
-                        "sig_z"      : 0.2               ,
-                        "log_bet_z"  : np.log(30.).item(),
-                        "log_bet_xy" : np.log(3.).item() ,
-                        "log_alpha"  : np.log(1.).item() ,
-                        "sig_eps"    : 0.01              ,
-                        "scale"      : 12                 ,
-                        }
+model_name           = args.model_name
+configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
+configs              = json.load(configs)
+params               = configs["params"]
 
-JNet = model.JNet(hidden_channels_list  = [16, 32, 64, 128, 256],
-                  nblocks               = 2                     ,
-                  activation            = nn.ReLU(inplace=True),
-                  dropout               = 0.5                  ,
-                  params                = params               ,
-                  superres              = True                 ,
-                  reconstruct           = True                 ,
-                  apply_vq              = True                 ,
-                  use_x_quantized       = False                ,
-                  use_fftconv           = True,
-                  z = 161, x = 31, y = 31,
-                  )
+params["reconstruct"]     = True
+params["apply_vq"]        = True
+params["use_x_quantized"] = True
+
+JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 JNet.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 JNet.eval()
 
 image      = tifpath_to_tensor(os.path.join(image_folder, image_name), False)
 print(image.shape)
-image = image[:, 1:17, 512:1024, 512:1024].clone()
-array_to_tif(os.path.join(save_folder,  "original"+model_name+image_name), image.numpy())
-crop_size  = (16, 112, 112)
-overlap    = ( 1,  10,  10)
+array_to_tif(os.path.join(save_folder,  model_name+image_name), image.numpy())
+crop_size  = (40, 112, 112)
+overlap    = ( 0,  0,  0)
 # image padding
 z_stride   = crop_size[0] - overlap[0]
 x_stride   = crop_size[1] - overlap[1]
