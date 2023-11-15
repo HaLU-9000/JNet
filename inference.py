@@ -81,7 +81,7 @@ class PretrainingInference():
             output  = output[0].detach().cpu().numpy()
             array_to_tif(f"_result_cbias/{self.model_name}_image_{n}.tif", image)
             array_to_tif(f"_result_cbias/{self.model_name}_out_{n}.tif", output)
-            array_to_tif(f"_result_cbias/{self.model_name}_label_{n}.tif", output)
+            array_to_tif(f"_result_cbias/{self.model_name}_label_{n}.tif", label)
             results.append([image, output, label, qloss])
         return results
         
@@ -339,6 +339,7 @@ class BeadsInference():
             reconst = reconst.squeeze(0).detach().cpu().numpy()
             image   = image.detach().cpu().numpy()
             results.append([image, output, reconst, qloss])
+
         return results
     
     def evaluate(self, results):
@@ -408,6 +409,8 @@ class BeadsInference():
     def psf_visualize(self):
         psfpre  = self.psf_pretrain.detach().cpu().numpy()
         psfpost = self.psf_post.detach().cpu().numpy()
+        array_to_tif(f"_result_cbias/{self.model_name}_psfpre.tif", psfpre)
+        array_to_tif(f"_result_cbias/{self.model_name}_psfpost.tif", psfpost)
 
         plt.clf()
         plt.close()

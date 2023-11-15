@@ -187,7 +187,7 @@ pretrained model : JNet_463_pretrain
 |is_vibrate|True|
 |loss_weight|1|
 |qloss_weight|1|
-|ploss_weight|0.005|
+|ploss_weight|0.0|
 
 ## Training Curves
   
@@ -200,20 +200,20 @@ pretrained model : JNet_463_pretrain
 ![finetuned]
 ## Results
   
-mean MSE: 0.021564295515418053, mean BCE: 0.08279963582754135
+mean MSE: 0.025860261172056198, mean BCE: 0.0939500480890274
 ### 0
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_0_original_plane]|![JNet_463_pretrain_0_output_plane]|![JNet_463_pretrain_0_label_plane]|
   
-MSE: 0.019358903169631958, BCE: 0.07185877859592438  
+MSE: 0.020792178809642792, BCE: 0.0791567713022232  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_0_original_depth]|![JNet_463_pretrain_0_output_depth]|![JNet_463_pretrain_0_label_depth]|
   
-MSE: 0.019358903169631958, BCE: 0.07185877859592438  
+MSE: 0.020792178809642792, BCE: 0.0791567713022232  
 
 ### 1
 
@@ -221,13 +221,13 @@ MSE: 0.019358903169631958, BCE: 0.07185877859592438
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_1_original_plane]|![JNet_463_pretrain_1_output_plane]|![JNet_463_pretrain_1_label_plane]|
   
-MSE: 0.02088591456413269, BCE: 0.08664502203464508  
+MSE: 0.020991234108805656, BCE: 0.078941211104393  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_1_original_depth]|![JNet_463_pretrain_1_output_depth]|![JNet_463_pretrain_1_label_depth]|
   
-MSE: 0.02088591456413269, BCE: 0.08664502203464508  
+MSE: 0.020991234108805656, BCE: 0.078941211104393  
 
 ### 2
 
@@ -235,13 +235,13 @@ MSE: 0.02088591456413269, BCE: 0.08664502203464508
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_2_original_plane]|![JNet_463_pretrain_2_output_plane]|![JNet_463_pretrain_2_label_plane]|
   
-MSE: 0.027332209050655365, BCE: 0.1044883131980896  
+MSE: 0.03327406942844391, BCE: 0.1179007738828659  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_2_original_depth]|![JNet_463_pretrain_2_output_depth]|![JNet_463_pretrain_2_label_depth]|
   
-MSE: 0.027332209050655365, BCE: 0.1044883131980896  
+MSE: 0.03327406942844391, BCE: 0.1179007738828659  
 
 ### 3
 
@@ -249,13 +249,13 @@ MSE: 0.027332209050655365, BCE: 0.1044883131980896
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_3_original_plane]|![JNet_463_pretrain_3_output_plane]|![JNet_463_pretrain_3_label_plane]|
   
-MSE: 0.023379512131214142, BCE: 0.08584520220756531  
+MSE: 0.03568873181939125, BCE: 0.12448187917470932  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_3_original_depth]|![JNet_463_pretrain_3_output_depth]|![JNet_463_pretrain_3_label_depth]|
   
-MSE: 0.023379512131214142, BCE: 0.08584520220756531  
+MSE: 0.03568873181939125, BCE: 0.12448187917470932  
 
 ### 4
 
@@ -263,28 +263,28 @@ MSE: 0.023379512131214142, BCE: 0.08584520220756531
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_4_original_plane]|![JNet_463_pretrain_4_output_plane]|![JNet_463_pretrain_4_label_plane]|
   
-MSE: 0.016864938661456108, BCE: 0.06516088545322418  
+MSE: 0.018555091693997383, BCE: 0.06926955282688141  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_463_pretrain_4_original_depth]|![JNet_463_pretrain_4_output_depth]|![JNet_463_pretrain_4_label_depth]|
   
-MSE: 0.016864938661456108, BCE: 0.06516088545322418  
+MSE: 0.018555091693997383, BCE: 0.06926955282688141  
   
-mean MSE: 0.03779098764061928, mean BCE: 0.3478941321372986
+mean MSE: 0.031061802059412003, mean BCE: 0.35268718004226685
 ### 0
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_464_0_original_plane]|![JNet_464_0_output_plane]|![JNet_464_0_label_plane]|
   
-MSE: 0.04281862825155258, BCE: 0.4168093204498291  
+MSE: 0.04149208590388298, BCE: 0.4749763011932373  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_464_0_original_depth]|![JNet_464_0_output_depth]|![JNet_464_0_label_depth]|
   
-MSE: 0.04281862825155258, BCE: 0.4168093204498291  
+MSE: 0.04149208590388298, BCE: 0.4749763011932373  
 
 ### 1
 
@@ -292,13 +292,13 @@ MSE: 0.04281862825155258, BCE: 0.4168093204498291
 | :---: | :---: | :---: |
 |![JNet_464_1_original_plane]|![JNet_464_1_output_plane]|![JNet_464_1_label_plane]|
   
-MSE: 0.04035014286637306, BCE: 0.3899170756340027  
+MSE: 0.026758240535855293, BCE: 0.3208093047142029  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_464_1_original_depth]|![JNet_464_1_output_depth]|![JNet_464_1_label_depth]|
   
-MSE: 0.04035014286637306, BCE: 0.3899170756340027  
+MSE: 0.026758240535855293, BCE: 0.3208093047142029  
 
 ### 2
 
@@ -306,13 +306,13 @@ MSE: 0.04035014286637306, BCE: 0.3899170756340027
 | :---: | :---: | :---: |
 |![JNet_464_2_original_plane]|![JNet_464_2_output_plane]|![JNet_464_2_label_plane]|
   
-MSE: 0.04729409143328667, BCE: 0.4056583344936371  
+MSE: 0.03061557374894619, BCE: 0.38238391280174255  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_464_2_original_depth]|![JNet_464_2_output_depth]|![JNet_464_2_label_depth]|
   
-MSE: 0.04729409143328667, BCE: 0.4056583344936371  
+MSE: 0.03061557374894619, BCE: 0.38238391280174255  
 
 ### 3
 
@@ -320,13 +320,13 @@ MSE: 0.04729409143328667, BCE: 0.4056583344936371
 | :---: | :---: | :---: |
 |![JNet_464_3_original_plane]|![JNet_464_3_output_plane]|![JNet_464_3_label_plane]|
   
-MSE: 0.030153747648000717, BCE: 0.249240905046463  
+MSE: 0.030620520934462547, BCE: 0.3247171938419342  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_464_3_original_depth]|![JNet_464_3_output_depth]|![JNet_464_3_label_depth]|
   
-MSE: 0.030153747648000717, BCE: 0.249240905046463  
+MSE: 0.030620520934462547, BCE: 0.3247171938419342  
 
 ### 4
 
@@ -334,13 +334,13 @@ MSE: 0.030153747648000717, BCE: 0.249240905046463
 | :---: | :---: | :---: |
 |![JNet_464_4_original_plane]|![JNet_464_4_output_plane]|![JNet_464_4_label_plane]|
   
-MSE: 0.02833831124007702, BCE: 0.2778450846672058  
+MSE: 0.025822583585977554, BCE: 0.2605491280555725  
 
 |original|output|label|
 | :---: | :---: | :---: |
 |![JNet_464_4_original_depth]|![JNet_464_4_output_depth]|![JNet_464_4_label_depth]|
   
-MSE: 0.02833831124007702, BCE: 0.2778450846672058  
+MSE: 0.025822583585977554, BCE: 0.2605491280555725  
 
 ### beads_001_roi000
 
