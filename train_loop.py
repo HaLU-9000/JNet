@@ -165,13 +165,15 @@ class ElasticWeightConsolidation():
     """
     modified from https://github.com/shivamsaboo17/Overcoming-Catastrophic-forgetting-in-Neural-Networks
     """
-    def __init__(self, model, prev_dataloader, loss_fn,
-                 init_num_batch, is_vibrate, device, skip_register=True):
+    def __init__(self, model, params, prev_dataloader, loss_fn,
+                 init_num_batch, ewc_dataset_params, is_vibrate, device, skip_register=True):
         self.model = model
         self.device = device
         self.is_vibrate = is_vibrate
         self.loss_fn = loss_fn
+        self.params = params
         self.prev_dataloader = prev_dataloader
+        self.ewc_dataset_params = ewc_dataset_params
         num_fisher = 0
         num_params = len([name for name, _ in self.model.named_parameters()])
         for name, _ in self.model.named_buffers():
@@ -198,11 +200,25 @@ class ElasticWeightConsolidation():
         calculate diagonal components of fisher information matrix on the task
         and save them in buffer.
         """
+        mask = Mask()
         grad_log_likelihood_data = []
-        for i, (image, label) in enumerate(dataloader):
+        for i, (_, label) in enumerate(dataloader):
             #self.optimizer.zero_grad()
-            image = image.to(self.device)
             label = label.to(self.device)
+            with torch.no_grad():
+                image = self.model.image.emission.sample(label, self.params)
+                image = self.model.image.blur(image)
+                image = self.model.image.noise(image)
+                image = self.model.image.preprocess.sample(image)
+                image = mask.apply_mask(self.ewc_dataset_params["mask"]      ,
+                                        image                           ,
+                                        self.ewc_dataset_params["mask_size"] ,
+                                        self.ewc_dataset_params["mask_num"]  ,)
+
+            if self.is_vibrate:
+                vimage = vibrate(image)
+            else:
+                vimage = image
             if i > num_batch:
                 break
             if self.is_vibrate:

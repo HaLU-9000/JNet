@@ -40,10 +40,6 @@ train_loop_params    = configs["train_loop"]
 #                       f"{args.model_name}.json"), "w") as f:
 #    json.dump(configs, f, indent=4)
 
-params["reconstruct"]     = True
-params["apply_vq"]        = True
-params["use_x_quantized"] = True
-
 train_dataset = RealDensityDataset(
     folderpath      = train_dataset_params["folderpath"     ]        ,
     scorefolderpath = train_dataset_params["scorefolderpath"]        ,
@@ -98,6 +94,10 @@ val_data    = DataLoader(
     pin_memory  = True                            ,
     num_workers = os.cpu_count()                  ,
     )
+
+params["reconstruct"]     = True
+params["apply_vq"]        = True
+params["use_x_quantized"] = True
 
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
@@ -156,13 +156,15 @@ ewc_data    = DataLoader(
     num_workers = os.cpu_count()  ,
     )
 ewc = ElasticWeightConsolidation(model           = JNet,
+                                 params          = params,
                                  prev_dataloader = ewc_data,
-                                 loss_fn         = nn.BCELoss(),
+                                 loss_fn         = eval(configs["pretrain_loop"]["loss_fn"]),
+                                 ewc_dataset_params  = ewc_dataset_params,
                                  init_num_batch  = 100,
                                  is_vibrate      = True,
                                  device          = device,
                                  skip_register   = False  )
-torch.save(JNet.state_dict(), f'model/JNet_265_vibration.pt')
+
 print(f"============= model {args.model_name} train started =============")
 train_loop(
     n_epochs         = train_loop_params["n_epochs"      ]  , ####

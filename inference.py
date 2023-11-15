@@ -10,6 +10,7 @@ from dataset import RandomCutDataset
 import model_new as model
 import old_model
 from dataset import Vibrate
+from utils import array_to_tif
 
 vibrate = Vibrate()
 
@@ -78,6 +79,9 @@ class PretrainingInference():
             image   = image[0].detach().cpu().numpy()
             label   = label[0].detach().cpu().numpy()
             output  = output[0].detach().cpu().numpy()
+            array_to_tif(f"_result_cbias/{self.model_name}_image_{n}.tif", image)
+            array_to_tif(f"_result_cbias/{self.model_name}_out_{n}.tif", output)
+            array_to_tif(f"_result_cbias/{self.model_name}_label_{n}.tif", output)
             results.append([image, output, label, qloss])
         return results
         

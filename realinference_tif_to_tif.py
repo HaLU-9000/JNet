@@ -51,22 +51,24 @@ image_size = image.shape[1:]
 scale = params["scale"]
 def padsize(image_size, crop_size, overlap_size):
     stride = crop_size - overlap_size
-    n   = (image_size - crop_size) // stride + 2
+    n   = (image_size - crop_size) // stride + 1
     pad = n * stride + crop_size - image_size
     return pad
 
 zpad  = padsize(image_size[0], crop_size[0], overlap[0])
 xpad  = padsize(image_size[1], crop_size[1], overlap[1])
 ypad  = padsize(image_size[2], crop_size[2], overlap[2])
-image = F.pad(image, (0, ypad, 0, xpad, 0, zpad), "constant", 0.)
+
+image = F.pad(image, (0, ypad, 0, xpad, 0, zpad), "reflect", 0.)
 print(image.shape)
 result = torch.zeros((1, params["scale"]*image.shape[1], *image.shape[-2:]))
-for _z in range(image.shape[1] // (crop_size[0] - overlap[0]) - 1):
-    for _x in range(image.shape[2] // (crop_size[1] - overlap[1] - 1)):
-        for _y in range(image.shape[3] // (crop_size[1] - overlap[2] - 1)):
-            crop = image[:, z_stride*_z : z_stride*_z + crop_size[0],
-                            x_stride*_x : x_stride*_x + crop_size[1],
-                            y_stride*_y : y_stride*_y + crop_size[2],].clone().to(device).unsqueeze(0)
+for _z in range(image.shape[1] // (crop_size[0] - overlap[0])):
+    for _x in range(image.shape[2] // (crop_size[1] - overlap[1])):
+        for _y in range(image.shape[3] // (crop_size[2 ] - overlap[2])):
+            crop = image[:, z_stride*_z : z_stride*(_z + 1),
+                            x_stride*_x : x_stride*(_x + 1),
+                            y_stride*_y : y_stride*(_y + 1),].clone().to(device).unsqueeze(0)
+            
             crop = JNet(crop)["enhanced_image"].squeeze(0).detach().cpu()
             result[:, (z_stride*_z)*scale : (z_stride*_z + crop_size[0]) * scale,
                       x_stride*_x : x_stride*_x + crop_size[1],
@@ -94,5 +96,5 @@ for _z in range(image.shape[1] // (crop_size[0] - overlap[0]) - 1):
                           y_stride*_y : y_stride*_y + overlap[2]  ,].clone() * 1/2
 result = result[:, :-zpad*scale, :-xpad, :-ypad].detach().cpu().numpy()
 print(result.shape)
-array_to_tif(os.path.join(save_folder,  model_name+image_name), result)
+array_to_tif(os.path.join(save_folder,  model_name+"_re_"+image_name), result)
 
