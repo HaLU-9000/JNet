@@ -24,9 +24,9 @@ def branch_calc_loss(out, rec, image, label, loss_function,
         cov = torch.mean((rec - torch.mean(rec)) * (image - torch.mean(image)))
         var = (torch.mean((rec - torch.mean(rec)) ** 2))
         beta  = (cov + e) / (var + e)
-        beta  = torch.clip(beta, min=0., max=30.)#;print("beta", beta)#;print("cov", torch.mean(torch.cov(torch.stack((rec.flatten(), image.flatten())))));print("var", torch.var(rec))
-        alpha = torch.mean(image) - beta * torch.mean(rec)#;        print("alpha", alpha)
-        loss  = calc_loss(alpha + beta * rec, image, loss_function, partial)#;print("loss", loss.item())
+        beta  = torch.clip(beta, min=0., max=30.)                               #;print("beta", beta)#;print("cov", torch.mean(torch.cov(torch.stack((rec.flatten(), image.flatten())))));print("var", torch.var(rec))
+        alpha = torch.mean(image) - beta * torch.mean(rec)                      #;        print("alpha", alpha)
+        loss  = calc_loss(alpha + beta * rec, image, loss_function, partial)    #;print("loss", loss.item())
     else:
         loss = calc_loss(out, label, loss_function, partial)
     return loss

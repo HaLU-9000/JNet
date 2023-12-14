@@ -310,7 +310,6 @@ class JNetLayer(nn.Module):
         d = self.unpool(d) # checkpoint
         x = x + d
         return x
-
 class Emission(nn.Module):
     def __init__(self):
         super().__init__()
@@ -322,6 +321,55 @@ class Emission(nn.Module):
         x    = x * pz0.sample().to(x.device)
         x    = torch.clip(x, min=0., max=1.)
         return x
+
+class NeuralImplicitPSF(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        mid = config["mid"]
+        self.layers = nn.Sequential(
+            nn.BatchNorm1d(2)  ,
+            nn.Linear(2, mid)  ,
+            nn.Sigmoid()       ,
+            nn.BatchNorm1d(mid),
+            nn.Linear(mid, 1)  ,
+            nn.Sigmoid()
+            )
+        self.config = config
+
+    def forward(self, coords):
+        return self.layers(coords)
+
+    def trainer(self, psf):
+        self.to(self.config["device"])
+        self._gen_coord(psf)
+        self._gen_label(psf)
+        self._train()
+
+    def _gen_coord(self, psf):
+        self.psf_shape = psf.shape
+        z, r = self.psf_shape
+        zs = torch.linspace(-1, 1, steps=z)
+        rs = torch.linspace(-1, 1, steps=r)
+        grid_z, grid_r = torch.meshgrid(zs, rs, indexing='ij')
+        self.coord = torch.stack((grid_z.flatten(), grid_r.flatten()), -1).to(self.config["device"])
+
+    def _gen_label(self, psf):
+        self.label = psf.flatten()[:, None]
+
+    def _train(self):
+        label = self.label.to(self.config["device"])
+        coord = self.coord.to(self.config["device"])
+        optim = torch.optim.Rprop(self.parameters(), lr=self.config["lr"])
+        loss_fn = eval(self.config["loss_fn"])
+        for i in range(self.config["num_iter_psf_pretrain"]):
+            optim.zero_grad()
+            loss = loss_fn(self(coord), label)
+            loss.backward()
+            optim.step()
+
+    def array(self):
+        return self(self.coord).view(self.psf_shape)
+
 
 class Blur(nn.Module):
     def __init__(self, params):
@@ -335,8 +383,10 @@ class Blur(nn.Module):
         else:
             raise(NotImplementedError(f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
         self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=True).float().to(self.device)
-        self.psf_rz      = nn.Parameter(self.init_psf_rz.detach().clone())
-        self.psf_rz_s0   = self.psf_rz.shape[0]
+        self.neuripsf = NeuralImplicitPSF(params)
+        self.neuripsf.trainer(self.init_psf_rz)
+        self.psf_rz      = self.neuripsf.array()
+        self.psf_rz_s0   = self.init_psf_rz.shape[0]
         self.size_z = params["size_z"]
         xy               = torch.meshgrid(torch.arange(params["size_y"]),
                                           torch.arange(params["size_x"]),
@@ -356,9 +406,9 @@ class Blur(nn.Module):
         self.x_pad   = (params["size_x"]) // 2
         self.y_pad   = (params["size_y"]) // 2
         self.stride  = (params["scale"], 1, 1)
-        
+
     def forward(self, x):
-        psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
+        psf = torch.gather(self.neuripsf.array(), 1, self.r_index_fe)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         psf = F.upsample(
             input = psf[None, None, :],
@@ -385,7 +435,7 @@ class Blur(nn.Module):
         psf = psf / torch.sum(psf)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         return psf
-    
+
     def l2_psf_rz(self):
         return torch.mean((self.psf_rz - self.init_psf_rz) ** 2)
 
@@ -410,7 +460,6 @@ class GaussianModel():
 
     def __call__(self):
         return self.PSF_rz
-
 
 
 class GibsonLanniModel():
@@ -500,7 +549,7 @@ class PreProcess(nn.Module):
         x = torch.clip(x, min=self.min, max=self.max)
         #x = (x - self.min) / (self.max - self.min)
         return x
-    
+
 
 
 class ImagingProcess(nn.Module):
@@ -521,6 +570,7 @@ class ImagingProcess(nn.Module):
     def forward(self, x):
         x = self.blur(x)
         return x
+
 
 
 class JNet(nn.Module):
