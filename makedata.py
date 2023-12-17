@@ -2,6 +2,7 @@ import numpy as np
 from numpy.random import randint, choice, randn
 import torch
 import skimage.morphology
+from scipy.ndimage import rotate
 from skimage.morphology import ball, octahedron, cube
 import elasticdeform as deform
 
@@ -48,6 +49,56 @@ def make_beads_data(num, datasize = (128, 128, 128)):
         form  = getattr(skimage.morphology, s)(r).astype(np.float32)
         form  = deform.deform_grid(X=form, displacement=d*3,)
         form  = form > 0.5
+        z_max = min(z + form.shape[0], datasize[0])
+        x_max = min(x + form.shape[1], datasize[1])
+        y_max = min(y + form.shape[2], datasize[2])
+        data[z : z + form.shape[0],
+             x : x + form.shape[1],
+             y : y + form.shape[2],]\
+        += \
+        form[0 : z_max - z        ,
+             0 : x_max - x        ,
+             0 : y_max - y        ,]
+    data = data > 0
+    data = torch.from_numpy(data)
+    data = data.unsqueeze(0)
+    return data
+
+def draw_3d_windingline(length):
+    z = length
+    x = 9
+    y = 9
+    arr = np.zeros((z, x, y))
+    arr[:, x//2, y//2] = 1
+    d = randn(3, 5, 1, 1)
+    arr = deform.deform_grid(X=arr, displacement=d*3)
+    r_arr = np.zeros((z, z, z))
+    r_arr[:, (z-x)//2:(z-x)//2+x, (z-y)//2:(z-y)//2+y] = arr
+
+    xd, yd, zd = np.random.random(3) * 360
+    r_arr0 = rotate(r_arr , yd, axes=(1, 0), reshape=False, order=1, mode='nearest', cval=0.0)
+    r_arr1 = rotate(r_arr0, xd, axes=(2, 0), reshape=False, order=1, mode='nearest', cval=0.0)
+    r_arr2 = rotate(r_arr1, zd, axes=(2, 1), reshape=False, order=1, mode='nearest', cval=0.0)
+    r_arr3 = r_arr2 > 0.1
+    return r_arr3
+
+def make_realistic_data(num, datasize = (128, 128, 128)):
+    data = np.zeros(datasize)
+    r_l  = [randint(1, 15)                         for _ in range(num)]
+    l_l  = [randint(20, 120)                       for _ in range(num)]
+    s_l  = [choice(['ball', 'octahedron', 'cube', 'line'],
+                   p=[1/6, 1/6, 1/6, 1/2])         for _ in range(num)]
+    z_l  = [randint(0, datasize[0])                for _ in range(num)]
+    x_l  = [randint(0, datasize[1])                for _ in range(num)]
+    y_l  = [randint(0, datasize[2])                for _ in range(num)]
+    d_l  = [randn(3, 5, 5, 5)                      for _ in range(num)]
+    for r, l, s, z, x, y, d in zip(r_l, l_l, s_l, z_l, x_l, y_l, d_l):
+        if s != 'line':
+            form  = getattr(skimage.morphology, s)(r).astype(np.float32)
+            form  = deform.deform_grid(X=form, displacement=d*3,)
+            form  = form > 0.5
+        else:
+            form = draw_3d_windingline(l)
         z_max = min(z + form.shape[0], datasize[0])
         x_max = min(x + form.shape[1], datasize[1])
         y_max = min(y + form.shape[2], datasize[2])
