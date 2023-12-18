@@ -1,6 +1,7 @@
 from pathlib import Path
 import random
 from typing import Any
+import tifffile
 import numpy as np
 import torch
 import torch.nn as nn
@@ -423,6 +424,134 @@ class RealDensityDataset(Dataset):
                 s = self.scores[_idx, 0, z, x, y]
             image   = Crop(icoords, self.scsize)(torch.load(self.images[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
+        return image, 0
+
+    def __len__(self):
+        return self.I
+    
+class DensityDataset(Dataset):
+    '''
+    input  : 4d (CZXY) array [.npy, .pt, .tif] are allowed.
+    output : 4d torch.tensor (small (like 128**3) size)
+             ([channels, z_size, x_size, y_size]) 
+             of randomly cropped/rotated image
+    folderpath : large data path ("randomdata" in this repo)
+    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
+    I : sample size. Returns I samples. (e.g. 200)
+    low, high : use [low]th ~ [high]th files in folderpath as data.
+    scale: scale (should be same as [imagename]'s int part.)
+
+    algorithm
+    (init)
+    1. score = mean of the array.
+    2. r ~ uniform(0,1)
+    4. accept | if r < score
+       reject | else
+    '''
+    def __init__(self, folderpath:str, scorefolderpath:str, imagename:str,
+                 size:list, cropsize:list, I:int, low:int, high:int, scale:int,
+                 train=True, mask=True,
+                 mask_size=[10, 10, 10], mask_num=1,
+                 surround=True, surround_size=[64, 8, 8],
+                 seed=904):
+        self.I             = I
+        self.scale         = scale
+        self.size          = size
+        self.ssize         = [size[0]//scale, size[1], size[2]]
+        self.imagename     = imagename
+        self.images        = list(sorted(Path(folderpath).glob('*')))
+        self.high          = len(self.images)
+        self.csize         = cropsize
+        self.scsize        = [cropsize[0]//scale, cropsize[1], cropsize[2]]
+        self.train         = train
+        self.mask          = mask
+        self.mask_num      = mask_num
+        self.mask_size     = mask_size
+        self.surround      = surround
+        self.surround_size = surround_size
+        self.icoords_size  = [self.ssize[0] - self.scsize[0] + 1,
+                              self.ssize[1] - self.scsize[1] + 1,
+                              self.ssize[2] - self.scsize[2] + 1,]
+        self.options       = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
+                              [-2], [-2,-1], [-1], [-4]]
+        
+        if train == False:
+            np.random.seed(seed)
+            self.indiceslist = self.gen_indices(I * 100000, 0, high)
+            self.coordslist  = self.gen_coords(I * 100000, self.icoords_size)
+
+    def load_anything(self, image_name):
+        """
+        input: image_name(str)
+        output: torch.tensor
+        """
+        if image_name[-3:] == "tif":
+            image = tifffile.imread(image_name)
+            image = torch.tensor(image)
+        elif image_name[-3:] == "npy":
+            image = np.load(image_name)
+            image = torch.tensor(image)
+        elif image_name[-3:] == ".pt":
+            image = torch.load(image_name)
+        else:
+            print(f"YOUR FILE IS NOT AVAILABLE. ({image_name})\
+                  Use 4D(CZXY, C=1) array of `.pt`, `.npy` or `.tif`")
+        return image
+        
+    def gen_indices(self, I, low, high):
+        return np.random.randint(low, high, (I,))
+    
+    def gen_coords(self, I, icoords_size):
+        zcoord = np.random.randint(0, icoords_size[0], (I,))
+        xcoord = np.random.randint(0, icoords_size[1], (I,))
+        ycoord = np.random.randint(0, icoords_size[2], (I,))
+        return np.array([zcoord, xcoord, ycoord])
+
+    def apply_mask(self, mask, image, mask_size, mask_num):
+        if mask:
+            image = mask_(image, mask_size, mask_num)
+        return image
+
+    def apply_surround_mask(self, surround, image, surround_size):
+        if surround:
+            image = surround_mask_(image, surround_size)
+        return image
+
+    def randomflip(self, image):
+        option = self.options[np.random.choice([i for i in range(8)])]
+        return image.flip(dims=option)
+
+    def __getitem__(self, idx):
+        if self.train:
+            r, s = 1, 0
+            while not r < s:
+                idx     = self.gen_indices(1, self.low, self.high).item()
+                icoords = self.gen_coords( 1 , self.icoords_size)
+                icoords = icoords[:, 0]
+                z, x, y = icoords
+                r = np.random.uniform(0, 1)
+                image, _, _  = (Crop(icoords, self.scsize
+                                     )(self.load_anything(self.images[idx])))
+                s = image.mean(dim=-1).item()
+            image = Rotate()(image)
+            image = self.randomflip(image)
+            image = self.apply_mask(self.mask, image, self.mask_size,
+                                    self.mask_num)
+            image = self.apply_surround_mask(self.surround, image,
+                                             self.surround_size)
+        else:
+            r, s = 1, 0
+            c = 0
+            while not r < s:
+                c += 1
+                _idx     = self.indiceslist[c]
+                icoords = self.coordslist[:, c]
+                z, x, y = icoords
+                r     = np.random.uniform(0, 1)
+                image = Crop(icoords, self.scsize)(self.load_anything(self.images[idx]))
+                s     = image.mean(dim=-1).item()
+            image = self.apply_surround_mask(self.surround, image,
+                                             self.surround_size)
         return image, 0
 
     def __len__(self):
