@@ -318,3 +318,21 @@ def tifpath_to_tensor(tifpath, preprocess=False):
 
 def array_to_tif(path, array):
     tifffile.imwrite(path, array)
+
+def load_anything(image_name):
+    """
+    input: image_name(str)
+    output: torch.tensor
+    """
+    if image_name[-3:] == "tif":
+        image = tifffile.imread(image_name)
+        image = torch.tensor(image)
+    elif image_name[-3:] == "npy":
+        image = np.load(image_name)
+        image = torch.tensor(image)
+    elif image_name[-3:] == ".pt":
+        image = torch.load(image_name)
+    else:
+        print(f"YOUR FILE IS NOT AVAILABLE. ({image_name})\
+              Use 4D(CZXY, C=1) array of `.pt`, `.npy` or `.tif`")
+    return image

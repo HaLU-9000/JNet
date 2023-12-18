@@ -10,7 +10,7 @@ from dataset import RandomCutDataset
 import model_new as model
 import old_model
 from dataset import Vibrate
-from utils import array_to_tif
+from utils import array_to_tif, load_anything
 
 vibrate = Vibrate()
 
@@ -328,8 +328,11 @@ class BeadsInference():
         self.datapath = datapath
         results  = []
         for image_name in self.images[:-1]:
-            image   = torch.load(image_name,
+            if image_name[-3:] == ".pt":
+                image   = torch.load(image_name,
                                  map_location=self.device).to(torch.float32)
+            else:
+                image = load_anything(image_name).to(self.device).to(torch.float32)
             outdict = self.JNet(image.to(self.device).unsqueeze(0))
             output  = outdict["enhanced_image"]
             output  = output.squeeze(0).detach().cpu().numpy()

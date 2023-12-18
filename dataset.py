@@ -14,7 +14,7 @@ from scipy.stats import lognorm, truncnorm
 from fft_conv_pytorch import fft_conv
 
 
-from utils import mask_, surround_mask_, tifpath_to_tensor
+from utils import mask_, surround_mask_, tifpath_to_tensor, load_anything
 from model import ImagingProcess
 
 def gen_indices(I, low, high):
@@ -402,7 +402,7 @@ class RealDensityDataset(Dataset):
             r, s = 1, 0
             while not r < s:
                 idx     = self.gen_indices(1, self.low, self.high).item()
-                icoords = self.gen_coords( 1 , self.icoords_size)
+                icoords = self.gen_coords( 1, self.icoords_size)
                 icoords = icoords[:, 0]
                 z, x, y = icoords
                 r = np.random.uniform(0, 1)
@@ -479,24 +479,6 @@ class DensityDataset(Dataset):
             np.random.seed(seed)
             self.indiceslist = self.gen_indices(I * 100000, 0, high)
             self.coordslist  = self.gen_coords(I * 100000, self.icoords_size)
-
-    def load_anything(self, image_name):
-        """
-        input: image_name(str)
-        output: torch.tensor
-        """
-        if image_name[-3:] == "tif":
-            image = tifffile.imread(image_name)
-            image = torch.tensor(image)
-        elif image_name[-3:] == "npy":
-            image = np.load(image_name)
-            image = torch.tensor(image)
-        elif image_name[-3:] == ".pt":
-            image = torch.load(image_name)
-        else:
-            print(f"YOUR FILE IS NOT AVAILABLE. ({image_name})\
-                  Use 4D(CZXY, C=1) array of `.pt`, `.npy` or `.tif`")
-        return image
         
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
@@ -531,7 +513,7 @@ class DensityDataset(Dataset):
                 z, x, y = icoords
                 r = np.random.uniform(0, 1)
                 image, _, _  = (Crop(icoords, self.scsize
-                                     )(self.load_anything(self.images[idx])))
+                                     )(load_anything(self.images[idx])))
                 s = image.mean(dim=-1).item()
             image = Rotate()(image)
             image = self.randomflip(image)
@@ -548,7 +530,7 @@ class DensityDataset(Dataset):
                 icoords = self.coordslist[:, c]
                 z, x, y = icoords
                 r     = np.random.uniform(0, 1)
-                image = Crop(icoords, self.scsize)(self.load_anything(self.images[idx]))
+                image = Crop(icoords, self.scsize)(load_anything(self.images[idx]))
                 s     = image.mean(dim=-1).item()
             image = self.apply_surround_mask(self.surround, image,
                                              self.surround_size)

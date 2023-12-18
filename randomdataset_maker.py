@@ -5,7 +5,7 @@ import json
 import numpy as np
 import time
 import torch
-from makedata   import make_beads_data
+from makedata   import make_realistic_data
 torch.manual_seed(617)
 np.random.seed(617)
 
@@ -27,7 +27,7 @@ valid_object_diff = int((param["valid_object_num_max"] - param["valid_object_num
 for i in range(0, param["train_num"]):
     t1 = time.time()
     num = param["train_object_num_max"] - i * train_object_diff
-    inp     = make_beads_data(num, param["image_size"])
+    inp     = make_realistic_data(num, param["image_size"])
     t2 = time.time()
     print(f'{t2 - t1} s')
     np.save(f'{dataset_name}/{str(i).zfill(4)}_label.npy', inp)
@@ -37,7 +37,7 @@ for i in range(0, param["train_num"]):
 for i in range(0, param["valid_num"]):
     t1 = time.time()
     num = param["valid_object_num_max"] - i * valid_object_diff
-    inp     = make_beads_data(num, param["image_size"])
+    inp     = make_realistic_data(num, param["image_size"])
     t2 = time.time()
     print(f'{t2 - t1} s')
     np.save(f'{dataset_name}/{str(i + param["train_num"]).zfill(4)}_label.npy', inp)
