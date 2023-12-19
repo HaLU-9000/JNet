@@ -310,6 +310,7 @@ class JNetLayer(nn.Module):
         d = self.unpool(d) # checkpoint
         x = x + d
         return x
+    
 class Emission(nn.Module):
     def __init__(self):
         super().__init__()
@@ -362,13 +363,14 @@ class NeuralImplicitPSF(nn.Module):
         optim = torch.optim.Rprop(self.parameters(), lr=self.config["lr"])
         loss_fn = eval(self.config["loss_fn"])
         for i in range(self.config["num_iter_psf_pretrain"]):
-            optim.zero_grad()
             loss = loss_fn(self(coord), label)
-            loss.backward()
+            loss.backward(retain_graph=False)
             optim.step()
+            optim.zero_grad()
 
     def array(self):
         return self(self.coord).view(self.psf_shape)
+        
 
 
 class Blur(nn.Module):
@@ -382,11 +384,10 @@ class Blur(nn.Module):
             psf_model     = GibsonLanniModel(params)
         else:
             raise(NotImplementedError(f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
-        self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=True).float().to(self.device)
+        self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=False).float().to(self.device)
         self.neuripsf = NeuralImplicitPSF(params)
         self.neuripsf.trainer(self.init_psf_rz)
-        self.psf_rz      = self.neuripsf.array()
-        self.psf_rz_s0   = self.init_psf_rz.shape[0]
+        self.psf_rz_s0 = self.init_psf_rz.shape[0]
         self.size_z = params["size_z"]
         xy               = torch.meshgrid(torch.arange(params["size_y"]),
                                           torch.arange(params["size_x"]),
@@ -408,7 +409,8 @@ class Blur(nn.Module):
         self.stride  = (params["scale"], 1, 1)
 
     def forward(self, x):
-        psf = torch.gather(self.neuripsf.array(), 1, self.r_index_fe)
+        self.psf_rz = self.neuripsf.array()
+        psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         psf = F.upsample(
             input = psf[None, None, :],

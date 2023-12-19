@@ -38,7 +38,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                scheduler=None, es_patience=10,
                reconstruct=False,
                is_instantblur=False, is_vibrate=False,
-               loss_weight=1, qloss_weight = 1/100, ploss_weight = 1/100, tau_init=1, tau_last=0.1, tau_sche=0.9999):
+               loss_weight=1, ewc_weight=100000, qloss_weight = 1/100, ploss_weight = 1/100, tau_init=1, tau_last=0.1, tau_sche=0.9999):
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
                                   patience    = es_patience,
@@ -49,6 +49,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
     train_curve = pd.DataFrame(columns=["training loss", "validatation loss"] )
     loss_list, midloss_list, vloss_list, vmidloss_list = [], [], [], []
     vibrate = Vibrate()
+    torch.autograd.set_detect_anomaly(True) ######################
     mask = Mask()
     #tau = tau_init
     #model.tau = tau
@@ -85,7 +86,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                                      loss_fn, partial, reconstruct)
             loss *= loss_weight
             if ewc is not None:
-                loss += ewc.calc_ewc_loss(100000)
+                loss += ewc.calc_ewc_loss(ewc_weight)
             if qloss is not None:
                 loss += qloss * qloss_weight
             if ploss is not None:
@@ -121,8 +122,7 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 qloss = outdict["quantized_loss"]
                 ploss = outdict["psf_loss"]
                 vloss = branch_calc_loss(out, rec, image, label,
-                                                    loss_fn, partial,
-                                                    reconstruct)
+                                         loss_fn, partial, reconstruct)
                 vloss_sum += vloss.detach().item() * loss_weight
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
@@ -231,7 +231,7 @@ class ElasticWeightConsolidation():
             log_likelihood = torch.log(self.loss_fn(out, label))
             grad_log_likelihood = torch.autograd.grad(log_likelihood,
                                                       self.model.parameters(),
-                                                      retain_graph = False,
+                                                      retain_graph=False,
                                                       allow_unused=True)
             grad_log_likelihood = list(grad_log_likelihood)
             #print(len(grad_log_likelihood))

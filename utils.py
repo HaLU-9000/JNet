@@ -325,14 +325,24 @@ def load_anything(image_name):
     output: torch.tensor
     """
     if image_name[-3:] == "tif":
-        image = tifffile.imread(image_name)
+        image = tifffile.imread(image_name).astype(np.float32)
+        image = (image - image.min()) / (image.max() - image.min())
         image = torch.tensor(image)
     elif image_name[-3:] == "npy":
-        image = np.load(image_name)
+        image = np.load(image_name).astype(np.float32)
+        image = (image - image.min()) / (image.max() - image.min())
         image = torch.tensor(image)
     elif image_name[-3:] == ".pt":
         image = torch.load(image_name)
+        image = (image - image.min()) / (image.max() - image.min())
     else:
         print(f"YOUR FILE IS NOT AVAILABLE. ({image_name})\
               Use 4D(CZXY, C=1) array of `.pt`, `.npy` or `.tif`")
+    if image.dim() != 4:
+        if image.dim() == 3:
+            image = image[None, :].clone()
+        elif image.dim() == 5:
+            image = image[0].clone()
+        else:
+            print(f"Your data must be 3d or 5d(TCZXY or CTZXY with C=1, T=1), but it is {image.dim()}d now!")
     return image
