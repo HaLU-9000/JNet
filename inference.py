@@ -56,33 +56,34 @@ class PretrainingInference():
                          )
     
     def get_result(self, num_results)->list:
-        #with torch.no_grad():
-        results = []
-        for n, val_data in enumerate(self.val_loader):
-            if n >= num_results:
-                break
-            if self.configs["pretrain_loop"]["is_instantblur"]:
-                label = val_data[1].to(device = self.device)
-                image = self.JNet.image.emission.sample(label, self.params)
-                image = self.JNet.image.blur(image)
-                image = self.JNet.image.noise(image)
-                image = self.JNet.image.preprocess(image)
-            else:
-                image    = val_data[0].to(device = self.device)
-                label    = val_data[1].to(device = self.device)
-            if self.configs["pretrain_loop"]["is_vibrate"]:
-                image   = vibrate(image).detach().clone()
-            outdict = self.JNet(image)
-            output  = F.sigmoid(outdict["enhanced_image"])
-            qloss   = outdict["quantized_loss"]
-            qloss = qloss.item() if qloss is not None else 0
-            image   = image[0].detach().cpu().numpy()
-            label   = label[0].detach().cpu().numpy()
-            output  = output[0].detach().cpu().numpy()
-            array_to_tif(f"_result_cbias/{self.model_name}_image_{n}.tif", image)
-            array_to_tif(f"_result_cbias/{self.model_name}_out_{n}.tif", output)
-            array_to_tif(f"_result_cbias/{self.model_name}_label_{n}.tif", label)
-            results.append([image, output, label, qloss])
+        with torch.no_grad():
+            results = []
+            for n, val_data in enumerate(self.val_loader):
+                if n >= num_results:
+                    break
+                if self.configs["pretrain_loop"]["is_instantblur"]:
+                    label = val_data[1].to(device = self.device)
+                    image = self.JNet.image.emission.sample(label, self.params)
+                    out   = self.JNet.image.blur(image)
+                    image = out["out"]
+                    image = self.JNet.image.noise(image)
+                    image = self.JNet.image.preprocess(image)
+                else:
+                    image    = val_data[0].to(device = self.device)
+                    label    = val_data[1].to(device = self.device)
+                if self.configs["pretrain_loop"]["is_vibrate"]:
+                    image   = vibrate(image).detach().clone()
+                outdict = self.JNet(image)
+                output  = F.sigmoid(outdict["enhanced_image"])
+                qloss   = outdict["quantized_loss"]
+                qloss = qloss.item() if qloss is not None else 0
+                image   = image[0].detach().cpu().numpy()
+                label   = label[0].detach().cpu().numpy()
+                output  = output[0].detach().cpu().numpy()
+                #array_to_tif(f"_result_cbias/{self.model_name}_image_{n}.tif", image)
+                #array_to_tif(f"_result_cbias/{self.model_name}_out_{n}.tif", output)
+                #array_to_tif(f"_result_cbias/{self.model_name}_label_{n}.tif", label)
+                results.append([image, output, label, qloss])
         return results
         
     def evaluate(self, results)->list:
@@ -333,15 +334,16 @@ class BeadsInference():
                                  map_location=self.device).to(torch.float32)
             else:
                 image = load_anything(image_name).to(self.device).to(torch.float32)
-            outdict = self.JNet(image.to(self.device).unsqueeze(0))
-            output  = outdict["enhanced_image"]
-            output  = output.squeeze(0).detach().cpu().numpy()
-            qloss   = outdict["quantized_loss"]
-            qloss   = qloss.item() if qloss is not None else 0
-            reconst = outdict["reconstruction"]
-            reconst = reconst.squeeze(0).detach().cpu().numpy()
-            image   = image.detach().cpu().numpy()
-            results.append([image, output, reconst, qloss])
+            with torch.no_grad():
+                outdict = self.JNet(image.to(self.device).unsqueeze(0))
+                output  = outdict["enhanced_image"]
+                output  = output.squeeze(0).detach().cpu().numpy()
+                qloss   = outdict["quantized_loss"]
+                qloss   = qloss.item() if qloss is not None else 0
+                reconst = outdict["reconstruction"]
+                reconst = reconst.squeeze(0).detach().cpu().numpy()
+                image   = image.detach().cpu().numpy()
+                results.append([image, output, reconst, qloss])
         return results
     
     def evaluate(self, results):

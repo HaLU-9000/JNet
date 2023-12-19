@@ -642,9 +642,13 @@ class JNet(nn.Module):
                 x, qloss = self.vq(x)
             else:
                 _, qloss = self.vq(x)
-        out = self.image(x) if self.reconstruct else x
-        r        = out["out"]
-        psf_loss = out["psf_loss"]
+        if self.reconstruct:
+            out = self.image(x)
+            r        = out["out"]
+            psf_loss = out["psf_loss"]
+        else:
+            r = x
+        
         out = {"enhanced_image" : x,
                "reconstruction" : r,
                }
