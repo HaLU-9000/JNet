@@ -323,11 +323,11 @@ class BeadsInference():
         self.JNet.eval()
         #self.JNet.tau = 0.1
     
-    def get_result(self, datapath="_beads_roi_extracted_stackreg"):
+    def get_result(self, datapath="_20231208_tsuji_beads_roi_stackreged"):
         self.images  = [os.path.join(datapath, f) for f in sorted(os.listdir(datapath))]
         self.datapath = datapath
         results  = []
-        for image_name in self.images[:-1]:
+        for image_name in self.images:
             if image_name[-3:] == ".pt":
                 image   = torch.load(image_name,
                                  map_location=self.device).to(torch.float32)
@@ -342,7 +342,6 @@ class BeadsInference():
             reconst = reconst.squeeze(0).detach().cpu().numpy()
             image   = image.detach().cpu().numpy()
             results.append([image, output, reconst, qloss])
-
         return results
     
     def evaluate(self, results):

@@ -62,7 +62,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 label = train_data[1].to(device = device)
                 with torch.no_grad():
                     image = model.image.emission.sample(label, params)
-                    image = model.image.blur(image)
+                    out   = model.image.blur(image)
+                    image = out["out"]
                     image = model.image.noise(image)
                     image = model.image.preprocess.sample(image)
                 image = mask.apply_mask(train_dataset_params["mask"]      ,
@@ -103,7 +104,8 @@ def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,
                 if is_instantblur:
                     label = val_data[1].to(device = device)
                     image = model.image.emission.sample(label, params)
-                    image = model.image.blur(image)
+                    out   = model.image.blur(image)
+                    image = out["out"]
                     image = model.image.noise(image)
                     image = model.image.preprocess.sample(image)
                 else:
@@ -207,7 +209,8 @@ class ElasticWeightConsolidation():
             label = label.to(self.device)
             with torch.no_grad():
                 image = self.model.image.emission.sample(label, self.params)
-                image = self.model.image.blur(image)
+                out   = self.model.image.blur(image)
+                image = out["out"]
                 image = self.model.image.noise(image)
                 image = self.model.image.preprocess.sample(image)
                 image = mask.apply_mask(self.ewc_dataset_params["mask"]      ,

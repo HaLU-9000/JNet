@@ -409,8 +409,9 @@ class Blur(nn.Module):
         self.stride  = (params["scale"], 1, 1)
 
     def forward(self, x):
-        self.psf_rz = self.neuripsf.array()
-        psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
+        psf_rz    = self.neuripsf.array()
+        l2_psf_rz = torch.mean((psf_rz - self.init_psf_rz) ** 2)
+        psf = torch.gather(psf_rz, 1, self.r_index_fe)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         psf = F.upsample(
             input = psf[None, None, :],
@@ -430,16 +431,16 @@ class Blur(nn.Module):
                             stride  = self.stride                          ,
                             padding = (self.z_pad, self.x_pad, self.y_pad,),
                             )
-        return _x
+        return {"out"     : _x       ,
+                "psf_loss": l2_psf_rz}
 
     def show_psf_3d(self):
-        psf = torch.gather(self.psf_rz, 1, self.r_index_fe)
+        # with torch.no_grad():
+        psf_rz = self.neuripsf.array()
+        psf = torch.gather(psf_rz, 1, self.r_index_fe)
         psf = psf / torch.sum(psf)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
         return psf
-
-    def l2_psf_rz(self):
-        return torch.mean((self.psf_rz - self.init_psf_rz) ** 2)
 
 
 class GaussianModel():
@@ -570,8 +571,8 @@ class ImagingProcess(nn.Module):
         self.preprocess = PreProcess(min=0., max=1., params=params)
 
     def forward(self, x):
-        x = self.blur(x)
-        return x
+        out = self.blur(x)
+        return out
 
 
 
@@ -641,14 +642,16 @@ class JNet(nn.Module):
                 x, qloss = self.vq(x)
             else:
                 _, qloss = self.vq(x)
-        r = self.image(x) if self.reconstruct else x
+        out = self.image(x) if self.reconstruct else x
+        r        = out["out"]
+        psf_loss = out["psf_loss"]
         out = {"enhanced_image" : x,
                "reconstruction" : r,
                }
         vqd = {"quantized_loss" : qloss} if self.apply_vq\
             else {"quantized_loss" : None}
         out = dict(**out, **vqd)
-        psl = {"psf_loss": self.image.blur.l2_psf_rz()} if self.reconstruct\
+        psl = {"psf_loss": psf_loss} if self.reconstruct\
             else {"psf_loss": None}
         out = dict(**out, **psl)
         return out
