@@ -251,6 +251,7 @@ class CrossAttention(nn.Module):
         # Map to `[batch_size, height * width, d_model]` with a linear layer
         return self.to_out(out)
 
+
 class VectorQuantizer(nn.Module):
     def __init__(self, threshold, device):
         super().__init__()
@@ -311,6 +312,7 @@ class JNetLayer(nn.Module):
         x = x + d
         return x
     
+
 class Emission(nn.Module):
     def __init__(self):
         super().__init__()
@@ -322,6 +324,7 @@ class Emission(nn.Module):
         x    = x * pz0.sample().to(x.device)
         x    = torch.clip(x, min=0., max=1.)
         return x
+
 
 class NeuralImplicitPSF(nn.Module):
     def __init__(self, config):
@@ -371,7 +374,6 @@ class NeuralImplicitPSF(nn.Module):
     def array(self):
         return self(self.coord).view(self.psf_shape)
         
-
 
 class Blur(nn.Module):
     def __init__(self, params):
@@ -554,7 +556,6 @@ class PreProcess(nn.Module):
         return x
 
 
-
 class ImagingProcess(nn.Module):
     def __init__(self, params):
         super().__init__()
@@ -573,7 +574,6 @@ class ImagingProcess(nn.Module):
     def forward(self, x):
         out = self.blur(x)
         return out
-
 
 
 class JNet(nn.Module):
@@ -612,6 +612,10 @@ class JNet(nn.Module):
             in_channels  = hidden_channels ,
             out_channels = 1               ,
             )
+        self.post1 = JNetBlockN(
+            in_channels  = hidden_channels ,
+            out_channels = 1               ,
+            )
         self.image = ImagingProcess(params = params)
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = params["activation"]
@@ -620,6 +624,8 @@ class JNet(nn.Module):
         self.apply_vq    = params["apply_vq"]
         self.vq = VectorQuantizer(threshold=params["threshold"],
                                   device=params["device"])
+        self.mu  = nn.Parameter(torch.tensor(0.),)
+        self.sig = nn.Parameter(torch.tensor(1.),)
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
         self.use_x_quantized = params["use_x_quantized"]
@@ -634,6 +640,8 @@ class JNet(nn.Module):
         x = self.mid(x)
         for f in self.post:
             x = f(x)
+        z = self.post1(x)
+        z = F.sigmoid(z)
         x = self.post0(x)
         #x = F.softmax(input = x / self.tau, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
@@ -649,8 +657,9 @@ class JNet(nn.Module):
         else:
             r = x
         
-        out = {"enhanced_image" : x,
-               "reconstruction" : r,
+        out = {"enhanced_image"  : x,
+               "reconstruction"  : r,
+               "estim_luminance" : torch.exp(self.mu + self.sig * z)
                }
         vqd = {"quantized_loss" : qloss} if self.apply_vq\
             else {"quantized_loss" : None}
