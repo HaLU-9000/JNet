@@ -27,10 +27,13 @@ valid_object_diff = int((param["valid_object_num_max"] - param["valid_object_num
 for i in range(0, param["train_num"]):
     t1 = time.time()
     num = param["train_object_num_max"] - i * train_object_diff
-    inp     = make_realistic_data(num, param["image_size"])
+    data    = make_realistic_data(num, param["image_size"])
+    data_x = data["data_x"]
+    data_z = data["data_z"]
     t2 = time.time()
     print(f'{t2 - t1} s')
-    np.save(f'{dataset_name}/{str(i).zfill(4)}_label.npy', inp)
+    np.save(f'{dataset_name}/{str(i).zfill(4)}_labelx.npy',data_x)
+    np.save(f'{dataset_name}/{str(i).zfill(4)}_labelz.npy',data_z)
 
 
 # testdata
@@ -38,6 +41,11 @@ for i in range(0, param["valid_num"]):
     t1 = time.time()
     num = param["valid_object_num_max"] - i * valid_object_diff
     inp     = make_realistic_data(num, param["image_size"])
+    data_x = inp["data_x"]
+    data_z = inp["data_z"]
     t2 = time.time()
     print(f'{t2 - t1} s')
-    np.save(f'{dataset_name}/{str(i + param["train_num"]).zfill(4)}_label.npy', inp)
+    np.save(f'{dataset_name}/{str(i + param["train_num"]).zfill(4)}_labelx.npy',
+            data_x)
+    np.save(f'{dataset_name}/{str(i + param["train_num"]).zfill(4)}_labelz.npy', 
+            data_z)

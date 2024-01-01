@@ -82,9 +82,11 @@ def draw_3d_windingline(length):
     r_arr3 = r_arr2 > 0.1
     return r_arr3
 
-def make_realistic_data(num, datasize = (128, 128, 128)):
-    data = np.zeros(datasize)
+def make_realistic_data(num, datasize = (128, 128, 128), mu=0, sigma=1):
+    data_x = np.zeros(datasize)
+    data_z = np.zeros(datasize)
     r_l  = [randint(1, 15)                         for _ in range(num)]
+    lu_l = [mu + sigma * randn(1)                  for _ in range(num)]
     l_l  = [randint(20, 120)                       for _ in range(num)]
     s_l  = [choice(['ball', 'octahedron', 'cube', 'line'],
                    p=[1/30, 1/30, 1/30, 9/10])         for _ in range(num)]
@@ -92,7 +94,7 @@ def make_realistic_data(num, datasize = (128, 128, 128)):
     x_l  = [randint(0, datasize[1])                for _ in range(num)]
     y_l  = [randint(0, datasize[2])                for _ in range(num)]
     d_l  = [randn(3, 5, 5, 5)                      for _ in range(num)]
-    for r, l, s, z, x, y, d in zip(r_l, l_l, s_l, z_l, x_l, y_l, d_l):
+    for r, l, lu, s, z, x, y, d in zip(r_l, l_l, lu_l, s_l, z_l, x_l, y_l, d_l):
         if s != 'line':
             form  = getattr(skimage.morphology, s)(r).astype(np.float32)
             form  = deform.deform_grid(X=form, displacement=d*3,)
@@ -102,14 +104,27 @@ def make_realistic_data(num, datasize = (128, 128, 128)):
         z_max = min(z + form.shape[0], datasize[0])
         x_max = min(x + form.shape[1], datasize[1])
         y_max = min(y + form.shape[2], datasize[2])
-        data[z : z + form.shape[0],
-             x : x + form.shape[1],
-             y : y + form.shape[2],]\
+
+        data_x[z : z + form.shape[0],
+               x : x + form.shape[1],
+               y : y + form.shape[2],]\
         += \
         form[0 : z_max - z        ,
              0 : x_max - x        ,
              0 : y_max - y        ,]
-    data = data > 0
-    data = torch.from_numpy(data)
-    data = data.unsqueeze(0)
-    return data
+
+        data_z[z : z + form.shape[0],
+             x : x + form.shape[1],
+             y : y + form.shape[2],]\
+        = np.maximum(
+            data_z[z : z + form.shape[0],
+                   x : x + form.shape[1],
+                   y : y + form.shape[2],],
+            form  [0 : z_max - z,
+                   0 : x_max - x,
+                   0 : y_max - y,] * np.exp(lu))
+    data_x = data_x > 0
+    data_x = data_x.astype(np.float32)[None]
+    data_z = data_z.astype(np.float32)[None]
+    return {"data_x": data_x,
+            "data_z": data_z}

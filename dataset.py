@@ -242,7 +242,8 @@ class RandomCutDataset(Dataset):
         self.high          = high
         self.scale         = scale
         self.size          = size
-        self.labels        = list(sorted(Path(folderpath).glob(f'*{labelname}.pt')))
+        self.las        = [folderpath+"/"+file
+                              for file in sorted(os.listdir(folderpath)) if not file.startswith('_')]
         self.csize         = cropsize
         self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
         self.train         = train
@@ -285,12 +286,12 @@ class RandomCutDataset(Dataset):
             lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
             label, _, _      = Rotate(    )(Crop(lcoords, self.csize
-                                                )(torch.load(self.labels[idx])))
+                                                )(load_anything(self.labels[idx])))
             label, label = self.couple_randomflip(label, label)
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             lcoords = self.coordslist[0][:, idx]
-            label   = Crop(lcoords, self.csize)(torch.load(self.labels[_idx]))
+            label   = Crop(lcoords, self.csize)(load_anything(self.labels[_idx]))
             label, label = self.couple_randomflip(label, label)
         return label, label
 
