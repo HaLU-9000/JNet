@@ -230,12 +230,20 @@ class RandomCutDataset(Dataset):
     low, high : use [low]th ~ [high]th files in folderpath as data.
     scale: scale (should be same as [imagename]'s int part.)
     '''
-    def __init__(self, folderpath:str, 
-                 labelname:str, size:list, cropsize:list, I:int, 
-                 low:int, high:int, scale:int, num_folder=1,
-                 train=True, pretrain=True, mask=True,
-                 mask_size=[10, 10, 10], mask_num=1,
-                 surround=True, surround_size=[64, 8, 8],
+    def __init__(self,
+                 folderpath:str,
+                 size:list,
+                 cropsize:list,
+                 I:int, 
+                 low:int,
+                 high:int,
+                 scale:int,
+                 train=True,
+                 mask=True,
+                 mask_size=[10, 10, 10],
+                 mask_num=1,
+                 surround=True,
+                 surround_size=[64, 8, 8],
                  seed=904):
         self.I             = I
         self.low           = low
