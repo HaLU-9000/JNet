@@ -3,6 +3,7 @@ import argparse
 import json
 
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import timm.scheduler
@@ -40,7 +41,7 @@ scheduler = timm.scheduler.PlateauLRScheduler(
     warmup_lr_init = lr * 0.1    ,
     warmup_t       = 10          ,
     )
-        
+
 train_dataset = RandomCutDataset(
     folderpath    = train_dataset_params["folderpath"]   ,
     size          = train_dataset_params["size"]         ,

@@ -243,7 +243,7 @@ def pretrain_loop(n_epochs             ,
                 out   = outdict["enhanced_image"]
                 lum   = outdict["estim_luminance"]
                 lossx = loss_fnx(out, labelx)
-                lossz = loss_fnz(out, labelz)
+                lossz = loss_fnz(lum, labelz)
                 vloss = wx * lossx + wz * lossz
                 vloss_sum += vloss.detach().item()
         
@@ -386,26 +386,26 @@ def luminance_adjustment(rec, image):
     alpha = torch.mean(image) - beta * torch.mean(rec)  
     return alpha + beta * rec
 
-def finetuning_loop(n_epochs             ,
-                    optimizer            ,
-                    model                ,
-                    loss_fn              ,
-                    train_loader         ,
-                    val_loader           ,
-                    device               ,
-                    path                 ,
-                    savefig_path         ,
-                    model_name           ,
-                    ewc                  ,
-                    train_dataset_params ,
-                    adjust_luminance     ,
-                    scheduler=None       ,
-                    es_patience=10       ,
-                    is_vibrate=False     ,
-                    loss_weight=1.       ,
-                    ewc_weight=1000000   ,
-                    qloss_weight = 1/100 ,
-                    ploss_weight = 1/100 ,
+def finetuning_loop(n_epochs               ,
+                    optimizer              ,
+                    model                  ,
+                    loss_fn                ,
+                    train_loader           ,
+                    val_loader             ,
+                    device                 ,
+                    path                   ,
+                    savefig_path           ,
+                    model_name             ,
+                    ewc                    ,
+                    train_dataset_params   ,
+                    adjust_luminance       ,
+                    scheduler    = None    ,
+                    es_patience  = 10      ,
+                    is_vibrate   = False   ,
+                    loss_weight  = 1.      ,
+                    ewc_weight   = 1000000 ,
+                    qloss_weight = 1/100   ,
+                    ploss_weight = 1/100   ,
                     ):
     
     earlystopping = EarlyStopping(name        = model_name ,
@@ -495,4 +495,3 @@ def finetuning_loop(n_epochs             ,
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
-    
