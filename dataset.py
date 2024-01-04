@@ -242,8 +242,13 @@ class RandomCutDataset(Dataset):
         self.high          = high
         self.scale         = scale
         self.size          = size
-        self.las        = [folderpath+"/"+file
-                              for file in sorted(os.listdir(folderpath)) if not file.startswith('_')]
+        self.labelxs       = [folderpath+"/"+file
+                              for file in sorted(os.listdir(folderpath))
+                              if "labelx" in file]
+        self.labelzs       = [folderpath+"/"+file
+                              for file in sorted(os.listdir(folderpath))
+                              if "labelz" in file]
+        
         self.csize         = cropsize
         self.ssize         = [cropsize[0]//scale, cropsize[1], cropsize[2]]
         self.train         = train
@@ -283,17 +288,24 @@ class RandomCutDataset(Dataset):
     def __getitem__(self, idx):
         if self.train:
             idx              = gen_indices(1, self.low, self.high).item()#;print('idx ', idx)
-            lcoords, icoords = self.gen_coords(1, self.size, self.csize, self.scale)
+            lcoords, icoords = self.gen_coords(1,self.size,self.csize,
+                                               self.scale)
             lcoords, icoords = lcoords[:, 0], icoords[:, 0]
-            label, _, _      = Rotate(    )(Crop(lcoords, self.csize
-                                                )(load_anything(self.labels[idx])))
-            label, label = self.couple_randomflip(label, label)
+            labelx, i, j = Rotate(    )(Crop(lcoords, self.csize
+                                      )(load_anything(self.labelxs[idx])))
+            labelz, _, _ = Rotate(i, j)(Crop(lcoords, self.csize
+                                      )(load_anything(self.labelzs[idx])))
+            labelx, labelz = self.couple_randomflip(labelx, labelz)
         else:
             _idx    = self.indiceslist[idx]  # convert idx to [low] ~[high] number
             lcoords = self.coordslist[0][:, idx]
-            label   = Crop(lcoords, self.csize)(load_anything(self.labels[_idx]))
-            label, label = self.couple_randomflip(label, label)
-        return label, label
+            labelx  = Crop(lcoords, self.csize
+                           )(load_anything(self.labelxs[_idx]))
+            labelz  = Crop(lcoords, self.csize
+                           )(load_anything(self.labelzs[_idx]))
+            labelx, labelz = self.couple_randomflip(labelx, labelz)
+        return {"labelx" : labelx,
+                "labelz" : labelz}
 
     def __len__(self):
         return self.I
@@ -426,7 +438,7 @@ class RealDensityDataset(Dataset):
                 s = self.scores[_idx, 0, z, x, y]
             image   = Crop(icoords, self.scsize)(torch.load(self.images[_idx]))
             image = self.apply_surround_mask(self.surround, image, self.surround_size)
-        return image, 0
+        return {"image": image}
 
     def __len__(self):
         return self.I
@@ -530,13 +542,12 @@ class DensityDataset(Dataset):
                 c += 1
                 _idx     = self.indiceslist[c]
                 icoords = self.coordslist[:, c]
-                z, x, y = icoords
                 r     = np.random.uniform(0, 1)
-                image = Crop(icoords, self.scsize)(load_anything(self.images[idx]))
+                image = Crop(icoords, self.scsize)(load_anything(self.images[_idx]))
                 s     = image.mean().item()
             image = self.apply_surround_mask(self.surround, image,
                                              self.surround_size)
-        return image, 0
+        return {"image": image}
 
     def __len__(self):
         return self.I

@@ -643,7 +643,6 @@ class JNet(nn.Module):
         z = self.post1(x)
         z = F.sigmoid(z)
         x = self.post0(x)
-        #x = F.softmax(input = x / self.tau, dim = 1)[:, :1,] # softmax with temperature
         if self.apply_vq:
             x = F.sigmoid(x)
             if self.use_x_quantized:
@@ -651,8 +650,9 @@ class JNet(nn.Module):
             else:
                 _, qloss = self.vq(x)
         if self.reconstruct:
-            out = self.image(x)
-            r        = out["out"]
+            lu  = x * torch.exp(self.mu + self.sig * z)
+            out = self.image(lu)
+            r   = out["out"]
             psf_loss = out["psf_loss"]
         else:
             r = x
