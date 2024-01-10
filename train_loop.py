@@ -495,3 +495,130 @@ def finetuning_loop(n_epochs               ,
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
+
+def finetuning_with_simulation_loop(
+                    n_epochs               ,
+                    optimizer              ,
+                    model                  ,
+                    loss_fn                ,
+                    train_loader           ,
+                    val_loader             ,
+                    device                 ,
+                    path                   ,
+                    savefig_path           ,
+                    model_name             ,
+                    params                 ,
+                    ewc                    ,
+                    train_dataset_params   ,
+                    adjust_luminance       ,
+                    scheduler    = None    ,
+                    es_patience  = 10      ,
+                    is_vibrate   = False   ,
+                    loss_weight  = 1.      ,
+                    ewc_weight   = 1000000 ,
+                    qloss_weight = 1/100   ,
+                    ploss_weight = 1/100   ,
+                    ):
+    
+    earlystopping = EarlyStopping(name        = model_name ,
+                                  path        = path       ,
+                                  patience    = es_patience,
+                                  window_size = 5          ,
+                                  metric      = "mean"     ,
+                                  verbose     = True       ,)
+    writer = SummaryWriter(f'runs/{model_name}')
+    train_curve = pd.DataFrame(columns=["training loss", "validatation loss"] )
+    loss_list, vloss_list= [], []
+    vibrate = Vibrate()
+    mask = Mask()
+    torch.save(model.state_dict(), f"{path}/{model_name}_pre.pt")
+    for epoch in range(1, n_epochs + 1):
+        loss_sum = 0.
+        model.train()
+        for train_data in train_loader:
+            torch.save(model.state_dict(), f"{path}/{model_name}_tmp.pt")
+            torch.load(model.state_dict(), f"{path}/{model_name}_pre.pt")
+            labelz = train_data["labelz"].to(device = device)
+            with torch.no_grad():
+                image = imagen_instantblur(model  = model ,
+                                           label  = labelz,
+                                           device = device,
+                                           params = params,)
+            _image = mask.apply_mask(train_dataset_params["mask"]     ,
+                                    image                             ,
+                                    train_dataset_params["mask_size"] ,
+                                    train_dataset_params["mask_num"]  ,)
+            torch.load(model.state_dict(), f"{path}/{model_name}_tmp.pt")
+            vimage = vibrate(_image) if is_vibrate else image
+            outdict = model(vimage)
+            rec     = outdict["reconstruction"]
+            qloss   = outdict["quantized_loss"]
+            ploss   = outdict["psf_loss"]
+            if adjust_luminance:
+                rec = luminance_adjustment(rec, image)
+            loss  = loss_fn(rec, image) * loss_weight
+            if ewc is not None:
+                loss += ewc.calc_ewc_loss(ewc_weight)
+            if qloss is not None:
+                loss += qloss * qloss_weight
+            if ploss is not None:
+                loss += ploss * ploss_weight
+            optimizer.zero_grad()
+            loss.backward(retain_graph=False)
+            optimizer.step()
+            loss_sum += loss.detach().item()
+        vloss_sum, vqloss_sum, vparam_loss_sum = 0., 0., 0.
+        model.eval()
+        with torch.no_grad():
+            for val_data in val_loader:
+                torch.save(model.state_dict(), f"{path}/{model_name}_tmp.pt")
+                torch.load(model.state_dict(), f"{path}/{model_name}_pre.pt")
+                labelz = val_data["labelz"].to(device = device)
+                image = imagen_instantblur(model  = model ,
+                                           label  = labelz,
+                                           device = device,
+                                           params = params,)
+                torch.load(model.state_dict(), f"{path}/{model_name}_tmp.pt")
+                vimage  = vibrate(image) if is_vibrate else image
+                outdict = model(vimage)
+                rec     = outdict["reconstruction"]
+                qloss   = outdict["quantized_loss"]
+                ploss   = outdict["psf_loss"]
+                if adjust_luminance:
+                    rec = luminance_adjustment(rec, image)
+                vloss   = loss_fn(rec, image) * loss_weight
+                vloss_sum += vloss.detach().item() * loss_weight
+                if qloss is not None:
+                    qloss = qloss.detach().item() * qloss_weight
+                    vloss_sum += qloss
+                    vqloss_sum += qloss
+                if ploss is not None:
+                    ploss = ploss.detach().item() * ploss_weight
+                    vloss_sum += ploss
+
+        num  = len(train_loader)
+        vnum = len(val_loader)
+        
+        loss_list.append(loss_sum / num)
+        vloss_list.append(vloss_sum / vnum)
+        writer.add_scalar('train loss', loss_sum / num, epoch)
+        writer.add_scalar('val loss', vloss_sum / vnum, epoch)
+        writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
+        writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
+        row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
+                           columns = train_curve.columns)
+        train_curve = pd.concat([train_curve, row], ignore_index=True)
+        train_curve.to_csv(f"./experiments/traincurves/{model_name}.csv",
+                           index=False)
+        
+        if epoch == 1 or epoch % 10 == 0:
+            print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
+        if scheduler is not None:
+            scheduler.step(epoch, vloss_list[-1])
+        earlystopping((vloss_sum / vnum), model, condition = True)
+        if earlystopping.early_stop:
+            break
+    plt.plot(loss_list , label='train loss')
+    plt.plot(vloss_list, label='validation loss')
+    plt.legend()
+    plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)

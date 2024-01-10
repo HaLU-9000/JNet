@@ -11,7 +11,8 @@ import timm.scheduler
 
 import model_new as model
 from dataset import DensityDataset, RandomCutDataset
-from   train_loop import train_loop, ElasticWeightConsolidation
+from   train_loop import finetuning_loop, finetuning_with_simulation_loop, \
+    ElasticWeightConsolidation
 from inference import PretrainingInference
 
 device = (torch.device('cuda') if torch.cuda.is_available()
@@ -21,6 +22,7 @@ print(f"Training on device {device}.")
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
+parser.add_argument('-d', '--data_type', default='real', choices=['real', "simulation"])
 args   = parser.parse_args()
 
 configs = open(os.path.join("experiments/configs",f"{args.model_name}.json"))
@@ -159,29 +161,51 @@ else:
     ewc = None
 
 print(f"============= model {args.model_name} train started =============")
-train_loop(
-    n_epochs         = train_loop_params["n_epochs"      ]  , ####
-    loss_fn          = eval(train_loop_params["loss_fn"])   ,
-    path             = train_loop_params["path"]            ,
-    savefig_path     = train_loop_params["savefig_path"]    ,
-    ewc              = ewc                                  ,
-    partial          = train_loop_params["partial"]         ,
-    es_patience      = train_loop_params["es_patience"   ]  ,
-    reconstruct      = train_loop_params["reconstruct"   ]  ,
-    is_instantblur   = train_loop_params["is_instantblur"]  ,
-    is_vibrate       = train_loop_params["is_vibrate"    ]  ,
-    loss_weight      = train_loop_params["loss_weight"   ]  ,
-    ewc_weight       = train_loop_params["ewc_weight"]      ,
-    qloss_weight     = train_loop_params["qloss_weight"  ]  ,
-    ploss_weight     = train_loop_params["ploss_weight"  ]  ,
-    model            = JNet                                 ,
-    model_name       = args.model_name                      ,
-    params           = params                               ,
-    train_dataset_params = train_dataset_params             ,
-    val_dataset_params   = val_dataset_params               ,
-    train_loader     = train_data                           ,
-    val_loader       = val_data                             ,
-    device           = device                               ,
-    optimizer        = optimizer                            ,
-    scheduler        = scheduler                            ,
+if args.data_type == "real":
+    finetuning_loop(
+        n_epochs         = train_loop_params["n_epochs"]        , ####
+        optimizer        = optimizer                            ,
+        model            = JNet                                 ,
+        loss_fn          = eval(train_loop_params["loss_fn"])   ,
+        train_loader     = train_data                           ,
+        val_loader       = val_data                             ,
+        device           = device                               ,
+        path             = train_loop_params["path"]            ,
+        savefig_path     = train_loop_params["savefig_path"]    ,
+        model_name       = args.model_name                      ,
+        ewc              = ewc                                  ,
+        train_dataset_params = train_dataset_params             ,
+        adjust_luminance = train_loop_params["adjust_luminance"],
+        scheduler        = scheduler                            ,
+        es_patience      = train_loop_params["es_patience"]     ,
+        is_vibrate       = train_loop_params["is_vibrate"]      ,
+        loss_weight      = train_loop_params["loss_weight"]     ,
+        ewc_weight       = train_loop_params["ewc_weight"]      ,
+        qloss_weight     = train_loop_params["qloss_weight"]    ,
+        ploss_weight     = train_loop_params["ploss_weight"]    ,
+    )
+
+elif args.data_type == "simulation":
+    finetuning_with_simulation_loop(
+        n_epochs         = train_loop_params["n_epochs"]        , ####
+        optimizer        = optimizer                            ,
+        model            = JNet                                 ,
+        loss_fn          = eval(train_loop_params["loss_fn"])   ,
+        train_loader     = train_data                           ,
+        val_loader       = val_data                             ,
+        device           = device                               ,
+        path             = train_loop_params["path"]            ,
+        savefig_path     = train_loop_params["savefig_path"]    ,
+        model_name       = args.model_name                      ,
+        params           = params                               ,
+        ewc              = ewc                                  ,
+        train_dataset_params = train_dataset_params             ,
+        adjust_luminance = train_loop_params["adjust_luminance"],
+        scheduler        = scheduler                            ,
+        es_patience      = train_loop_params["es_patience"]     ,
+        is_vibrate       = train_loop_params["is_vibrate"]      ,
+        loss_weight      = train_loop_params["loss_weight"]     ,
+        ewc_weight       = train_loop_params["ewc_weight"]      ,
+        qloss_weight     = train_loop_params["qloss_weight"]    ,
+        ploss_weight     = train_loop_params["ploss_weight"]    ,
     )
