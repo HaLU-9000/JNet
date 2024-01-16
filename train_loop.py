@@ -531,13 +531,13 @@ def finetuning_with_simulation_loop(
     loss_list, vloss_list= [], []
     vibrate = Vibrate()
     mask = Mask()
-    torch.save(model.state_dict(), f"{path}/{model_name}_pre.pt")
+    torch.save(model.image.state_dict(), f"{path}/{model_name}_pre.pt")
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
         model.train()
         for train_data in train_loader:
-            torch.save(model.state_dict(), f"{path}/{model_name}_tmp.pt")
-            torch.load(model.state_dict(), f"{path}/{model_name}_pre.pt")
+            torch.save(model.image.state_dict(), f"{path}/{model_name}_tmp.pt")
+            model.image.load_state_dict(torch.load(f"{path}/{model_name}_pre.pt"))
             labelz = train_data["labelz"].to(device = device)
             with torch.no_grad():
                 image = imagen_instantblur(model  = model ,
@@ -548,7 +548,7 @@ def finetuning_with_simulation_loop(
                                     image                             ,
                                     train_dataset_params["mask_size"] ,
                                     train_dataset_params["mask_num"]  ,)
-            torch.load(model.state_dict(), f"{path}/{model_name}_tmp.pt")
+            model.image.load_state_dict(torch.load(f"{path}/{model_name}_tmp.pt"))
             vimage = vibrate(_image) if is_vibrate else image
             outdict = model(vimage)
             rec     = outdict["reconstruction"]
@@ -571,14 +571,14 @@ def finetuning_with_simulation_loop(
         model.eval()
         with torch.no_grad():
             for val_data in val_loader:
-                torch.save(model.state_dict(), f"{path}/{model_name}_tmp.pt")
-                torch.load(model.state_dict(), f"{path}/{model_name}_pre.pt")
+                torch.save(model.image.state_dict(), f"{path}/{model_name}_tmp.pt")
+                model.image.load_state_dict(torch.load(f"{path}/{model_name}_pre.pt"))
                 labelz = val_data["labelz"].to(device = device)
                 image = imagen_instantblur(model  = model ,
                                            label  = labelz,
                                            device = device,
                                            params = params,)
-                torch.load(model.state_dict(), f"{path}/{model_name}_tmp.pt")
+                model.image.load_state_dict(torch.load(f"{path}/{model_name}_tmp.pt"))
                 vimage  = vibrate(image) if is_vibrate else image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction"]

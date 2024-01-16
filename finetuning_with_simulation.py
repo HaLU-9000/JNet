@@ -10,10 +10,8 @@ import torch.optim as optim
 import timm.scheduler
 
 import model_new as model
-from dataset import DensityDataset, RandomCutDataset
-from   train_loop import finetuning_loop, finetuning_with_simulation_loop, \
-    ElasticWeightConsolidation
-from inference import PretrainingInference
+from dataset import RandomCutDataset
+from train_loop import finetuning_with_simulation_loop, ElasticWeightConsolidation
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -22,15 +20,14 @@ print(f"Training on device {device}.")
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
-parser.add_argument('-d', '--data_type', default='real', choices=['real', "simulation"])
 args   = parser.parse_args()
 
 configs = open(os.path.join("experiments/configs",f"{args.model_name}.json"))
 configs              = json.load(configs)
 params               = configs["params"]
-train_dataset_params = configs["train_dataset"]
+train_dataset_params = configs["pretrain_dataset"]
 ewc_dataset_params   = configs["pretrain_dataset"]
-val_dataset_params   = configs["val_dataset"]
+val_dataset_params   = configs["pretrain_val_dataset"]
 train_loop_params    = configs["train_loop"]
 
 #infer = PretrainingInference(args.model_name, pretrain=True)
@@ -42,33 +39,37 @@ train_loop_params    = configs["train_loop"]
 #                       f"{args.model_name}.json"), "w") as f:
 #    json.dump(configs, f, indent=4)
 
-train_dataset = DensityDataset(
-    folderpath      = train_dataset_params["folderpath"   ] ,
-    size            = train_dataset_params["size"         ] , # size after segmentation
-    cropsize        = train_dataset_params["cropsize"     ] , # size after segmentation
-    I               = train_dataset_params["I"            ] ,
-    scale           = train_dataset_params["scale"        ] , ## scale
-    train           = train_dataset_params["train"        ] ,
-    mask            = train_dataset_params["mask"         ] ,
-    mask_num        = train_dataset_params["mask_num"     ] ,
-    mask_size       = train_dataset_params["mask_size"    ] ,
-    surround        = train_dataset_params["surround"     ] ,
+train_dataset = RandomCutDataset(
+    folderpath      = train_dataset_params["folderpath"]    ,
+    size            = train_dataset_params["size"]          , # size after segmentation
+    cropsize        = train_dataset_params["cropsize"]      , # size after segmentation
+    I               = train_dataset_params["I"]             ,
+    low             = train_dataset_params["low"]           ,
+    high            = train_dataset_params["high"]          ,
+    scale           = train_dataset_params["scale"]         , ## scale
+    train           = True                                  ,
+    mask            = train_dataset_params["mask"]          ,
+    mask_num        = train_dataset_params["mask_num"]      ,
+    mask_size       = train_dataset_params["mask_size"]     ,
+    surround        = train_dataset_params["surround"]      ,
     surround_size   = train_dataset_params["surround_size"] ,
     )
 
-val_dataset   = DensityDataset(
-    folderpath      = val_dataset_params["folderpath"     ] ,
-    size            = val_dataset_params["size"           ] , # size after segmentation
-    cropsize        = val_dataset_params["cropsize"       ] ,
-    I               = val_dataset_params["I"              ] ,
-    scale           = val_dataset_params["scale"          ] ,
-    train           = val_dataset_params["train"          ] ,
-    mask            = val_dataset_params["mask"           ] ,
-    mask_size       = val_dataset_params["mask_size"      ] ,
-    mask_num        = val_dataset_params["mask_num"       ] ,
-    surround        = val_dataset_params["surround"       ] ,
-    surround_size   = val_dataset_params["surround_size"  ] ,
-    seed            = val_dataset_params["seed"           ] ,
+val_dataset   = RandomCutDataset(
+    folderpath      = val_dataset_params["folderpath"]      ,
+    size            = val_dataset_params["size"]            , # size after segmentation
+    cropsize        = val_dataset_params["cropsize"]        ,
+    I               = val_dataset_params["I"]               ,
+    low             = train_dataset_params["low"]           ,
+    high            = train_dataset_params["high"]          ,
+    scale           = val_dataset_params["scale"]           ,
+    train           = False                                 ,
+    mask            = val_dataset_params["mask"]            ,
+    mask_size       = val_dataset_params["mask_size"]       ,
+    mask_num        = val_dataset_params["mask_num"]        ,
+    surround        = val_dataset_params["surround"]        ,
+    surround_size   = val_dataset_params["surround_size"]   ,
+    seed            = val_dataset_params["seed"]            ,
     )
 
 train_data  = DataLoader(
@@ -117,8 +118,9 @@ if args.train_mode == 'encoder':
 
 lr = train_loop_params["lr"]
 
-optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)
-scheduler            = timm.scheduler.PlateauLRScheduler(
+optimizer = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()),
+                       lr = lr)
+scheduler = timm.scheduler.PlateauLRScheduler(
     optimizer      = optimizer   ,
     patience_t     = 10          ,
     warmup_lr_init = lr * 0.1    ,
@@ -126,7 +128,6 @@ scheduler            = timm.scheduler.PlateauLRScheduler(
 
 ewc_dataset   = RandomCutDataset(
     folderpath    = ewc_dataset_params["folderpath"]   ,
-    labelname     = ewc_dataset_params["labelname"]    ,
     size          = ewc_dataset_params["size"]         ,
     cropsize      = ewc_dataset_params["cropsize"]     , 
     I             = ewc_dataset_params["I"]            ,
@@ -148,64 +149,44 @@ ewc_data    = DataLoader(
     num_workers = os.cpu_count()  ,
     )
 if  train_loop_params["ewc"] != None:
-    ewc = ElasticWeightConsolidation(model           = JNet,
-                                     params          = params,
-                                     prev_dataloader = ewc_data,
-                                     loss_fn         = eval(configs["pretrain_loop"]["loss_fn"]),
-                                     ewc_dataset_params  = ewc_dataset_params,
-                                     init_num_batch  = 100,
-                                     is_vibrate      = True,
-                                     device          = device,
-                                     skip_register   = False  )
+    ewc = ElasticWeightConsolidation(
+        model              = JNet                                       ,
+        params             = params                                     ,
+        prev_dataloader    = ewc_data                                   ,
+        loss_fnx           = eval(configs["pretrain_loop"]["loss_fnx"]) ,
+        loss_fnz           = eval(configs["pretrain_loop"]["loss_fnz"]) ,
+        wx                 = configs["pretrain_loop"]["weight_x"]       ,
+        wz                 = configs["pretrain_loop"]["weight_z"]       ,
+        ewc_dataset_params = ewc_dataset_params                         ,
+        init_num_batch     = 100                                        ,
+        is_vibrate         = True                                       ,
+        device             = device
+        )
 else:
     ewc = None
 
 print(f"============= model {args.model_name} train started =============")
-if args.data_type == "real":
-    finetuning_loop(
-        n_epochs         = train_loop_params["n_epochs"]        , ####
-        optimizer        = optimizer                            ,
-        model            = JNet                                 ,
-        loss_fn          = eval(train_loop_params["loss_fn"])   ,
-        train_loader     = train_data                           ,
-        val_loader       = val_data                             ,
-        device           = device                               ,
-        path             = train_loop_params["path"]            ,
-        savefig_path     = train_loop_params["savefig_path"]    ,
-        model_name       = args.model_name                      ,
-        ewc              = ewc                                  ,
-        train_dataset_params = train_dataset_params             ,
-        adjust_luminance = train_loop_params["adjust_luminance"],
-        scheduler        = scheduler                            ,
-        es_patience      = train_loop_params["es_patience"]     ,
-        is_vibrate       = train_loop_params["is_vibrate"]      ,
-        loss_weight      = train_loop_params["loss_weight"]     ,
-        ewc_weight       = train_loop_params["ewc_weight"]      ,
-        qloss_weight     = train_loop_params["qloss_weight"]    ,
-        ploss_weight     = train_loop_params["ploss_weight"]    ,
-    )
 
-elif args.data_type == "simulation":
-    finetuning_with_simulation_loop(
-        n_epochs         = train_loop_params["n_epochs"]        , ####
-        optimizer        = optimizer                            ,
-        model            = JNet                                 ,
-        loss_fn          = eval(train_loop_params["loss_fn"])   ,
-        train_loader     = train_data                           ,
-        val_loader       = val_data                             ,
-        device           = device                               ,
-        path             = train_loop_params["path"]            ,
-        savefig_path     = train_loop_params["savefig_path"]    ,
-        model_name       = args.model_name                      ,
-        params           = params                               ,
-        ewc              = ewc                                  ,
-        train_dataset_params = train_dataset_params             ,
-        adjust_luminance = train_loop_params["adjust_luminance"],
-        scheduler        = scheduler                            ,
-        es_patience      = train_loop_params["es_patience"]     ,
-        is_vibrate       = train_loop_params["is_vibrate"]      ,
-        loss_weight      = train_loop_params["loss_weight"]     ,
-        ewc_weight       = train_loop_params["ewc_weight"]      ,
-        qloss_weight     = train_loop_params["qloss_weight"]    ,
-        ploss_weight     = train_loop_params["ploss_weight"]    ,
-    )
+finetuning_with_simulation_loop(
+    n_epochs         = train_loop_params["n_epochs"]        , ####
+    optimizer        = optimizer                            ,
+    model            = JNet                                 ,
+    loss_fn          = eval(train_loop_params["loss_fn"])   ,
+    train_loader     = train_data                           ,
+    val_loader       = val_data                             ,
+    device           = device                               ,
+    path             = train_loop_params["path"]            ,
+    savefig_path     = train_loop_params["savefig_path"]    ,
+    model_name       = args.model_name                      ,
+    params           = params                               ,
+    ewc              = ewc                                  ,
+    train_dataset_params = train_dataset_params             ,
+    adjust_luminance = train_loop_params["adjust_luminance"],
+    scheduler        = scheduler                            ,
+    es_patience      = train_loop_params["es_patience"]     ,
+    is_vibrate       = train_loop_params["is_vibrate"]      ,
+    loss_weight      = train_loop_params["loss_weight"]     ,
+    ewc_weight       = train_loop_params["ewc_weight"]      ,
+    qloss_weight     = train_loop_params["qloss_weight"]    ,
+    ploss_weight     = train_loop_params["ploss_weight"]    ,
+)

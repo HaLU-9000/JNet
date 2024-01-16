@@ -157,6 +157,7 @@
             "reconstruct"       : true                                         ,
             "is_instantblur"    : false                                        ,
             "is_vibrate"        : true                                         ,
+            "adjust_luminance"  : true                                         ,
             "loss_weight"       : 1                                            ,
             "ewc_weight"        : 1000000                                      ,
             "qloss_weight"      : 1                                            ,

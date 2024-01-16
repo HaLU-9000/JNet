@@ -11,9 +11,7 @@ import timm.scheduler
 
 import model_new as model
 from dataset import DensityDataset, RandomCutDataset
-from   train_loop import finetuning_loop, finetuning_with_simulation_loop, \
-    ElasticWeightConsolidation
-from inference import PretrainingInference
+from   train_loop import finetuning_loop, ElasticWeightConsolidation
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -22,7 +20,6 @@ print(f"Training on device {device}.")
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
-parser.add_argument('-d', '--data_type', default='real', choices=['real', "simulation"])
 args   = parser.parse_args()
 
 configs = open(os.path.join("experiments/configs",f"{args.model_name}.json"))
@@ -148,64 +145,40 @@ ewc_data    = DataLoader(
     num_workers = os.cpu_count()  ,
     )
 if  train_loop_params["ewc"] != None:
-    ewc = ElasticWeightConsolidation(model           = JNet,
-                                     params          = params,
-                                     prev_dataloader = ewc_data,
-                                     loss_fn         = eval(configs["pretrain_loop"]["loss_fn"]),
-                                     ewc_dataset_params  = ewc_dataset_params,
-                                     init_num_batch  = 100,
-                                     is_vibrate      = True,
-                                     device          = device,
-                                     skip_register   = False  )
+    ewc = ElasticWeightConsolidation(
+        model               = JNet,
+        params              = params,
+        prev_dataloader     = ewc_data,
+        loss_fn             = eval(configs["pretrain_loop"]["loss_fn"]),
+        ewc_dataset_params  = ewc_dataset_params,
+        init_num_batch      = 100,
+        is_vibrate          = True,
+        device              = device,
+        skip_register       = False  )
 else:
     ewc = None
 
 print(f"============= model {args.model_name} train started =============")
-if args.data_type == "real":
-    finetuning_loop(
-        n_epochs         = train_loop_params["n_epochs"]        , ####
-        optimizer        = optimizer                            ,
-        model            = JNet                                 ,
-        loss_fn          = eval(train_loop_params["loss_fn"])   ,
-        train_loader     = train_data                           ,
-        val_loader       = val_data                             ,
-        device           = device                               ,
-        path             = train_loop_params["path"]            ,
-        savefig_path     = train_loop_params["savefig_path"]    ,
-        model_name       = args.model_name                      ,
-        ewc              = ewc                                  ,
-        train_dataset_params = train_dataset_params             ,
-        adjust_luminance = train_loop_params["adjust_luminance"],
-        scheduler        = scheduler                            ,
-        es_patience      = train_loop_params["es_patience"]     ,
-        is_vibrate       = train_loop_params["is_vibrate"]      ,
-        loss_weight      = train_loop_params["loss_weight"]     ,
-        ewc_weight       = train_loop_params["ewc_weight"]      ,
-        qloss_weight     = train_loop_params["qloss_weight"]    ,
-        ploss_weight     = train_loop_params["ploss_weight"]    ,
-    )
 
-elif args.data_type == "simulation":
-    finetuning_with_simulation_loop(
-        n_epochs         = train_loop_params["n_epochs"]        , ####
-        optimizer        = optimizer                            ,
-        model            = JNet                                 ,
-        loss_fn          = eval(train_loop_params["loss_fn"])   ,
-        train_loader     = train_data                           ,
-        val_loader       = val_data                             ,
-        device           = device                               ,
-        path             = train_loop_params["path"]            ,
-        savefig_path     = train_loop_params["savefig_path"]    ,
-        model_name       = args.model_name                      ,
-        params           = params                               ,
-        ewc              = ewc                                  ,
-        train_dataset_params = train_dataset_params             ,
-        adjust_luminance = train_loop_params["adjust_luminance"],
-        scheduler        = scheduler                            ,
-        es_patience      = train_loop_params["es_patience"]     ,
-        is_vibrate       = train_loop_params["is_vibrate"]      ,
-        loss_weight      = train_loop_params["loss_weight"]     ,
-        ewc_weight       = train_loop_params["ewc_weight"]      ,
-        qloss_weight     = train_loop_params["qloss_weight"]    ,
-        ploss_weight     = train_loop_params["ploss_weight"]    ,
-    )
+finetuning_loop(
+    n_epochs         = train_loop_params["n_epochs"]        , ####
+    optimizer        = optimizer                            ,
+    model            = JNet                                 ,
+    loss_fn          = eval(train_loop_params["loss_fn"])   ,
+    train_loader     = train_data                           ,
+    val_loader       = val_data                             ,
+    device           = device                               ,
+    path             = train_loop_params["path"]            ,
+    savefig_path     = train_loop_params["savefig_path"]    ,
+    model_name       = args.model_name                      ,
+    ewc              = ewc                                  ,
+    train_dataset_params = train_dataset_params             ,
+    adjust_luminance = train_loop_params["adjust_luminance"],
+    scheduler        = scheduler                            ,
+    es_patience      = train_loop_params["es_patience"]     ,
+    is_vibrate       = train_loop_params["is_vibrate"]      ,
+    loss_weight      = train_loop_params["loss_weight"]     ,
+    ewc_weight       = train_loop_params["ewc_weight"]      ,
+    qloss_weight     = train_loop_params["qloss_weight"]    ,
+    ploss_weight     = train_loop_params["ploss_weight"]    ,
+)
