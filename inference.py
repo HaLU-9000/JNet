@@ -252,9 +252,9 @@ class SimulationInference():
         if is_finetuning:
             self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
                                           strict=False)
-            self.psf_post = self.JNet.image.blur.show_psf_3d()
         else:
             self.model_name = self.pre_model_name
+        self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
 
         val_dataset   = RandomCutDataset(
@@ -386,7 +386,7 @@ class SimulationInference():
                 plt.clf()
                 plt.close()
                 plt.axis("off")
-                plt.imshow(image, cmap='gray', vmin=0.0, vmax=1.,aspect=aspect)
+                plt.imshow(image, cmap='gray', vmin=0.0,vmax=1.,aspect=aspect)
                 plt.savefig(path + f'/{self.model_name}_{n}_{name}.png',
                             format='png',dpi=250,bbox_inches='tight',
                             pad_inches=0)
@@ -441,13 +441,13 @@ class SimulationInference():
         plt.clf()
         plt.close()
         plt.axis("off")
-        plt.imshow(psfpre[:, self.params["size_x"]//2, :], aspect=10)
+        plt.imshow(psfpre[:, self.params["size_x"]//2, :], aspect=self.params["scale"])
         plt.savefig(f'./{self.configs["visualization"]["path"]}/{self.model_name}_psf_pre.png', 
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
         plt.clf()
         plt.close()
         plt.axis("off")
-        plt.imshow(psfpost[:, self.params["size_x"]//2, :], aspect=10)
+        plt.imshow(psfpost[:, self.params["size_x"]//2, :], aspect=self.params["scale"])
         plt.savefig(f'./{self.configs["visualization"]["path"]}/{self.model_name}_psf_post.png', 
                         format='png',dpi=250,bbox_inches='tight',pad_inches=0)
     

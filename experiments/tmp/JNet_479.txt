@@ -193,7 +193,7 @@ JNet(
     (preprocess): PreProcess()
   )
   (upsample): JNetUpsample(
-    (upsample): Upsample(scale_factor=(10.0, 1.0, 1.0), mode='trilinear')
+    (upsample): Upsample(scale_factor=(3.0, 1.0, 1.0), mode='trilinear')
   )
   (vq): VectorQuantizer()
 )

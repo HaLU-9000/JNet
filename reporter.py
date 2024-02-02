@@ -112,6 +112,13 @@ for n in range(num_result):
         md.new_line(f'MSEx: {evals["MSEx"][n]}, BCEx: {evals["BCEx"][n]}')
         md.new_line(f'MSEz: {evals["MSEz"][n]}, BCEz: {evals["BCEz"][n]}')
         md.new_line()
+infer.psf_visualize()
+psf_list = []
+timing_list = ["pre"]
+for t in timing_list:
+    path = f'./{configs["visualization"]["path"]}/{infer.model_name}_psf_{t}.png'
+    psf_list.append(md.new_reference_image(text=f"{infer.model_name}_psf_{t}", path=path[1:]))
+md.new_table(columns=len(timing_list), rows=2, text=[*timing_list, *psf_list])
 infer.del_model()
 torch.cuda.empty_cache()
 

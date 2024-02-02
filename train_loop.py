@@ -38,7 +38,7 @@ def imagen_instantblur(model, label, device, params):
     out    = model.image.blur(label)
     image  = out["out"]
 #    image  = model.image.noise(image)
-#    image  = model.image.preprocess.sample(image)
+    image  = model.image.preprocess.sample(image)
     return image
 
 # def train_loop(n_epochs, optimizer, model, loss_fn, train_loader, val_loader,

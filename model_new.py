@@ -68,9 +68,11 @@ class JNetBlockN(nn.Module):
                               kernel_size  = 3           ,
                               padding      = 'same'      ,
                               padding_mode = 'replicate' ,)
+        self.sigm  = nn.Sigmoid()
         
     def forward(self, x):
         x = self.conv(x)
+        x = self.sigm(x)
         return x
 
 
@@ -420,7 +422,7 @@ class Blur(nn.Module):
             size  = (self.size_z, self.rps0, self.rps1),
             mode  = "nearest",
             )[0, 0]
-        psf = psf /torch.max(psf);print("sum: ", torch.sum(psf));print("max: ", torch.max(psf))#/ torch.sum(psf)
+        psf = psf /torch.sum(psf)#;print("sum: ", torch.sum(psf));print("max: ", torch.max(psf))#/ torch.sum(psf)
         if self.use_fftconv:
             _x   = fft_conv(signal  = x                                    ,
                             kernel  = psf                                  ,
@@ -550,9 +552,9 @@ class PreProcess(nn.Module):
         #x = (x - self.min) / (self.max - self.min)
         return x
     def sample(self, x):
+        x = (x - self.min) / (self.max - self.min)
         x = x + self.background
         x = torch.clip(x, min=self.min, max=self.max)
-        #x = (x - self.min) / (self.max - self.min)
         return x
 
 
@@ -602,20 +604,26 @@ class JNet(nn.Module):
             nblocks               = params["nblocks"]    ,
             dropout               = params["dropout"]    ,
             ) if hidden_channels_list else nn.Identity()
-        self.post  = nn.ModuleList(
+        self.postx0 = nn.ModuleList(
             [JNetBlock(in_channels     = hidden_channels,
                        hidden_channels = hidden_channels,
                        dropout         = params["dropout"],
                         ) for _ in range(params["nblocks"])
-                        ])
-        self.post0 = JNetBlockN(
+            ])
+        self.postx0.append(JNetBlockN(
             in_channels  = hidden_channels ,
             out_channels = 1               ,
-            )
-        self.post1 = JNetBlockN(
+            ))
+        self.postz0 = nn.ModuleList(
+            [JNetBlock(in_channels     = hidden_channels,
+                       hidden_channels = hidden_channels,
+                       dropout         = params["dropout"],
+                        ) for _ in range(params["nblocks"])
+            ])
+        self.postz0.append(JNetBlockN(
             in_channels  = hidden_channels ,
             out_channels = 1               ,
-            )
+            ))
         self.image = ImagingProcess(params = params)
         self.upsample    = JNetUpsample(scale_factor = scale_factor)
         self.activation  = params["activation"]
@@ -641,10 +649,8 @@ class JNet(nn.Module):
         for f in self.post:
             x = f(x)
         z = self.post1(x)
-        z = F.sigmoid(z)
         x = self.post0(x)
         if self.apply_vq:
-            x = F.sigmoid(x)
             if self.use_x_quantized:
                 x, qloss = self.vq(x)
             else:
