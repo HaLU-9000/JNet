@@ -1,6 +1,6 @@
 {
     "explanation":"new data generation with more objects. axon deconv",
-    "pretrained_model":"JNet_478_pretrain"                            ,
+    "pretrained_model":"JNet_479_pretrain"                            ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -101,14 +101,14 @@
 
     "simulation_data_generation":
         {
-            "dataset_name"         : "_var_num_realisticdata2"                 ,
-            "train_num"            : 16                                        ,
-            "valid_num"            : 4                                         ,
-            "image_size"           : [1200, 500, 500]                          ,
-            "train_object_num_min" : 40000                                     ,
-            "train_object_num_max" : 100000                                    ,
-            "valid_object_num_min" : 62500                                     ,
-            "valid_object_num_max" : 77500
+            "dataset_name"         : "_var_num_realisticdata2" ,
+            "train_num"            : 16                        ,
+            "valid_num"            : 4                         ,
+            "image_size"           : [1200, 500, 500]          ,
+            "train_object_num_min" : 1500                      ,
+            "train_object_num_max" : 2500                      ,
+            "valid_object_num_min" : 1500                      ,
+            "valid_object_num_max" : 2500
         }                                                                      , "$simulation_data_generation":"",
 
     "train_dataset":

@@ -420,7 +420,7 @@ class Blur(nn.Module):
             size  = (self.size_z, self.rps0, self.rps1),
             mode  = "nearest",
             )[0, 0]
-        psf = psf / torch.sum(psf)
+        psf = psf /torch.max(psf);print("sum: ", torch.sum(psf));print("max: ", torch.max(psf))#/ torch.sum(psf)
         if self.use_fftconv:
             _x   = fft_conv(signal  = x                                    ,
                             kernel  = psf                                  ,

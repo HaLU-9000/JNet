@@ -91,6 +91,7 @@ md.new_header(level=2, title="Results")
 #########################
 ## Pretraining Results ##
 #########################
+md.new_header(level=3, title="Pretraining")
 num_result = 5
 infer = inference.SimulationInference(args.model_name, is_finetuning=False)
 results = infer.get_result(num_result)
@@ -114,32 +115,33 @@ for n in range(num_result):
 infer.del_model()
 torch.cuda.empty_cache()
 
-########################################
-## Finetuning Results with Simulation ##
-########################################
-type_list = ["original", "reconst", "heatmap", "outputx", "labelx", "outputz", "labelz"]
-infer = inference.SimulationInference(args.model_name, is_finetuning=True)
-results = infer.get_result(num_result)
-evals  = infer.evaluate(results)
-infer.visualize(results)
-for n in range(len(results)):
-    md.new_header(level=3, title=f"image {n}")
-    im_list = []
-    for tp in type_list:
-        path = f'./{configs["visualization"]["path"]}/{infer.model_name}_{n}_{tp}_depth.png'
-        im_list.append(md.new_reference_image(text=f"{infer.model_name}_{n}_{tp}_{slice}", path=path[1:]))
-    md.new_table(columns=len(type_list), rows=2, text=[*type_list, *im_list],)
-    md.new_line(f'MSEz: {evals["MSEz"][n]}, quantized loss: {evals["qloss"][n]}')
-    md.new_line()
-md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
-
-infer.psf_visualize()
-psf_list = []
-timing_list = ["pre", "post"]
-for t in timing_list:
-    path = f'./{configs["visualization"]["path"]}/{infer.model_name}_psf_{t}.png'
-    psf_list.append(md.new_reference_image(text=f"{infer.model_name}_psf_{t}", path=path[1:]))
-md.new_table(columns=2, rows=2, text=[*timing_list, *psf_list])
+#########################################
+### Finetuning Results with Simulation ##
+#########################################
+#md.new_header(level=3, title="Finetuning Results with Simulation")
+#type_list = ["original", "reconst", "heatmap", "outputx", "labelx", "outputz", "labelz"]
+#infer = inference.SimulationInference(args.model_name, is_finetuning=True)
+#results = infer.get_result(num_result)
+#evals  = infer.evaluate(results)
+#infer.visualize(results)
+#for n in range(len(results)):
+#    md.new_header(level=3, title=f"image {n}")
+#    im_list = []
+#    for tp in type_list:
+#        path = f'./{configs["visualization"]["path"]}/{infer.model_name}_{n}_{tp}_depth.png'
+#        im_list.append(md.new_reference_image(text=f"{infer.model_name}_{n}_{tp}_{slice}", path=path[1:]))
+#    md.new_table(columns=len(type_list), rows=2, text=[*type_list, *im_list],)
+#    md.new_line(f'MSEz: {evals["MSEz"][n]}, quantized loss: {evals["qloss"][n]}')
+#    md.new_line()
+#md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
+#
+#infer.psf_visualize()
+#psf_list = []
+#timing_list = ["pre", "post"]
+#for t in timing_list:
+#    path = f'./{configs["visualization"]["path"]}/{infer.model_name}_psf_{t}.png'
+#    psf_list.append(md.new_reference_image(text=f"{infer.model_name}_psf_{t}", path=path[1:]))
+#md.new_table(columns=2, rows=2, text=[*timing_list, *psf_list])
 
 ###################################
 ## Finetuning Results with Beads ##

@@ -348,7 +348,7 @@ class SimulationInference():
             j_s = j // self.params["scale"]
             i   = self.configs["visualization"]["x_slice"]
             mip = self.configs["visualization"]["mip"]
-            mip_s = mip * self.params["scale"]
+            mip_s = mip // self.params["scale"]
 
             image_xy   = np.max(image  [0, j_s:j_s+mip_s, :      , :], axis=0)
             outputx_xy = np.max(outputx[0, j  :j+mip    , :      , :], axis=0)
@@ -382,10 +382,11 @@ class SimulationInference():
                  "heatmap_depth", self.params["scale"]],
             ]
             for (image, name, aspect) in images_info:
+                print(name,"\t", image.max(), image.min(), image.mean())
                 plt.clf()
                 plt.close()
                 plt.axis("off")
-                plt.imshow(image, cmap='gray', vmin=0.0,vmax=1.0, aspect=aspect)
+                plt.imshow(image, cmap='gray', vmin=0.0, vmax=1.,aspect=aspect)
                 plt.savefig(path + f'/{self.model_name}_{n}_{name}.png',
                             format='png',dpi=250,bbox_inches='tight',
                             pad_inches=0)
