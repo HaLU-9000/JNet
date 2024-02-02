@@ -553,7 +553,7 @@ class PreProcess(nn.Module):
         return x
     def sample(self, x):
         x = (x - self.min) / (self.max - self.min)
-        x = x + self.background
+#        x = x + self.background
         x = torch.clip(x, min=self.min, max=self.max)
         return x
 
@@ -604,23 +604,23 @@ class JNet(nn.Module):
             nblocks               = params["nblocks"]    ,
             dropout               = params["dropout"]    ,
             ) if hidden_channels_list else nn.Identity()
-        self.postx0 = nn.ModuleList(
+        self.postx = nn.ModuleList(
             [JNetBlock(in_channels     = hidden_channels,
                        hidden_channels = hidden_channels,
                        dropout         = params["dropout"],
                         ) for _ in range(params["nblocks"])
             ])
-        self.postx0.append(JNetBlockN(
+        self.postx.append(JNetBlockN(
             in_channels  = hidden_channels ,
             out_channels = 1               ,
             ))
-        self.postz0 = nn.ModuleList(
+        self.postz = nn.ModuleList(
             [JNetBlock(in_channels     = hidden_channels,
                        hidden_channels = hidden_channels,
                        dropout         = params["dropout"],
                         ) for _ in range(params["nblocks"])
             ])
-        self.postz0.append(JNetBlockN(
+        self.postz.append(JNetBlockN(
             in_channels  = hidden_channels ,
             out_channels = 1               ,
             ))
@@ -632,8 +632,6 @@ class JNet(nn.Module):
         self.apply_vq    = params["apply_vq"]
         self.vq = VectorQuantizer(threshold=params["threshold"],
                                   device=params["device"])
-        self.mu  = nn.Parameter(torch.tensor(0.),)
-        self.sig = nn.Parameter(torch.tensor(1.),)
         t2 = time.time()
         print(f'init done ({t2-t1:.2f} s)')
         self.use_x_quantized = params["use_x_quantized"]
@@ -645,18 +643,20 @@ class JNet(nn.Module):
         x = self.prev0(x)
         for f in self.prev:
             x = f(x)
-        x = self.mid(x)
-        for f in self.post:
+        _x = self.mid(x)
+        x = _x
+        z = _x
+        for f in self.postx:
             x = f(x)
-        z = self.post1(x)
-        x = self.post0(x)
+        for f in self.postz:
+            z = f(z)
         if self.apply_vq:
             if self.use_x_quantized:
                 x, qloss = self.vq(x)
             else:
                 _, qloss = self.vq(x)
         if self.reconstruct:
-            lu  = x * torch.exp(self.mu + self.sig * z)
+            lu  = x * z # change here later, separate x and z and input to self.image for each. adjust light for image(x) and not adjut for image(z)
             out = self.image(lu)
             r   = out["out"]
             psf_loss = out["psf_loss"]
@@ -665,7 +665,7 @@ class JNet(nn.Module):
         
         out = {"enhanced_image"  : x,
                "reconstruction"  : r,
-               "estim_luminance" : torch.exp(self.mu + self.sig * z)
+               "estim_luminance" : z
                }
         vqd = {"quantized_loss" : qloss} if self.apply_vq\
             else {"quantized_loss" : None}

@@ -70,7 +70,7 @@
             "labelname"    : "_label"                                          ,
             "size"         : [1200, 500, 500]                                  ,
             "cropsize"     : [ 240, 112, 112]                                  ,
-            "I"            : 20                                                ,
+            "I"            : 20                                               ,
             "low"          : 16                                                ,
             "high"         : 20                                                ,
             "scale"        : 3                                                 ,
@@ -94,7 +94,7 @@
            "partial"           : "params['partial']"                           ,
            "ewc"               : null                                          ,
            "es_patience"       : 10                                            ,
-           "is_vibrate"        : true                                          ,
+           "is_vibrate"        : false                                         ,
            "weight_x"          : 1                                             ,
            "weight_z"          : 1                                             
         }                                                                      , "$pretrain_loop" : "",
