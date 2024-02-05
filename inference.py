@@ -299,10 +299,7 @@ class SimulationInference():
                 if self.configs["pretrain_loop"]["is_vibrate"]:
                     image   = vibrate(image).detach().clone()
                 outdict  = self.JNet(image)
-                if not self.is_finetuning:
-                    outputx  = F.sigmoid(outdict["enhanced_image"])
-                else:
-                    outputx  = outdict["enhanced_image"]
+                outputx  = outdict["enhanced_image"]
                 outputz  = outdict["estim_luminance"]
                 reconst  = outdict["reconstruction"]
                 qloss    = outdict["quantized_loss"]
@@ -382,7 +379,7 @@ class SimulationInference():
                  "heatmap_depth", self.params["scale"]],
             ]
             for (image, name, aspect) in images_info:
-                print(name,"\t", image.max(), image.min(), image.mean())
+                #print(name,"\t", image.max(), image.min(), image.mean())
                 plt.clf()
                 plt.close()
                 plt.axis("off")
