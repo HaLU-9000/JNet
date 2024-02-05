@@ -384,7 +384,7 @@ class SimulationInference():
                 plt.clf()
                 plt.close()
                 plt.axis("off")
-                plt.imshow(image, cmap='gray', vmin=0.0,vmax=1.,aspect=aspect)
+                plt.imshow(image, cmap='gray', vmin=0.0,aspect=aspect)
                 plt.savefig(path + f'/{self.model_name}_{n}_{name}.png',
                             format='png',dpi=250,bbox_inches='tight',
                             pad_inches=0)
