@@ -29,7 +29,7 @@ pretrained model : JNet_479_pretrain
 |size_x|51||
 |size_y|51||
 |size_z|201||
-|NA|1.0||
+|NA|0.3||
 |wavelength|0.95|microns|
 |M|25|magnification|
 |ns|1.4|specimen refractive index (RI)|
@@ -184,23 +184,23 @@ pretrained model : JNet_479_pretrain
 
 ### Pretraining
   
-Segmentation: mean MSE: 0.00046164984814822674, mean BCE: 0.0016974827740341425  
-Luminance Estimation: mean MSE: 0.00037903906195424497, mean BCE: 0.00299323839135468
+Segmentation: mean MSE: 0.0006571418489329517, mean BCE: 0.0023462162353098392  
+Luminance Estimation: mean MSE: 0.0006501037860289216, mean BCE: 0.008137005381286144
 ### 0
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_0_original_plane]|![JNet_479_pretrain_0_outputx_plane]|![JNet_479_pretrain_0_labelx_plane]|![JNet_479_pretrain_0_outputz_plane]|![JNet_479_pretrain_0_labelz_plane]|
   
-MSEx: 0.0002511301718186587, BCEx: 0.000989034422673285  
-MSEz: 0.00020236564159858972, BCEz: 0.0010593364713713527  
+MSEx: 0.0007676919922232628, BCEx: 0.0027252049185335636  
+MSEz: 0.000645859632641077, BCEz: 0.012786191888153553  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_0_original_depth]|![JNet_479_pretrain_0_outputx_depth]|![JNet_479_pretrain_0_labelx_depth]|![JNet_479_pretrain_0_outputz_depth]|![JNet_479_pretrain_0_labelz_depth]|
   
-MSEx: 0.0002511301718186587, BCEx: 0.000989034422673285  
-MSEz: 0.00020236564159858972, BCEz: 0.0010593364713713527  
+MSEx: 0.0007676919922232628, BCEx: 0.0027252049185335636  
+MSEz: 0.000645859632641077, BCEz: 0.012786191888153553  
 
 ### 1
 
@@ -208,15 +208,15 @@ MSEz: 0.00020236564159858972, BCEz: 0.0010593364713713527
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_1_original_plane]|![JNet_479_pretrain_1_outputx_plane]|![JNet_479_pretrain_1_labelx_plane]|![JNet_479_pretrain_1_outputz_plane]|![JNet_479_pretrain_1_labelz_plane]|
   
-MSEx: 0.0005068243481218815, BCEx: 0.0017418424831703305  
-MSEz: 0.0004735236580017954, BCEz: 0.003145845839753747  
+MSEx: 0.0003679027722682804, BCEx: 0.0014113802462816238  
+MSEz: 0.0003625595709308982, BCEz: 0.0016478004399687052  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_1_original_depth]|![JNet_479_pretrain_1_outputx_depth]|![JNet_479_pretrain_1_labelx_depth]|![JNet_479_pretrain_1_outputz_depth]|![JNet_479_pretrain_1_labelz_depth]|
   
-MSEx: 0.0005068243481218815, BCEx: 0.0017418424831703305  
-MSEz: 0.0004735236580017954, BCEz: 0.003145845839753747  
+MSEx: 0.0003679027722682804, BCEx: 0.0014113802462816238  
+MSEz: 0.0003625595709308982, BCEz: 0.0016478004399687052  
 
 ### 2
 
@@ -224,15 +224,15 @@ MSEz: 0.0004735236580017954, BCEz: 0.003145845839753747
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_2_original_plane]|![JNet_479_pretrain_2_outputx_plane]|![JNet_479_pretrain_2_labelx_plane]|![JNet_479_pretrain_2_outputz_plane]|![JNet_479_pretrain_2_labelz_plane]|
   
-MSEx: 0.0004665876040235162, BCEx: 0.0018039509886875749  
-MSEz: 0.0003847611660603434, BCEz: 0.004919820465147495  
+MSEx: 0.0005502065178006887, BCEx: 0.0019448251696303487  
+MSEz: 0.0005520220729522407, BCEz: 0.013038640841841698  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_2_original_depth]|![JNet_479_pretrain_2_outputx_depth]|![JNet_479_pretrain_2_labelx_depth]|![JNet_479_pretrain_2_outputz_depth]|![JNet_479_pretrain_2_labelz_depth]|
   
-MSEx: 0.0004665876040235162, BCEx: 0.0018039509886875749  
-MSEz: 0.0003847611660603434, BCEz: 0.004919820465147495  
+MSEx: 0.0005502065178006887, BCEx: 0.0019448251696303487  
+MSEz: 0.0005520220729522407, BCEz: 0.013038640841841698  
 
 ### 3
 
@@ -240,15 +240,15 @@ MSEz: 0.0003847611660603434, BCEz: 0.004919820465147495
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_3_original_plane]|![JNet_479_pretrain_3_outputx_plane]|![JNet_479_pretrain_3_labelx_plane]|![JNet_479_pretrain_3_outputz_plane]|![JNet_479_pretrain_3_labelz_plane]|
   
-MSEx: 0.00041160520049743354, BCEx: 0.0013952854787930846  
-MSEz: 0.0003955874708481133, BCEz: 0.0020578810945153236  
+MSEx: 0.0006183043005876243, BCEx: 0.0021475169342011213  
+MSEz: 0.0006980140460655093, BCEz: 0.008328806608915329  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_3_original_depth]|![JNet_479_pretrain_3_outputx_depth]|![JNet_479_pretrain_3_labelx_depth]|![JNet_479_pretrain_3_outputz_depth]|![JNet_479_pretrain_3_labelz_depth]|
   
-MSEx: 0.00041160520049743354, BCEx: 0.0013952854787930846  
-MSEz: 0.0003955874708481133, BCEz: 0.0020578810945153236  
+MSEx: 0.0006183043005876243, BCEx: 0.0021475169342011213  
+MSEz: 0.0006980140460655093, BCEz: 0.008328806608915329  
 
 ### 4
 
@@ -256,19 +256,19 @@ MSEz: 0.0003955874708481133, BCEz: 0.0020578810945153236
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_4_original_plane]|![JNet_479_pretrain_4_outputx_plane]|![JNet_479_pretrain_4_labelx_plane]|![JNet_479_pretrain_4_outputz_plane]|![JNet_479_pretrain_4_labelz_plane]|
   
-MSEx: 0.000672101799864322, BCEx: 0.0025572997983545065  
-MSEz: 0.0004389575042296201, BCEz: 0.0037833084352314472  
+MSEx: 0.0009816036326810718, BCEx: 0.003502153791487217  
+MSEz: 0.0009920633165165782, BCEz: 0.004883587826043367  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_479_pretrain_4_original_depth]|![JNet_479_pretrain_4_outputx_depth]|![JNet_479_pretrain_4_labelx_depth]|![JNet_479_pretrain_4_outputz_depth]|![JNet_479_pretrain_4_labelz_depth]|
   
-MSEx: 0.000672101799864322, BCEx: 0.0025572997983545065  
-MSEz: 0.0004389575042296201, BCEz: 0.0037833084352314472  
+MSEx: 0.0009816036326810718, BCEx: 0.003502153791487217  
+MSEz: 0.0009920633165165782, BCEz: 0.004883587826043367  
 
-|pre|
-| :---: |
-|![JNet_479_pretrain_psf_pre]|
+|pre|post|
+| :---: | :---: |
+|![JNet_479_pretrain_psf_pre]|![JNet_479_pretrain_psf_post]|
 
 ## Architecture
   
@@ -541,4 +541,5 @@ JNet(
 [JNet_479_pretrain_4_outputx_plane]: /experiments/images/JNet_479_pretrain_4_outputx_plane.png
 [JNet_479_pretrain_4_outputz_depth]: /experiments/images/JNet_479_pretrain_4_outputz_depth.png
 [JNet_479_pretrain_4_outputz_plane]: /experiments/images/JNet_479_pretrain_4_outputz_plane.png
+[JNet_479_pretrain_psf_post]: /experiments/images/JNet_479_pretrain_psf_post.png
 [JNet_479_pretrain_psf_pre]: /experiments/images/JNet_479_pretrain_psf_pre.png

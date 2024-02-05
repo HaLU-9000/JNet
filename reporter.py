@@ -114,7 +114,7 @@ for n in range(num_result):
         md.new_line()
 infer.psf_visualize()
 psf_list = []
-timing_list = ["pre"]
+timing_list = ["pre", "post"]
 for t in timing_list:
     path = f'./{configs["visualization"]["path"]}/{infer.model_name}_psf_{t}.png'
     psf_list.append(md.new_reference_image(text=f"{infer.model_name}_psf_{t}", path=path[1:]))

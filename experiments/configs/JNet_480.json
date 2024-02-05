@@ -21,7 +21,7 @@
             "size_x"                : 51                                       ,
             "size_y"                : 51                                       ,
             "size_z"                : 201                                      ,
-            "NA"                    : 1.0                                      ,
+            "NA"                    : 0.3                                      ,
             "wavelength"            : 0.95                                      , "$wavelength"   : "microns"                                                             ,
             "M"                     : 25                                       , "$M"            : "magnification"                                                       ,
             "ns"                    : 1.4                                      , "$ns"           : "specimen refractive index (RI)"                                      ,
