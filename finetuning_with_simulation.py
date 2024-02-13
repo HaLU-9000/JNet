@@ -77,7 +77,7 @@ train_data  = DataLoader(
     batch_size  = train_loop_params["batch_size"] ,
     shuffle     = True                            ,
     pin_memory  = True                            ,
-    num_workers = os.cpu_count()                  ,
+    num_workers = 0#os.cpu_count()                  ,
     )
 
 val_data    = DataLoader(
@@ -85,7 +85,7 @@ val_data    = DataLoader(
     batch_size  = train_loop_params["batch_size"] ,
     shuffle     = False                           ,
     pin_memory  = True                            ,
-    num_workers = os.cpu_count()                  ,
+    num_workers = 0#os.cpu_count()                  ,
     )
 
 params["reconstruct"]     = True
@@ -146,7 +146,7 @@ ewc_data    = DataLoader(
     batch_size  = 1               ,
     shuffle     = True            ,
     pin_memory  = True            ,
-    num_workers = os.cpu_count()  ,
+    num_workers = 0#os.cpu_count()  ,
     )
 if  train_loop_params["ewc"] != None:
     ewc = ElasticWeightConsolidation(

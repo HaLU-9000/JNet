@@ -18,13 +18,19 @@ def imagen_instantblur(model, label, device, params):
     return image
 
 def _loss_fnz(_input, mask, target):
-    label_loss = F.gaussian_nll_loss(_input*mask, target)
+    if mask is not None:
+        label_loss = F.gaussian_nll_loss(
+            input  = _input*mask            , 
+            target = target                 ,
+            var    = torch.ones_like(_input) )
+    else:
+        label_loss = 0.
     trnorm   = torchrl.modules.TruncatedNormal(
-    loc      = torch.zeros_like(_input),
-    scale    = torch.ones_like(_input),
-    upscale  = torch.tensor(_input))
+        loc     = torch.zeros_like(_input),
+        scale   = torch.ones_like(_input) ,
+        upscale = torch.zeros_like(_input) )
     log_prob = trnorm.log_prob(torch.log(_input))
-    nll_loss = - torch.mean(log_prob)
+    nll_loss = - torch.mean(log_prob) * 1/100
     return label_loss + nll_loss
 
 def pretrain_loop(n_epochs             ,
@@ -78,7 +84,7 @@ def pretrain_loop(n_epochs             ,
             out = outdict["enhanced_image" ]
             lum = outdict["estim_luminance"]
             lossx  = loss_fnx(out, labelx)
-            lossz  = _loss_fnz(lum, labelz)
+            lossz  = _loss_fnz(lum, labelx, labelz)
             loss = wx * lossx + wz * lossz
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
@@ -100,7 +106,7 @@ def pretrain_loop(n_epochs             ,
                 out   = outdict["enhanced_image"]
                 lum   = outdict["estim_luminance"]
                 lossx = loss_fnx(out, labelx)
-                lossz = loss_fnz(lum, labelz)
+                lossz = _loss_fnz(lum, labelx, labelz)
                 vloss = wx * lossx + wz * lossz
                 vloss_sum += vloss.detach().item()
         
@@ -154,7 +160,7 @@ def finetuning_loop(n_epochs               ,
                     es_patience  = 10      ,
                     is_vibrate   = False   ,
                     loss_weight  = 1.      ,
-                    ewc_weight   = 1000000 ,
+                    ewc_weight   = 100000 ,
                     qloss_weight = 1/100   ,
                     ploss_weight = 1/100   ,
                     ):
@@ -310,11 +316,17 @@ def finetuning_with_simulation_loop(
             vimage = vibrate(_image) if is_vibrate else image
             outdict = model(vimage)
             rec     = outdict["reconstruction"]
+            lum     = outdict["estim_luminance"]
             qloss   = outdict["quantized_loss"]
             ploss   = outdict["psf_loss"]
             if adjust_luminance:
                 rec = luminance_adjustment(rec, image)
-            loss  = loss_fn(rec, image) * loss_weight
+            loss = loss_fn(rec, image) * loss_weight
+            loss_z = _loss_fnz(
+                _input =lum ,
+                mask   =None,
+                target =None )
+            loss = loss + loss_z
             if ewc is not None:
                 loss += ewc.calc_ewc_loss(ewc_weight)
             if qloss is not None:
@@ -343,12 +355,20 @@ def finetuning_with_simulation_loop(
                 vimage  = vibrate(image) if is_vibrate else image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction"]
+                lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss"]
                 ploss   = outdict["psf_loss"]
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
                 vloss   = loss_fn(rec, image) * loss_weight
+                loss_z = _loss_fnz(
+                    _input =lum ,
+                    mask   =None,
+                    target =None )
+                loss = loss + loss_z
                 vloss_sum += vloss.detach().item() * loss_weight
+                if ewc is not None:
+                    vloss_sum += ewc.calc_ewc_loss(ewc_weight).detach().item()
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
@@ -445,7 +465,7 @@ class ElasticWeightConsolidation():
             out   = outdict["enhanced_image"]
             lum   = outdict["estim_luminance"]
             lossx = self.loss_fnx(out, labelx)
-            lossz = self.loss_fnz(lum, labelz)
+            lossz = _loss_fnz(lum,labelx,labelz)
             vloss = self.wx * lossx + self.wz * lossz
             log_likelihood = torch.log(vloss)
             grad_log_likelihood = torch.autograd.grad(log_likelihood,
