@@ -100,7 +100,7 @@ if args.train_mode == 'decoder' or args.train_mode == 'old':
                          strict=False)
 if args.train_mode == 'all':
     JNet.load_state_dict(torch.load(f'model/{args.model_name}.pt'),
-                        strict=False)
+                         strict=False)
 
 train_params = JNet.parameters()
 

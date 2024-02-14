@@ -278,7 +278,7 @@ class SimulationInference():
             batch_size  = 1               ,
             shuffle     = False           ,
             pin_memory  = False           ,
-            num_workers = os.cpu_count()  ,
+            num_workers = 0#os.cpu_count()  ,
                          )
     
     def get_result(self, num_results)->list:

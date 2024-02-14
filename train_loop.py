@@ -160,7 +160,7 @@ def finetuning_loop(n_epochs               ,
                     es_patience  = 10      ,
                     is_vibrate   = False   ,
                     loss_weight  = 1.      ,
-                    ewc_weight   = 100000 ,
+                    ewc_weight   = 100000  ,
                     qloss_weight = 1/100   ,
                     ploss_weight = 1/100   ,
                     ):
