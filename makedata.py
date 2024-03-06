@@ -69,7 +69,7 @@ def draw_3d_line(length):
     x = 9
     y = 9
     arr = np.zeros((z, x, y))
-    arr[:, x//2, y//2] = 1
+    arr[:, x//2-1:x//2+2, y//2-1:y//2+2] = 1
     d = randn(3, 5, 1, 1)
     arr = deform.deform_grid(X=arr, displacement=d*3)
     r_arr = np.zeros((z, z, z))

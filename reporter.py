@@ -12,10 +12,14 @@ import inference
 
 parser = argparse.ArgumentParser(description='generates report')
 parser.add_argument('model_name')
+parser.add_argument('-filename', default=None)
 args   = parser.parse_args() 
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs = json.load(configs)
-md = MdUtils(file_name=f'./experiments/reports/{args.model_name}.md')
+if args.filename is not None:
+    md = MdUtils(file_name=f'./experiments/reports/{args.filename}.md')
+else:
+    md = MdUtils(file_name=f'./experiments/reports/{args.model_name}.md')
 ###########
 ## Title ##
 ###########

@@ -246,10 +246,12 @@ class SimulationInference():
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
-        
+        torch.save(self.JNet.image.state_dict(),  f'model/{self.model_name}_image_tmp.pt')
         self.JNet.load_state_dict(torch.load(f'model/{self.pre_model_name}.pt'),
                                       strict=False)
         self.psf_post = self.JNet.image.blur.show_psf_3d()
+        self.JNet.image.load_state_dict(torch.load(f'model/{self.model_name}_image_tmp.pt'),
+                                      strict=False)
         if is_finetuning:
             self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
                                           strict=False)
@@ -265,10 +267,10 @@ class SimulationInference():
             I             = val_dataset_params["I"]            ,
             low           = val_dataset_params["low"]          ,
             high          = val_dataset_params["high"]         ,
-            scale         = val_dataset_params["scale"]        ,  ## scale
+            scale         = val_dataset_params["scale"]        , ## scale
             mask          = val_dataset_params["mask"]         ,
             mask_size     = val_dataset_params["mask_size"]    ,
-            mask_num      = val_dataset_params["mask_num"]     ,  #( 1% of image)
+            mask_num      = val_dataset_params["mask_num"]     , #( 1% of image)
             surround      = val_dataset_params["surround"]     ,
             surround_size = val_dataset_params["surround_size"],
             seed          = val_dataset_params["seed"]         ,

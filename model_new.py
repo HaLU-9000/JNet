@@ -555,7 +555,7 @@ class PreProcess(nn.Module):
         x = (x - self.min) / (self.max - self.min)
 #        x = x + self.background
         max_value = torch.quantile(x.flatten(), self.max)
-        x = torch.clip(x, min=self.min, max=max_value)
+        x = torch.clip(x, min=self.min, max=max_value.item())
         return x
 
 

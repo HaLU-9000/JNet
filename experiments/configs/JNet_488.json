@@ -49,7 +49,7 @@
 
     "pretrain_dataset":
         {
-            "folderpath"   : "_var_num_realisticdata2"                         ,
+            "folderpath"   : "_var_num_realisticdata3"                         ,
             "labelname"    : "_label"                                          ,
             "size"         : [1200, 500, 500]                                  ,
             "cropsize"     : [ 240, 112, 112]                                  ,
@@ -66,7 +66,7 @@
 
     "pretrain_val_dataset":
         {
-            "folderpath"   : "_var_num_realisticdata2"                         ,
+            "folderpath"   : "_var_num_realisticdata3"                         ,
             "labelname"    : "_label"                                          ,
             "size"         : [1200, 500, 500]                                  ,
             "cropsize"     : [ 240, 112, 112]                                  ,
@@ -101,7 +101,7 @@
 
     "simulation_data_generation":
         {
-            "dataset_name"         : "_var_num_realisticdata2" ,
+            "dataset_name"         : "_var_num_realisticdata3" ,
             "train_num"            : 16                        ,
             "valid_num"            : 4                         ,
             "image_size"           : [1200, 500, 500]          ,
@@ -113,7 +113,7 @@
 
     "train_dataset":
         {
-            "folderpath"      : "_var_num_realisticdata2"        ,
+            "folderpath"      : "_var_num_realisticdata3"        ,
             "size"            : [310, 512, 512]                           ,
             "cropsize"        : [240, 112, 112]                           ,
             "I"               : 2                                       ,
@@ -128,7 +128,7 @@
 
     "val_dataset":
         {
-            "folderpath"      : "_var_num_realisticdata2"        ,
+            "folderpath"      : "_var_num_realisticdata3"        ,
             "size"            : [310, 512, 512]                           ,
             "cropsize"        : [240, 112, 112]                           ,
             "I"               : 2                                       ,
