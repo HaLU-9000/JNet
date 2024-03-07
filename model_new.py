@@ -547,17 +547,33 @@ class PreProcess(nn.Module):
         self.background = torch.tensor(params["background"])
         self.gamma = dist.Gamma(torch.tensor([1.0]),
                                 torch.tensor(params["background"]))
+    
     def forward(self, x):
         x = torch.clip(x, min=self.min, max=self.max)
         #x = (x - self.min) / (self.max - self.min)
         return x
+    
     def sample(self, x):
         x = (x - self.min) / (self.max - self.min)
 #        x = x + self.background
-        max_value = torch.quantile(x.flatten(), self.max)
-        x = torch.clip(x, min=self.min, max=max_value.item())
+#        max_value = torch.quantile(x.flatten(), self.max)
+        x = torch.clip(x, min=self.min, max=self.max) #max_value.item())
         return x
+    
 
+class Hill(nn.Module):
+    def __init__(self, n, ka, params):
+        super().__init__()
+        self.n  = nn.Parameter(torch.tensor(n ).to(device=params["device"]))
+        self.ka = nn.Parameter(torch.tensor(ka).to(device=params["device"]))
+
+    def forward(self, x):
+        x = self.hill(x, self.n, self.ka)
+        return x
+    
+    def hill(self, x, n, ka):
+        return 2 * x ** n / ( ka ** n + x ** n)
+    
 
 class ImagingProcess(nn.Module):
     def __init__(self, params):
@@ -572,7 +588,8 @@ class ImagingProcess(nn.Module):
         self.emission   = Emission()
         self.blur       = Blur(params = params)
         self.noise      = Noise(torch.tensor(params["sig_eps"]))
-        self.preprocess = PreProcess(min=0., max=.99, params=params)
+        self.preprocess = PreProcess(min=0., max=1., params=params)
+        self.hill       = Hill(n=0.5, ka=1., params=params)
 
     def forward(self, x):
         out = self.blur(x)

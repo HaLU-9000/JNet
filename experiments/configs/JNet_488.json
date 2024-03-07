@@ -1,6 +1,6 @@
 {
     "explanation":"test for _loss_fn_z.",
-    "pretrained_model":"JNet_485_pretrain"                            ,
+    "pretrained_model":"JNet_487_pretrain"                            ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,

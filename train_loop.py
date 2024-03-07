@@ -15,6 +15,7 @@ def imagen_instantblur(model, label, device, params):
     image  = out["out"]
     image  = model.image.noise(image)
     image  = model.image.preprocess.sample(image)
+    image  = model.image.hill(image)
     return image
 
 def _loss_fnz(_input, mask, target):
