@@ -220,10 +220,12 @@ def finetuning_loop(n_epochs               ,
                     rec = luminance_adjustment(rec, image)
                 vloss   = loss_fn(rec, image) * loss_weight
                 vloss_sum += vloss.detach().item() * loss_weight
+                print(vloss)
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
                     vqloss_sum += qloss
+                print(vloss)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
@@ -278,6 +280,7 @@ def finetuning_with_simulation_loop(
                     ewc_weight   = 1000000 ,
                     qloss_weight = 1/100   ,
                     ploss_weight = 1/100   ,
+                    verbose      = True   ,
                     ):
     
     earlystopping = EarlyStopping(name        = model_name ,
@@ -323,17 +326,24 @@ def finetuning_with_simulation_loop(
             if adjust_luminance:
                 rec = luminance_adjustment(rec, image)
             loss = loss_fn(rec, image) * loss_weight
+            if verbose: print("train loss for reconst\t", loss.item())
             loss_z = _loss_fnz(
                 _input =lum ,
                 mask   =None,
                 target =None )
             loss = loss + loss_z
-            if ewc is not None:
-                loss += ewc.calc_ewc_loss(ewc_weight)
+            if verbose: print("train loss plus loss_z\t", loss.item())
             if qloss is not None:
                 loss += qloss * qloss_weight
+                if verbose: print("train loss plus qloss\t", loss.item())
             if ploss is not None:
                 loss += ploss * ploss_weight
+                if verbose: print("train loss plus ploss \t", loss.item())
+            if verbose: print("train loss without ewc\t", loss.item())
+            if ewc is not None:
+                loss += ewc.calc_ewc_loss(ewc_weight)
+            if verbose: print("train loss with ewc\t", loss.item())
+                
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             optimizer.step()
@@ -362,21 +372,27 @@ def finetuning_with_simulation_loop(
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
                 vloss   = loss_fn(rec, image) * loss_weight
+                if verbose: print("valid loss for reconst\t", vloss.item())
                 loss_z = _loss_fnz(
                     _input =lum ,
                     mask   =None,
                     target =None )
                 loss = loss + loss_z
                 vloss_sum += vloss.detach().item() * loss_weight
-                if ewc is not None:
-                    vloss_sum += ewc.calc_ewc_loss(ewc_weight).detach().item()
+                if verbose: print("valid loss plus loss_z\t", vloss_sum)
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
                     vqloss_sum += qloss
+                    if verbose: print("valid loss plus qloss\t", vloss_sum)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
+                    if verbose: print("valid loss plus ploss\t", vloss_sum)
+                if verbose: print("valid loss without ewc\t", vloss_sum)
+                if ewc is not None:
+                    vloss_sum +=  ewc.calc_ewc_loss(ewc_weight).detach().item()
+                    if verbose: print("valid loss with ewc\t", vloss_sum)
 
         num  = len(train_loader)
         vnum = len(val_loader)
@@ -509,5 +525,5 @@ class ElasticWeightConsolidation():
             mean = getattr(self.model, f'{_buff_param_name}_estimated_mean')
             fisher = getattr(self.model, f'{_buff_param_name}_estimated_fisher')
             if fisher is not None and mean is not None and param is not None:
-                losses.append((fisher * (param - mean) ** 2).sum())
+                losses.append((fisher * (param - mean) ** 2).mean())
         return (lambda_ / 2) * sum(losses)

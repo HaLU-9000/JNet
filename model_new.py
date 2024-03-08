@@ -592,7 +592,8 @@ class ImagingProcess(nn.Module):
         self.hill       = Hill(n=0.5, ka=1., params=params)
 
     def forward(self, x):
-        out = self.blur(x)
+        x = self.blur(x)
+        out = self.hill(x)
         return out
 
 
