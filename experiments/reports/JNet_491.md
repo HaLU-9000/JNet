@@ -45,6 +45,7 @@ pretrained model : JNet_487_pretrain
 |pZ|0|microns, particle distance from coverslip|
 |bet_z|30.0||
 |bet_xy|3.0||
+|poisson_weight|0.1||
 |sig_eps|0.01||
 |background|0.01||
 |scale|3||
@@ -193,23 +194,23 @@ pretrained model : JNet_487_pretrain
 
 ### Pretraining
   
-Segmentation: mean MSE: 0.0028247192967683077, mean BCE: 0.009364605881273746  
-Luminance Estimation: mean MSE: 0.985770046710968, mean BCE: inf
+Segmentation: mean MSE: 0.00999215804040432, mean BCE: 0.04801604524254799  
+Luminance Estimation: mean MSE: 0.9496291875839233, mean BCE: inf
 ### 0
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_0_original_plane]|![JNet_487_pretrain_0_outputx_plane]|![JNet_487_pretrain_0_labelx_plane]|![JNet_487_pretrain_0_outputz_plane]|![JNet_487_pretrain_0_labelz_plane]|
   
-MSEx: 0.002482460578903556, BCEx: 0.008178140968084335  
-MSEz: 0.9893547296524048, BCEz: inf  
+MSEx: 0.009087683632969856, BCEx: 0.04497343674302101  
+MSEz: 0.9490005970001221, BCEz: inf  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_0_original_depth]|![JNet_487_pretrain_0_outputx_depth]|![JNet_487_pretrain_0_labelx_depth]|![JNet_487_pretrain_0_outputz_depth]|![JNet_487_pretrain_0_labelz_depth]|
   
-MSEx: 0.002482460578903556, BCEx: 0.008178140968084335  
-MSEz: 0.9893547296524048, BCEz: inf  
+MSEx: 0.009087683632969856, BCEx: 0.04497343674302101  
+MSEz: 0.9490005970001221, BCEz: inf  
 
 ### 1
 
@@ -217,15 +218,15 @@ MSEz: 0.9893547296524048, BCEz: inf
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_1_original_plane]|![JNet_487_pretrain_1_outputx_plane]|![JNet_487_pretrain_1_labelx_plane]|![JNet_487_pretrain_1_outputz_plane]|![JNet_487_pretrain_1_labelz_plane]|
   
-MSEx: 0.0018895176472142339, BCEx: 0.0064810472540557384  
-MSEz: 0.993216872215271, BCEz: inf  
+MSEx: 0.012374971061944962, BCEx: 0.05464586615562439  
+MSEz: 0.9474522471427917, BCEz: 4.547166347503662  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_1_original_depth]|![JNet_487_pretrain_1_outputx_depth]|![JNet_487_pretrain_1_labelx_depth]|![JNet_487_pretrain_1_outputz_depth]|![JNet_487_pretrain_1_labelz_depth]|
   
-MSEx: 0.0018895176472142339, BCEx: 0.0064810472540557384  
-MSEz: 0.993216872215271, BCEz: inf  
+MSEx: 0.012374971061944962, BCEx: 0.05464586615562439  
+MSEz: 0.9474522471427917, BCEz: 4.547166347503662  
 
 ### 2
 
@@ -233,15 +234,15 @@ MSEz: 0.993216872215271, BCEz: inf
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_2_original_plane]|![JNet_487_pretrain_2_outputx_plane]|![JNet_487_pretrain_2_labelx_plane]|![JNet_487_pretrain_2_outputz_plane]|![JNet_487_pretrain_2_labelz_plane]|
   
-MSEx: 0.003543964121490717, BCEx: 0.011996197514235973  
-MSEz: 0.9892225861549377, BCEz: inf  
+MSEx: 0.011641234159469604, BCEx: 0.052276067435741425  
+MSEz: 0.9455789923667908, BCEz: 4.539987564086914  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_2_original_depth]|![JNet_487_pretrain_2_outputx_depth]|![JNet_487_pretrain_2_labelx_depth]|![JNet_487_pretrain_2_outputz_depth]|![JNet_487_pretrain_2_labelz_depth]|
   
-MSEx: 0.003543964121490717, BCEx: 0.011996197514235973  
-MSEz: 0.9892225861549377, BCEz: inf  
+MSEx: 0.011641234159469604, BCEx: 0.052276067435741425  
+MSEz: 0.9455789923667908, BCEz: 4.539987564086914  
 
 ### 3
 
@@ -249,15 +250,15 @@ MSEz: 0.9892225861549377, BCEz: inf
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_3_original_plane]|![JNet_487_pretrain_3_outputx_plane]|![JNet_487_pretrain_3_labelx_plane]|![JNet_487_pretrain_3_outputz_plane]|![JNet_487_pretrain_3_labelz_plane]|
   
-MSEx: 0.00510301161557436, BCEx: 0.016546450555324554  
-MSEz: 0.9627067446708679, BCEz: inf  
+MSEx: 0.009016304276883602, BCEx: 0.046478550881147385  
+MSEz: 0.9557463526725769, BCEz: 4.584930896759033  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_3_original_depth]|![JNet_487_pretrain_3_outputx_depth]|![JNet_487_pretrain_3_labelx_depth]|![JNet_487_pretrain_3_outputz_depth]|![JNet_487_pretrain_3_labelz_depth]|
   
-MSEx: 0.00510301161557436, BCEx: 0.016546450555324554  
-MSEz: 0.9627067446708679, BCEz: inf  
+MSEx: 0.009016304276883602, BCEx: 0.046478550881147385  
+MSEz: 0.9557463526725769, BCEz: 4.584930896759033  
 
 ### 4
 
@@ -265,15 +266,15 @@ MSEz: 0.9627067446708679, BCEz: inf
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_4_original_plane]|![JNet_487_pretrain_4_outputx_plane]|![JNet_487_pretrain_4_labelx_plane]|![JNet_487_pretrain_4_outputz_plane]|![JNet_487_pretrain_4_labelz_plane]|
   
-MSEx: 0.0011046426370739937, BCEx: 0.003621191019192338  
-MSEz: 0.9943490624427795, BCEz: inf  
+MSEx: 0.007840597070753574, BCEx: 0.04170629382133484  
+MSEz: 0.9503674507141113, BCEz: inf  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_487_pretrain_4_original_depth]|![JNet_487_pretrain_4_outputx_depth]|![JNet_487_pretrain_4_labelx_depth]|![JNet_487_pretrain_4_outputz_depth]|![JNet_487_pretrain_4_labelz_depth]|
   
-MSEx: 0.0011046426370739937, BCEx: 0.003621191019192338  
-MSEz: 0.9943490624427795, BCEz: inf  
+MSEx: 0.007840597070753574, BCEx: 0.04170629382133484  
+MSEz: 0.9503674507141113, BCEz: inf  
 
 ### Finetuning Results with Simulation
 
@@ -283,7 +284,7 @@ MSEz: 0.9943490624427795, BCEz: inf
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_491_0_original_depth]|![JNet_491_0_reconst_depth]|![JNet_491_0_heatmap_depth]|![JNet_491_0_outputx_depth]|![JNet_491_0_labelx_depth]|![JNet_491_0_outputz_depth]|![JNet_491_0_labelz_depth]|
   
-MSEz: 0.9833458662033081, quantized loss: 0.0016756915720179677  
+MSEz: 0.9779849648475647, quantized loss: 0.026284484192728996  
 
 ### image 1
 
@@ -291,7 +292,7 @@ MSEz: 0.9833458662033081, quantized loss: 0.0016756915720179677
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_491_1_original_depth]|![JNet_491_1_reconst_depth]|![JNet_491_1_heatmap_depth]|![JNet_491_1_outputx_depth]|![JNet_491_1_labelx_depth]|![JNet_491_1_outputz_depth]|![JNet_491_1_labelz_depth]|
   
-MSEz: 0.9849327206611633, quantized loss: 0.001710782409645617  
+MSEz: 0.9787627458572388, quantized loss: 0.02338557131588459  
 
 ### image 2
 
@@ -299,7 +300,7 @@ MSEz: 0.9849327206611633, quantized loss: 0.001710782409645617
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_491_2_original_depth]|![JNet_491_2_reconst_depth]|![JNet_491_2_heatmap_depth]|![JNet_491_2_outputx_depth]|![JNet_491_2_labelx_depth]|![JNet_491_2_outputz_depth]|![JNet_491_2_labelz_depth]|
   
-MSEz: 0.97613525390625, quantized loss: 0.0009752173209562898  
+MSEz: 0.9903218746185303, quantized loss: 0.02847122959792614  
 
 ### image 3
 
@@ -307,7 +308,7 @@ MSEz: 0.97613525390625, quantized loss: 0.0009752173209562898
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_491_3_original_depth]|![JNet_491_3_reconst_depth]|![JNet_491_3_heatmap_depth]|![JNet_491_3_outputx_depth]|![JNet_491_3_labelx_depth]|![JNet_491_3_outputz_depth]|![JNet_491_3_labelz_depth]|
   
-MSEz: 0.9915256500244141, quantized loss: 0.0010009827092289925  
+MSEz: 0.9909397959709167, quantized loss: 0.02918332628905773  
 
 ### image 4
 
@@ -315,7 +316,7 @@ MSEz: 0.9915256500244141, quantized loss: 0.0010009827092289925
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_491_4_original_depth]|![JNet_491_4_reconst_depth]|![JNet_491_4_heatmap_depth]|![JNet_491_4_outputx_depth]|![JNet_491_4_labelx_depth]|![JNet_491_4_outputz_depth]|![JNet_491_4_labelz_depth]|
   
-MSEz: 0.9874674677848816, quantized loss: 0.0012574426364153624  
+MSEz: 0.9829506874084473, quantized loss: 0.021683262661099434  
   
 If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.
 |pre|post|

@@ -15,7 +15,6 @@ def imagen_instantblur(model, label, device, params):
     image  = out["out"]
     image  = model.image.noise(image)
     image  = model.image.preprocess.sample(image)
-    image  = model.image.hill(image)
     return image
 
 def _loss_fnz(_input, mask, target):
@@ -33,6 +32,14 @@ def _loss_fnz(_input, mask, target):
     log_prob = trnorm.log_prob(torch.log(_input))
     nll_loss = - torch.mean(log_prob) * 1/100
     return label_loss + nll_loss
+
+def _loss_fnx(_input, target, a, sigma):
+    """
+    gaussian nll loss for poisson noise
+    """
+    var  = torch.clamp_min(a * _input + sigma, min=0.)
+    loss = F.gaussian_nll_loss(_input, target, var)
+    return loss
 
 def pretrain_loop(n_epochs             ,
                   optimizer            ,
@@ -76,6 +83,7 @@ def pretrain_loop(n_epochs             ,
                                            label  = labelz,
                                            device = device,
                                            params = params,)
+                image  = model.image.hill.sample(image)
             image = mask.apply_mask(train_dataset_params["mask"]      ,
                                     image                             ,
                                     train_dataset_params["mask_size"] ,
@@ -276,11 +284,12 @@ def finetuning_with_simulation_loop(
                     scheduler    = None    ,
                     es_patience  = 10      ,
                     is_vibrate   = False   ,
-                    loss_weight  = 1.      ,
+                    zloss_weight  = 1.      ,
                     ewc_weight   = 1000000 ,
                     qloss_weight = 1/100   ,
                     ploss_weight = 1/100   ,
-                    verbose      = True   ,
+                    verbose      = False   ,
+                    v_verbose    = False   ,
                     ):
     
     earlystopping = EarlyStopping(name        = model_name ,
@@ -311,26 +320,30 @@ def finetuning_with_simulation_loop(
                                            label  = labelz,
                                            device = device,
                                            params = params,)
+                _image  = model.image.hill.sample(image)
             _image = mask.apply_mask(train_dataset_params["mask"]     ,
-                                    image                             ,
+                                    _image                             ,
                                     train_dataset_params["mask_size"] ,
                                     train_dataset_params["mask_num"]  ,)
             model.image.load_state_dict(
                 torch.load(f"{path}/{model_name}_tmp.pt"))
-            vimage = vibrate(_image) if is_vibrate else image
+            vimage = vibrate(_image) if is_vibrate else _image
             outdict = model(vimage)
             rec     = outdict["reconstruction"]
+            a       = outdict["poisson_weight"]
+            sigma   = outdict["gaussian_sigma"]
             lum     = outdict["estim_luminance"]
             qloss   = outdict["quantized_loss"]
             ploss   = outdict["psf_loss"]
             if adjust_luminance:
                 rec = luminance_adjustment(rec, image)
-            loss = loss_fn(rec, image) * loss_weight
+            #loss = loss_fn(rec, image) * loss_weight
+            loss = _loss_fnx(rec, image, a, sigma)
             if verbose: print("train loss for reconst\t", loss.item())
             loss_z = _loss_fnz(
                 _input =lum ,
                 mask   =None,
-                target =None )
+                target =None ) * zloss_weight
             loss = loss + loss_z
             if verbose: print("train loss plus loss_z\t", loss.item())
             if qloss is not None:
@@ -361,9 +374,10 @@ def finetuning_with_simulation_loop(
                                            label  = labelz,
                                            device = device,
                                            params = params,)
+                _image = model.image.hill.sample(image)
                 model.image.load_state_dict(
                     torch.load(f"{path}/{model_name}_tmp.pt"))
-                vimage  = vibrate(image) if is_vibrate else image
+                vimage  = vibrate(_image) if is_vibrate else _image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction"]
                 lum     = outdict["estim_luminance"]
@@ -371,28 +385,28 @@ def finetuning_with_simulation_loop(
                 ploss   = outdict["psf_loss"]
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
-                vloss   = loss_fn(rec, image) * loss_weight
-                if verbose: print("valid loss for reconst\t", vloss.item())
+                vloss   = _loss_fnx(rec, image, a, sigma)
+                if v_verbose: print("valid loss for reconst\t", vloss.item())
                 loss_z = _loss_fnz(
                     _input =lum ,
                     mask   =None,
-                    target =None )
+                    target =None ) * zloss_weight
                 loss = loss + loss_z
-                vloss_sum += vloss.detach().item() * loss_weight
-                if verbose: print("valid loss plus loss_z\t", vloss_sum)
+                vloss_sum += vloss.detach().item()
+                if v_verbose: print("valid loss plus loss_z\t", vloss_sum)
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                    if verbose: print("valid loss plus qloss\t", vloss_sum)
+                    if v_verbose: print("valid loss plus qloss\t", vloss_sum)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
-                    if verbose: print("valid loss plus ploss\t", vloss_sum)
+                    if v_verbose: print("valid loss plus ploss\t", vloss_sum)
                 if verbose: print("valid loss without ewc\t", vloss_sum)
                 if ewc is not None:
                     vloss_sum +=  ewc.calc_ewc_loss(ewc_weight).detach().item()
-                    if verbose: print("valid loss with ewc\t", vloss_sum)
+                    if v_verbose: print("valid loss with ewc\t", vloss_sum)
 
         num  = len(train_loader)
         vnum = len(val_loader)
@@ -429,6 +443,12 @@ class ElasticWeightConsolidation():
     def __init__(self, model, params, prev_dataloader, loss_fnx, loss_fnz,wx, wz,
                  init_num_batch, ewc_dataset_params, is_vibrate, device):
         self.model = model
+        num_params = 0
+        for p in model.parameters():
+            if p.requires_grad:
+                num_params += p.numel()
+        print(num_params)
+        self.num_params = num_params
         self.device = device
         self.is_vibrate = is_vibrate
         self.loss_fnx = loss_fnx
@@ -525,5 +545,5 @@ class ElasticWeightConsolidation():
             mean = getattr(self.model, f'{_buff_param_name}_estimated_mean')
             fisher = getattr(self.model, f'{_buff_param_name}_estimated_fisher')
             if fisher is not None and mean is not None and param is not None:
-                losses.append((fisher * (param - mean) ** 2).mean())
-        return (lambda_ / 2) * sum(losses)
+                losses.append((fisher * (param - mean) ** 2).sum())
+        return (lambda_ / 2) * sum(losses) / self.num_params

@@ -185,7 +185,7 @@ finetuning_with_simulation_loop(
     scheduler        = scheduler                            ,
     es_patience      = train_loop_params["es_patience"]     ,
     is_vibrate       = train_loop_params["is_vibrate"]      ,
-    loss_weight      = train_loop_params["loss_weight"]     ,
+    zloss_weight     = train_loop_params["zloss_weight"]    ,
     ewc_weight       = train_loop_params["ewc_weight"]      ,
     qloss_weight     = train_loop_params["qloss_weight"]    ,
     ploss_weight     = train_loop_params["ploss_weight"]    ,

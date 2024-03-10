@@ -387,7 +387,8 @@ class Blur(nn.Module):
         elif params["blur_mode"] == "gibsonlanni":
             psf_model     = GibsonLanniModel(params)
         else:
-            raise(NotImplementedError(f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
+            raise(NotImplementedError(
+                f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
         self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=False).float().to(self.device)
         self.neuripsf = NeuralImplicitPSF(params)
         self.neuripsf.trainer(self.init_psf_rz)
@@ -530,12 +531,13 @@ class GibsonLanniModel():
 
 
 class Noise(nn.Module):
-    def __init__(self, sig_eps):
+    def __init__(self, params):
         super().__init__()
-        self.sig_eps = sig_eps
+        self.sig_eps = params["sig_eps"]
+        self.a       = params["poisson_weight"]
 
     def forward(self, x):
-        x = x + torch.randn_like(x) * self.sig_eps * torch.mean(x) 
+        x = x + torch.randn_like(x) * (x * self.a + self.sig_eps)
         return x
 
 
@@ -564,15 +566,23 @@ class PreProcess(nn.Module):
 class Hill(nn.Module):
     def __init__(self, n, ka, params):
         super().__init__()
-        self.n  = nn.Parameter(torch.tensor(n ).to(device=params["device"]))
-        self.ka = nn.Parameter(torch.tensor(ka).to(device=params["device"]))
+        self.n_init  = n
+        self.ka_init = ka
+        #self.n  = nn.Parameter(torch.tensor(n ).to(device=params["device"]))
+        #self.ka = nn.Parameter(torch.tensor(ka).to(device=params["device"]))
 
     def forward(self, x):
-        x = self.hill(x, self.n, self.ka)
+        n  = F.sigmoid(self.n)
+        ka = torch.clip(self.ka, min=0.)
+        x = self.hill(x, n, ka)
         return x
     
+    def sample(self, x):
+        x = self.hill(x, self.n_init, self.ka_init)
+        return x
+
     def hill(self, x, n, ka):
-        return 2 * x ** n / ( ka ** n + x ** n)
+        return (1. + ka ** n) * x ** n / (ka ** n + x ** n)
     
 
 class ImagingProcess(nn.Module):
@@ -587,13 +597,17 @@ class ImagingProcess(nn.Module):
             requires_grad=True)
         self.emission   = Emission()
         self.blur       = Blur(params = params)
-        self.noise      = Noise(torch.tensor(params["sig_eps"]))
+        self.noise      = Noise(params)
         self.preprocess = PreProcess(min=0., max=1., params=params)
         self.hill       = Hill(n=0.5, ka=1., params=params)
 
     def forward(self, x):
-        x = self.blur(x)
-        out = self.hill(x)
+        out = self.blur(x) 
+        x = out["out"]
+        x = self.preprocess(x)
+#        x = self.hill.sample(x)
+        out = {"out"      : x              ,
+               "psf_loss" : out["psf_loss"] }
         return out
 
 
@@ -655,6 +669,10 @@ class JNet(nn.Module):
         print(f'init done ({t2-t1:.2f} s)')
         self.use_x_quantized = params["use_x_quantized"]
         self.tau = 1.
+        self.a     = nn.Parameter(torch.tensor(params["poisson_weight"])
+                                  .to(device=params["device"]))
+        self.sigma = nn.Parameter(torch.tensor(params["sig_eps"])
+                                  .to(device=params["device"]))
 
     def forward(self, x):
         if self.superres:
@@ -684,7 +702,9 @@ class JNet(nn.Module):
         
         out = {"enhanced_image"  : x,
                "reconstruction"  : r,
-               "estim_luminance" : z
+               "estim_luminance" : z,
+               "poisson_weight"  : self.a,
+               "gaussian_sigma"  : self.sigma,
                }
         vqd = {"quantized_loss" : qloss} if self.apply_vq\
             else {"quantized_loss" : None}
