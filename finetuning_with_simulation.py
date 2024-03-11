@@ -165,6 +165,7 @@ if  train_loop_params["ewc"] != None:
 else:
     ewc = None
 
+
 print(f"============= model {args.model_name} train started =============")
 
 finetuning_with_simulation_loop(

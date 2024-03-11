@@ -1,5 +1,5 @@
 {
-    "explanation":"trying poisson loss with normal _loss_fnz, compare without hill",
+    "explanation":"trying poisson loss 1.0 with normal _loss_fnz, zloss_weight 0.1, compare without hill",
     "pretrained_model":"JNet_493_pretrain"    ,
     "params":
         {

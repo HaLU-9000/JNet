@@ -297,6 +297,7 @@ class SimulationInference():
                                            label  = labelz     ,
                                            device = self.device, 
                                            params = self.params,)
+                image  = self.JNet.image.hill.sample(image)
                 if self.is_finetuning:            
                     self.JNet.image.load_state_dict(torch.load(f"model/{self.model_name}.pt"), strict=False)
                 if self.configs["pretrain_loop"]["is_vibrate"]:

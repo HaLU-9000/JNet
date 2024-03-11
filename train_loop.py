@@ -289,7 +289,7 @@ def finetuning_with_simulation_loop(
                     qloss_weight = 1/100   ,
                     ploss_weight = 1/100   ,
                     verbose      = False   ,
-                    v_verbose    = False   ,
+                    v_verbose    = True    ,
                     ):
     
     earlystopping = EarlyStopping(name        = model_name ,
