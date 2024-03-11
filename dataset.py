@@ -491,9 +491,9 @@ class DensityDataset(Dataset):
         self.mask_size     = mask_size
         self.surround      = surround
         self.surround_size = surround_size
-        self.icoords_size  = [self.ssize[0] - self.scsize[0] + 1,
-                              self.ssize[1] - self.scsize[1] + 1,
-                              self.ssize[2] - self.scsize[2] + 1,]
+        self.icoords_size  = [self.ssize[0] - self.scsize[0],
+                              self.ssize[1] - self.scsize[1],
+                              self.ssize[2] - self.scsize[2],]
         self.options       = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
                               [-2], [-2,-1], [-1], [-4]]
         
@@ -527,15 +527,17 @@ class DensityDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.train:
-            r, s = 1, 0
+            r, s = 0.0001, 0
+            valid = False
             while not r < s:
-                idx     = self.gen_indices(1, 0, self.high).item()
-                icoords = self.gen_coords( 1 , self.icoords_size)
-                icoords = icoords[:, 0]
-                z, x, y = icoords
-                r = np.random.uniform(0, 1)
-                image  = (Crop(icoords, self.scsize
-                              )(load_anything(self.images[idx])))
+                while not valid:
+                    idx     = self.gen_indices(1, 0, self.high).item()
+                    icoords = self.gen_coords(1, self.icoords_size)
+                    icoords = icoords[:, 0]
+                    r = np.random.uniform(0, 0.0001)
+                    image  = (Crop(icoords, self.scsize
+                                  )(load_anything(self.images[idx])))
+                    valid = (1, *self.scsize) == image.shape
                 s = image.mean().item()
             image, _, _ = Rotate()(image)
             image = self.randomflip(image)
@@ -544,15 +546,18 @@ class DensityDataset(Dataset):
             image = self.apply_surround_mask(self.surround, image,
                                              self.surround_size)
         else:
-            r, s = 1, 0
+            r, s = 0.0001, 0
             c = 0
+            valid = False
             while not r < s:
-                c += 1
-                _idx     = self.indiceslist[c]
-                icoords = self.coordslist[:, c]
-                r     = np.random.uniform(0, 1)
-                image = Crop(icoords, self.scsize)(load_anything(self.images[_idx]))
-                s     = image.mean().item()
+                while not valid:
+                    c += 1
+                    _idx     = self.indiceslist[c]
+                    icoords = self.coordslist[:, c]
+                    r     = np.random.uniform(0, 0.0001)
+                    image = Crop(icoords, self.scsize)(load_anything(self.images[_idx]))
+                    valid = (1, *self.scsize) == image.shape
+                s = image.mean().item()
             image = self.apply_surround_mask(self.surround, image,
                                              self.surround_size)
         return {"image": image}

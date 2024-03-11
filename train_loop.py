@@ -168,10 +168,12 @@ def finetuning_loop(n_epochs               ,
                     scheduler    = None    ,
                     es_patience  = 10      ,
                     is_vibrate   = False   ,
+                    zloss_weight  = 1.     ,                    
                     loss_weight  = 1.      ,
                     ewc_weight   = 100000  ,
                     qloss_weight = 1/100   ,
                     ploss_weight = 1/100   ,
+                    v_verbose    = True
                     ):
     
     earlystopping = EarlyStopping(name        = model_name ,
@@ -190,20 +192,29 @@ def finetuning_loop(n_epochs               ,
         loss_sum = 0.
         model.train()
         for train_data in train_loader:
-            # should write code for finetuning!
             image  = train_data["image"].to(device = device)
+            _image = model.image.hill.sample(image)
             _image = mask.apply_mask(train_dataset_params["mask"]      ,
-                                     image                             ,
+                                     _image                             ,
                                      train_dataset_params["mask_size"] ,
                                      train_dataset_params["mask_num"]  ,)
-            vimage = vibrate(_image) if is_vibrate else image
+            vimage = vibrate(_image) if is_vibrate else _image
             outdict = model(vimage)
             rec     = outdict["reconstruction"]
+            a       = outdict["poisson_weight"]
+            sigma   = outdict["gaussian_sigma"]
+            lum     = outdict["estim_luminance"]
             qloss   = outdict["quantized_loss"]
             ploss   = outdict["psf_loss"]
             if adjust_luminance:
                 rec = luminance_adjustment(rec, image)
-            loss  = loss_fn(rec, image) * loss_weight
+            #loss  = loss_fn(rec, image) * loss_weight
+            loss = _loss_fnx(rec, image, a, sigma)
+            loss_z = _loss_fnz(
+                _input =lum ,
+                mask   =None,
+                target =None ) * zloss_weight
+            loss += loss_z
             if ewc is not None:
                 loss += ewc.calc_ewc_loss(ewc_weight)
             if qloss is not None:
@@ -219,24 +230,43 @@ def finetuning_loop(n_epochs               ,
         with torch.no_grad():
             for val_data in val_loader:
                 image   = val_data["image"].to(device = device)
-                vimage  = vibrate(image) if is_vibrate else image
+                _image  = model.image.hill.sample(image)
+                vimage  = vibrate(_image) if is_vibrate else _image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction"]
+                a       = outdict["poisson_weight"]
+                sigma   = outdict["gaussian_sigma"]
+                lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss"]
                 ploss   = outdict["psf_loss"]
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
-                vloss   = loss_fn(rec, image) * loss_weight
+                #vloss   = loss_fn(rec, image) * loss_weight
+                vloss = _loss_fnx(rec, image, a, sigma)
+                vloss = vloss.detach().item()
+                if v_verbose: print("valid loss for reconst\t", vloss)                
+                vloss_z = _loss_fnz(
+                _input =lum ,
+                mask   =None,
+                target =None ) * zloss_weight
+                vloss += vloss_z
                 vloss_sum += vloss.detach().item() * loss_weight
-                print(vloss)
+                if v_verbose: print("valid loss plus loss_z\t", vloss)
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                print(vloss)
+                    if v_verbose: print("valid loss plus qloss\t", vloss)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
+                    if v_verbose: print("valid loss plus ploss\t", vloss)
+                if v_verbose: print("valid loss without ewc\t", vloss)
+                if ewc is not None:
+                    ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
+                    vloss_sum += ewc_loss
+                    vloss += ewc_loss
+                    if v_verbose: print("valid loss with ewc\t", vloss)
 
         num  = len(train_loader)
         vnum = len(val_loader)
@@ -265,7 +295,7 @@ def finetuning_loop(n_epochs               ,
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png',
                 format='png', dpi=500)
-
+    
 def finetuning_with_simulation_loop(
                     n_epochs               ,
                     optimizer              ,
@@ -284,7 +314,7 @@ def finetuning_with_simulation_loop(
                     scheduler    = None    ,
                     es_patience  = 10      ,
                     is_vibrate   = False   ,
-                    zloss_weight  = 1.      ,
+                    zloss_weight  = 1.     ,
                     ewc_weight   = 1000000 ,
                     qloss_weight = 1/100   ,
                     ploss_weight = 1/100   ,
@@ -386,27 +416,32 @@ def finetuning_with_simulation_loop(
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
                 vloss   = _loss_fnx(rec, image, a, sigma)
-                if v_verbose: print("valid loss for reconst\t", vloss.item())
-                loss_z = _loss_fnz(
+                vloss = vloss.detach().item()
+                if v_verbose: print("valid loss for reconst\t", vloss)
+                vloss_z = _loss_fnz(
                     _input =lum ,
                     mask   =None,
                     target =None ) * zloss_weight
-                loss = loss + loss_z
+                vloss += vloss_z.item()
                 vloss_sum += vloss.detach().item()
-                if v_verbose: print("valid loss plus loss_z\t", vloss_sum)
+                if v_verbose: print("valid loss plus loss_z\t", vloss)
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
+                    vloss += qloss
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                    if v_verbose: print("valid loss plus qloss\t", vloss_sum)
+                    if v_verbose: print("valid loss plus qloss\t", vloss)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
-                    if v_verbose: print("valid loss plus ploss\t", vloss_sum)
-                if verbose: print("valid loss without ewc\t", vloss_sum)
+                    vloss += ploss
+                    if v_verbose: print("valid loss plus ploss\t", vloss)
+                if v_verbose: print("valid loss without ewc\t", vloss)
                 if ewc is not None:
-                    vloss_sum +=  ewc.calc_ewc_loss(ewc_weight).detach().item()
-                    if v_verbose: print("valid loss with ewc\t", vloss_sum)
+                    ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
+                    vloss_sum += ewc_loss
+                    vloss += ewc_loss
+                    if v_verbose: print("valid loss with ewc\t", vloss)
 
         num  = len(train_loader)
         vnum = len(val_loader)

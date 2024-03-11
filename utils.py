@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pathlib import Path
 import tifffile
+import nd2
 #from metrics import jiffs
 
 class EarlyStopping():
@@ -335,9 +336,15 @@ def load_anything(image_name):
     elif image_name[-3:] == ".pt":
         image = torch.load(image_name)
         image = (image - image.min()) / (image.max() - image.min())
+    elif image_name[-3:] == "nd2":
+        image = nd2.imread(image_name).astype(np.float32)
+        image = image.transpose(1,0,2,3)[0:1]
+        image = image / (2**12-1)
+        image = torch.tensor(image)
     else:
         print(f"YOUR FILE IS NOT AVAILABLE. ({image_name})\
               Use 4D(CZXY, C=1) array of `.pt`, `.npy` or `.tif`")
+        
     if image.dim() != 4:
         if image.dim() == 3:
             image = image[None, :].clone()

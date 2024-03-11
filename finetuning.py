@@ -73,7 +73,7 @@ train_data  = DataLoader(
     batch_size  = train_loop_params["batch_size"] ,
     shuffle     = True                            ,
     pin_memory  = True                            ,
-    num_workers = os.cpu_count()                  ,
+    num_workers = 0#os.cpu_count()                ,
     )
 
 val_data    = DataLoader(
@@ -81,7 +81,7 @@ val_data    = DataLoader(
     batch_size  = train_loop_params["batch_size"] ,
     shuffle     = False                           ,
     pin_memory  = True                            ,
-    num_workers = os.cpu_count()                  ,
+    num_workers = 0#os.cpu_count()                ,
     )
 
 params["reconstruct"]     = True
@@ -123,7 +123,6 @@ scheduler            = timm.scheduler.PlateauLRScheduler(
 
 ewc_dataset   = RandomCutDataset(
     folderpath    = ewc_dataset_params["folderpath"]   ,
-    labelname     = ewc_dataset_params["labelname"]    ,
     size          = ewc_dataset_params["size"]         ,
     cropsize      = ewc_dataset_params["cropsize"]     , 
     I             = ewc_dataset_params["I"]            ,
@@ -142,19 +141,23 @@ ewc_data    = DataLoader(
     batch_size  = 1               ,
     shuffle     = True            ,
     pin_memory  = True            ,
-    num_workers = os.cpu_count()  ,
+    num_workers = 0#os.cpu_count()  ,
     )
+
 if  train_loop_params["ewc"] != None:
     ewc = ElasticWeightConsolidation(
-        model               = JNet,
-        params              = params,
-        prev_dataloader     = ewc_data,
-        loss_fn             = eval(configs["pretrain_loop"]["loss_fn"]),
-        ewc_dataset_params  = ewc_dataset_params,
-        init_num_batch      = 100,
-        is_vibrate          = True,
-        device              = device,
-        skip_register       = False  )
+        model              = JNet                                       ,
+        params             = params                                     ,
+        prev_dataloader    = ewc_data                                   ,
+        loss_fnx           = eval(configs["pretrain_loop"]["loss_fnx"]) ,
+        loss_fnz           = eval(configs["pretrain_loop"]["loss_fnz"]) ,
+        wx                 = configs["pretrain_loop"]["weight_x"]       ,
+        wz                 = configs["pretrain_loop"]["weight_z"]       ,
+        ewc_dataset_params = ewc_dataset_params                         ,
+        init_num_batch     = 100                                        ,
+        is_vibrate         = True                                       ,
+        device             = device
+        )
 else:
     ewc = None
 
@@ -177,7 +180,7 @@ finetuning_loop(
     scheduler        = scheduler                            ,
     es_patience      = train_loop_params["es_patience"]     ,
     is_vibrate       = train_loop_params["is_vibrate"]      ,
-    loss_weight      = train_loop_params["loss_weight"]     ,
+    zloss_weight     = train_loop_params["zloss_weight"]    ,
     ewc_weight       = train_loop_params["ewc_weight"]      ,
     qloss_weight     = train_loop_params["qloss_weight"]    ,
     ploss_weight     = train_loop_params["ploss_weight"]    ,

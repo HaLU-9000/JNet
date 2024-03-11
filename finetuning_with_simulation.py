@@ -148,6 +148,7 @@ ewc_data    = DataLoader(
     pin_memory  = True            ,
     num_workers = 0#os.cpu_count()  ,
     )
+
 if  train_loop_params["ewc"] != None:
     ewc = ElasticWeightConsolidation(
         model              = JNet                                       ,
