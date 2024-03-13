@@ -547,15 +547,14 @@ class DensityDataset(Dataset):
                                              self.surround_size)
         else:
             r, s = 0.0001, 0
-            c = 0
             valid = False
             while not r < s:
                 while not valid:
-                    c += 1
-                    _idx     = self.indiceslist[c]
-                    icoords = self.coordslist[:, c]
+                    _idx     = self.indiceslist[idx]
+                    icoords = self.coordslist[:, idx]
                     r     = np.random.uniform(0, 0.0001)
-                    image = Crop(icoords, self.scsize)(load_anything(self.images[_idx]))
+                    image = Crop(icoords, self.scsize
+                                 )(load_anything(self.images[_idx]))
                     valid = (1, *self.scsize) == image.shape
                 s = image.mean().item()
             image = self.apply_surround_mask(self.surround, image,
