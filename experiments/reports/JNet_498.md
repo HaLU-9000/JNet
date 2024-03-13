@@ -114,7 +114,7 @@ pretrained model : JNet_493_pretrain
 |folderpath|/home/haruhiko/Downloads/Set_03|
 |size|[333, 1024, 1024]|
 |cropsize|[240, 112, 112]|
-|I|2|
+|I|200|
 |scale|3|
 |train|True|
 |mask|True|
@@ -130,7 +130,7 @@ pretrained model : JNet_493_pretrain
 |folderpath|/home/haruhiko/Downloads/Set_03|
 |size|[333, 1024, 1024]|
 |cropsize|[240, 112, 112]|
-|I|2|
+|I|20|
 |scale|3|
 |train|False|
 |mask|False|
@@ -194,23 +194,23 @@ pretrained model : JNet_493_pretrain
 
 ### Pretraining
   
-Segmentation: mean MSE: 0.0038598019164055586, mean BCE: 0.01265271008014679  
-Luminance Estimation: mean MSE: 0.9771112203598022, mean BCE: inf
+Segmentation: mean MSE: 0.0036873724311590195, mean BCE: 0.012109911069273949  
+Luminance Estimation: mean MSE: 0.9854717254638672, mean BCE: inf
 ### 0
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_0_original_plane]|![JNet_493_pretrain_0_outputx_plane]|![JNet_493_pretrain_0_labelx_plane]|![JNet_493_pretrain_0_outputz_plane]|![JNet_493_pretrain_0_labelz_plane]|
   
-MSEx: 0.0019457475282251835, BCEx: 0.006517258007079363  
-MSEz: 0.992999255657196, BCEz: 8.706007957458496  
+MSEx: 0.0028716418892145157, BCEx: 0.009745254181325436  
+MSEz: 0.9914947152137756, BCEz: 8.624000549316406  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_0_original_depth]|![JNet_493_pretrain_0_outputx_depth]|![JNet_493_pretrain_0_labelx_depth]|![JNet_493_pretrain_0_outputz_depth]|![JNet_493_pretrain_0_labelz_depth]|
   
-MSEx: 0.0019457475282251835, BCEx: 0.006517258007079363  
-MSEz: 0.992999255657196, BCEz: 8.706007957458496  
+MSEx: 0.0028716418892145157, BCEx: 0.009745254181325436  
+MSEz: 0.9914947152137756, BCEz: 8.624000549316406  
 
 ### 1
 
@@ -218,15 +218,15 @@ MSEz: 0.992999255657196, BCEz: 8.706007957458496
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_1_original_plane]|![JNet_493_pretrain_1_outputx_plane]|![JNet_493_pretrain_1_labelx_plane]|![JNet_493_pretrain_1_outputz_plane]|![JNet_493_pretrain_1_labelz_plane]|
   
-MSEx: 0.004409986548125744, BCEx: 0.014395458623766899  
-MSEz: 0.976865291595459, BCEz: inf  
+MSEx: 0.00264209252782166, BCEx: 0.008563792333006859  
+MSEz: 0.9843511581420898, BCEz: inf  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_1_original_depth]|![JNet_493_pretrain_1_outputx_depth]|![JNet_493_pretrain_1_labelx_depth]|![JNet_493_pretrain_1_outputz_depth]|![JNet_493_pretrain_1_labelz_depth]|
   
-MSEx: 0.004409986548125744, BCEx: 0.014395458623766899  
-MSEz: 0.976865291595459, BCEz: inf  
+MSEx: 0.00264209252782166, BCEx: 0.008563792333006859  
+MSEz: 0.9843511581420898, BCEz: inf  
 
 ### 2
 
@@ -234,15 +234,15 @@ MSEz: 0.976865291595459, BCEz: inf
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_2_original_plane]|![JNet_493_pretrain_2_outputx_plane]|![JNet_493_pretrain_2_labelx_plane]|![JNet_493_pretrain_2_outputz_plane]|![JNet_493_pretrain_2_labelz_plane]|
   
-MSEx: 0.0018539328593760729, BCEx: 0.006266816519200802  
-MSEz: 0.9861840605735779, BCEz: inf  
+MSEx: 0.0024753534235060215, BCEx: 0.008122430182993412  
+MSEz: 0.992272675037384, BCEz: 8.66110610961914  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_2_original_depth]|![JNet_493_pretrain_2_outputx_depth]|![JNet_493_pretrain_2_labelx_depth]|![JNet_493_pretrain_2_outputz_depth]|![JNet_493_pretrain_2_labelz_depth]|
   
-MSEx: 0.0018539328593760729, BCEx: 0.006266816519200802  
-MSEz: 0.9861840605735779, BCEz: inf  
+MSEx: 0.0024753534235060215, BCEx: 0.008122430182993412  
+MSEz: 0.992272675037384, BCEz: 8.66110610961914  
 
 ### 3
 
@@ -250,15 +250,15 @@ MSEz: 0.9861840605735779, BCEz: inf
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_3_original_plane]|![JNet_493_pretrain_3_outputx_plane]|![JNet_493_pretrain_3_labelx_plane]|![JNet_493_pretrain_3_outputz_plane]|![JNet_493_pretrain_3_labelz_plane]|
   
-MSEx: 0.00437764311209321, BCEx: 0.01432529091835022  
-MSEz: 0.9877684712409973, BCEz: 8.524188041687012  
+MSEx: 0.00441685551777482, BCEx: 0.01438689325004816  
+MSEz: 0.9830414652824402, BCEz: 8.442309379577637  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_3_original_depth]|![JNet_493_pretrain_3_outputx_depth]|![JNet_493_pretrain_3_labelx_depth]|![JNet_493_pretrain_3_outputz_depth]|![JNet_493_pretrain_3_labelz_depth]|
   
-MSEx: 0.00437764311209321, BCEx: 0.01432529091835022  
-MSEz: 0.9877684712409973, BCEz: 8.524188041687012  
+MSEx: 0.00441685551777482, BCEx: 0.01438689325004816  
+MSEz: 0.9830414652824402, BCEz: 8.442309379577637  
 
 ### 4
 
@@ -266,15 +266,15 @@ MSEz: 0.9877684712409973, BCEz: 8.524188041687012
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_4_original_plane]|![JNet_493_pretrain_4_outputx_plane]|![JNet_493_pretrain_4_labelx_plane]|![JNet_493_pretrain_4_outputz_plane]|![JNet_493_pretrain_4_labelz_plane]|
   
-MSEx: 0.006711698602885008, BCEx: 0.021758724004030228  
-MSEz: 0.9417390823364258, BCEz: inf  
+MSEx: 0.0060309190303087234, BCEx: 0.0197311881929636  
+MSEz: 0.9761986136436462, BCEz: 8.357182502746582  
 
 |original|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: |
 |![JNet_493_pretrain_4_original_depth]|![JNet_493_pretrain_4_outputx_depth]|![JNet_493_pretrain_4_labelx_depth]|![JNet_493_pretrain_4_outputz_depth]|![JNet_493_pretrain_4_labelz_depth]|
   
-MSEx: 0.006711698602885008, BCEx: 0.021758724004030228  
-MSEz: 0.9417390823364258, BCEz: inf  
+MSEx: 0.0060309190303087234, BCEx: 0.0197311881929636  
+MSEz: 0.9761986136436462, BCEz: 8.357182502746582  
 
 ### Finetuning Results with Simulation
 
@@ -282,41 +282,134 @@ MSEz: 0.9417390823364258, BCEz: inf
 
 |original|reconst|heatmap|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_0_original_plane]|![JNet_498_0_reconst_plane]|![JNet_498_0_heatmap_plane]|![JNet_498_0_outputx_plane]|![JNet_498_0_labelx_plane]|![JNet_498_0_outputz_plane]|![JNet_498_0_labelz_plane]|
+  
+MSEz: 0.9495380520820618, quantized loss: 0.0025200839154422283  
+
+|original|reconst|heatmap|outputx|labelx|outputz|labelz|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_498_0_original_depth]|![JNet_498_0_reconst_depth]|![JNet_498_0_heatmap_depth]|![JNet_498_0_outputx_depth]|![JNet_498_0_labelx_depth]|![JNet_498_0_outputz_depth]|![JNet_498_0_labelz_depth]|
   
-MSEz: 0.9784930944442749, quantized loss: 0.001095567480660975  
+MSEz: 0.9495380520820618, quantized loss: 0.0025200839154422283  
 
 ### image 1
 
 |original|reconst|heatmap|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_1_original_plane]|![JNet_498_1_reconst_plane]|![JNet_498_1_heatmap_plane]|![JNet_498_1_outputx_plane]|![JNet_498_1_labelx_plane]|![JNet_498_1_outputz_plane]|![JNet_498_1_labelz_plane]|
+  
+MSEz: 0.9567916989326477, quantized loss: 0.0018167917151004076  
+
+|original|reconst|heatmap|outputx|labelx|outputz|labelz|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_498_1_original_depth]|![JNet_498_1_reconst_depth]|![JNet_498_1_heatmap_depth]|![JNet_498_1_outputx_depth]|![JNet_498_1_labelx_depth]|![JNet_498_1_outputz_depth]|![JNet_498_1_labelz_depth]|
   
-MSEz: 0.9531490802764893, quantized loss: 0.002952444599941373  
+MSEz: 0.9567916989326477, quantized loss: 0.0018167917151004076  
 
 ### image 2
 
 |original|reconst|heatmap|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_2_original_plane]|![JNet_498_2_reconst_plane]|![JNet_498_2_heatmap_plane]|![JNet_498_2_outputx_plane]|![JNet_498_2_labelx_plane]|![JNet_498_2_outputz_plane]|![JNet_498_2_labelz_plane]|
+  
+MSEz: 0.9718384742736816, quantized loss: 0.001409366144798696  
+
+|original|reconst|heatmap|outputx|labelx|outputz|labelz|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_498_2_original_depth]|![JNet_498_2_reconst_depth]|![JNet_498_2_heatmap_depth]|![JNet_498_2_outputx_depth]|![JNet_498_2_labelx_depth]|![JNet_498_2_outputz_depth]|![JNet_498_2_labelz_depth]|
   
-MSEz: 0.9686529040336609, quantized loss: 0.0013132368912920356  
+MSEz: 0.9718384742736816, quantized loss: 0.001409366144798696  
 
 ### image 3
 
 |original|reconst|heatmap|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_3_original_plane]|![JNet_498_3_reconst_plane]|![JNet_498_3_heatmap_plane]|![JNet_498_3_outputx_plane]|![JNet_498_3_labelx_plane]|![JNet_498_3_outputz_plane]|![JNet_498_3_labelz_plane]|
+  
+MSEz: 0.9642453789710999, quantized loss: 0.001847370178438723  
+
+|original|reconst|heatmap|outputx|labelx|outputz|labelz|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_498_3_original_depth]|![JNet_498_3_reconst_depth]|![JNet_498_3_heatmap_depth]|![JNet_498_3_outputx_depth]|![JNet_498_3_labelx_depth]|![JNet_498_3_outputz_depth]|![JNet_498_3_labelz_depth]|
   
-MSEz: 0.9715598821640015, quantized loss: 0.0018624603981152177  
+MSEz: 0.9642453789710999, quantized loss: 0.001847370178438723  
 
 ### image 4
 
 |original|reconst|heatmap|outputx|labelx|outputz|labelz|
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_4_original_plane]|![JNet_498_4_reconst_plane]|![JNet_498_4_heatmap_plane]|![JNet_498_4_outputx_plane]|![JNet_498_4_labelx_plane]|![JNet_498_4_outputz_plane]|![JNet_498_4_labelz_plane]|
+  
+MSEz: 0.9704957008361816, quantized loss: 0.0012705347035080194  
+
+|original|reconst|heatmap|outputx|labelx|outputz|labelz|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |![JNet_498_4_original_depth]|![JNet_498_4_reconst_depth]|![JNet_498_4_heatmap_depth]|![JNet_498_4_outputx_depth]|![JNet_498_4_labelx_depth]|![JNet_498_4_outputz_depth]|![JNet_498_4_labelz_depth]|
   
-MSEz: 0.9763557314872742, quantized loss: 0.0011887404834851623  
+MSEz: 0.9704957008361816, quantized loss: 0.0012705347035080194  
+  
+If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.
+### Finetuning Results with Microglia
+
+### image 0
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_0_original_plane]|![JNet_498_microglia_0_outputx_plane]|![JNet_498_microglia_0_outputz_plane]|![JNet_498_microglia_0_reconst_plane]|![JNet_498_microglia_0_heatmap_plane]|
+  
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_0_original_depth]|![JNet_498_microglia_0_outputx_depth]|![JNet_498_microglia_0_outputz_depth]|![JNet_498_microglia_0_reconst_depth]|![JNet_498_microglia_0_heatmap_depth]|
+  
+
+### image 1
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_1_original_plane]|![JNet_498_microglia_1_outputx_plane]|![JNet_498_microglia_1_outputz_plane]|![JNet_498_microglia_1_reconst_plane]|![JNet_498_microglia_1_heatmap_plane]|
+  
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_1_original_depth]|![JNet_498_microglia_1_outputx_depth]|![JNet_498_microglia_1_outputz_depth]|![JNet_498_microglia_1_reconst_depth]|![JNet_498_microglia_1_heatmap_depth]|
+  
+
+### image 2
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_2_original_plane]|![JNet_498_microglia_2_outputx_plane]|![JNet_498_microglia_2_outputz_plane]|![JNet_498_microglia_2_reconst_plane]|![JNet_498_microglia_2_heatmap_plane]|
+  
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_2_original_depth]|![JNet_498_microglia_2_outputx_depth]|![JNet_498_microglia_2_outputz_depth]|![JNet_498_microglia_2_reconst_depth]|![JNet_498_microglia_2_heatmap_depth]|
+  
+
+### image 3
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_3_original_plane]|![JNet_498_microglia_3_outputx_plane]|![JNet_498_microglia_3_outputz_plane]|![JNet_498_microglia_3_reconst_plane]|![JNet_498_microglia_3_heatmap_plane]|
+  
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_3_original_depth]|![JNet_498_microglia_3_outputx_depth]|![JNet_498_microglia_3_outputz_depth]|![JNet_498_microglia_3_reconst_depth]|![JNet_498_microglia_3_heatmap_depth]|
+  
+
+### image 4
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_4_original_plane]|![JNet_498_microglia_4_outputx_plane]|![JNet_498_microglia_4_outputz_plane]|![JNet_498_microglia_4_reconst_plane]|![JNet_498_microglia_4_heatmap_plane]|
+  
+
+|original|outputx|outputz|reconst|heatmap|
+| :---: | :---: | :---: | :---: | :---: |
+|![JNet_498_microglia_4_original_depth]|![JNet_498_microglia_4_outputx_depth]|![JNet_498_microglia_4_outputz_depth]|![JNet_498_microglia_4_reconst_depth]|![JNet_498_microglia_4_heatmap_depth]|
+  
   
 If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.
 |pre|post|
@@ -596,40 +689,125 @@ JNet(
 [JNet_493_pretrain_4_outputz_depth]: /experiments/images/JNet_493_pretrain_4_outputz_depth.png
 [JNet_493_pretrain_4_outputz_plane]: /experiments/images/JNet_493_pretrain_4_outputz_plane.png
 [JNet_498_0_heatmap_depth]: /experiments/images/JNet_498_0_heatmap_depth.png
+[JNet_498_0_heatmap_plane]: /experiments/images/JNet_498_0_heatmap_plane.png
 [JNet_498_0_labelx_depth]: /experiments/images/JNet_498_0_labelx_depth.png
+[JNet_498_0_labelx_plane]: /experiments/images/JNet_498_0_labelx_plane.png
 [JNet_498_0_labelz_depth]: /experiments/images/JNet_498_0_labelz_depth.png
+[JNet_498_0_labelz_plane]: /experiments/images/JNet_498_0_labelz_plane.png
 [JNet_498_0_original_depth]: /experiments/images/JNet_498_0_original_depth.png
+[JNet_498_0_original_plane]: /experiments/images/JNet_498_0_original_plane.png
 [JNet_498_0_outputx_depth]: /experiments/images/JNet_498_0_outputx_depth.png
+[JNet_498_0_outputx_plane]: /experiments/images/JNet_498_0_outputx_plane.png
 [JNet_498_0_outputz_depth]: /experiments/images/JNet_498_0_outputz_depth.png
+[JNet_498_0_outputz_plane]: /experiments/images/JNet_498_0_outputz_plane.png
 [JNet_498_0_reconst_depth]: /experiments/images/JNet_498_0_reconst_depth.png
+[JNet_498_0_reconst_plane]: /experiments/images/JNet_498_0_reconst_plane.png
 [JNet_498_1_heatmap_depth]: /experiments/images/JNet_498_1_heatmap_depth.png
+[JNet_498_1_heatmap_plane]: /experiments/images/JNet_498_1_heatmap_plane.png
 [JNet_498_1_labelx_depth]: /experiments/images/JNet_498_1_labelx_depth.png
+[JNet_498_1_labelx_plane]: /experiments/images/JNet_498_1_labelx_plane.png
 [JNet_498_1_labelz_depth]: /experiments/images/JNet_498_1_labelz_depth.png
+[JNet_498_1_labelz_plane]: /experiments/images/JNet_498_1_labelz_plane.png
 [JNet_498_1_original_depth]: /experiments/images/JNet_498_1_original_depth.png
+[JNet_498_1_original_plane]: /experiments/images/JNet_498_1_original_plane.png
 [JNet_498_1_outputx_depth]: /experiments/images/JNet_498_1_outputx_depth.png
+[JNet_498_1_outputx_plane]: /experiments/images/JNet_498_1_outputx_plane.png
 [JNet_498_1_outputz_depth]: /experiments/images/JNet_498_1_outputz_depth.png
+[JNet_498_1_outputz_plane]: /experiments/images/JNet_498_1_outputz_plane.png
 [JNet_498_1_reconst_depth]: /experiments/images/JNet_498_1_reconst_depth.png
+[JNet_498_1_reconst_plane]: /experiments/images/JNet_498_1_reconst_plane.png
 [JNet_498_2_heatmap_depth]: /experiments/images/JNet_498_2_heatmap_depth.png
+[JNet_498_2_heatmap_plane]: /experiments/images/JNet_498_2_heatmap_plane.png
 [JNet_498_2_labelx_depth]: /experiments/images/JNet_498_2_labelx_depth.png
+[JNet_498_2_labelx_plane]: /experiments/images/JNet_498_2_labelx_plane.png
 [JNet_498_2_labelz_depth]: /experiments/images/JNet_498_2_labelz_depth.png
+[JNet_498_2_labelz_plane]: /experiments/images/JNet_498_2_labelz_plane.png
 [JNet_498_2_original_depth]: /experiments/images/JNet_498_2_original_depth.png
+[JNet_498_2_original_plane]: /experiments/images/JNet_498_2_original_plane.png
 [JNet_498_2_outputx_depth]: /experiments/images/JNet_498_2_outputx_depth.png
+[JNet_498_2_outputx_plane]: /experiments/images/JNet_498_2_outputx_plane.png
 [JNet_498_2_outputz_depth]: /experiments/images/JNet_498_2_outputz_depth.png
+[JNet_498_2_outputz_plane]: /experiments/images/JNet_498_2_outputz_plane.png
 [JNet_498_2_reconst_depth]: /experiments/images/JNet_498_2_reconst_depth.png
+[JNet_498_2_reconst_plane]: /experiments/images/JNet_498_2_reconst_plane.png
 [JNet_498_3_heatmap_depth]: /experiments/images/JNet_498_3_heatmap_depth.png
+[JNet_498_3_heatmap_plane]: /experiments/images/JNet_498_3_heatmap_plane.png
 [JNet_498_3_labelx_depth]: /experiments/images/JNet_498_3_labelx_depth.png
+[JNet_498_3_labelx_plane]: /experiments/images/JNet_498_3_labelx_plane.png
 [JNet_498_3_labelz_depth]: /experiments/images/JNet_498_3_labelz_depth.png
+[JNet_498_3_labelz_plane]: /experiments/images/JNet_498_3_labelz_plane.png
 [JNet_498_3_original_depth]: /experiments/images/JNet_498_3_original_depth.png
+[JNet_498_3_original_plane]: /experiments/images/JNet_498_3_original_plane.png
 [JNet_498_3_outputx_depth]: /experiments/images/JNet_498_3_outputx_depth.png
+[JNet_498_3_outputx_plane]: /experiments/images/JNet_498_3_outputx_plane.png
 [JNet_498_3_outputz_depth]: /experiments/images/JNet_498_3_outputz_depth.png
+[JNet_498_3_outputz_plane]: /experiments/images/JNet_498_3_outputz_plane.png
 [JNet_498_3_reconst_depth]: /experiments/images/JNet_498_3_reconst_depth.png
+[JNet_498_3_reconst_plane]: /experiments/images/JNet_498_3_reconst_plane.png
 [JNet_498_4_heatmap_depth]: /experiments/images/JNet_498_4_heatmap_depth.png
+[JNet_498_4_heatmap_plane]: /experiments/images/JNet_498_4_heatmap_plane.png
 [JNet_498_4_labelx_depth]: /experiments/images/JNet_498_4_labelx_depth.png
+[JNet_498_4_labelx_plane]: /experiments/images/JNet_498_4_labelx_plane.png
 [JNet_498_4_labelz_depth]: /experiments/images/JNet_498_4_labelz_depth.png
+[JNet_498_4_labelz_plane]: /experiments/images/JNet_498_4_labelz_plane.png
 [JNet_498_4_original_depth]: /experiments/images/JNet_498_4_original_depth.png
+[JNet_498_4_original_plane]: /experiments/images/JNet_498_4_original_plane.png
 [JNet_498_4_outputx_depth]: /experiments/images/JNet_498_4_outputx_depth.png
+[JNet_498_4_outputx_plane]: /experiments/images/JNet_498_4_outputx_plane.png
 [JNet_498_4_outputz_depth]: /experiments/images/JNet_498_4_outputz_depth.png
+[JNet_498_4_outputz_plane]: /experiments/images/JNet_498_4_outputz_plane.png
 [JNet_498_4_reconst_depth]: /experiments/images/JNet_498_4_reconst_depth.png
+[JNet_498_4_reconst_plane]: /experiments/images/JNet_498_4_reconst_plane.png
+[JNet_498_microglia_0_heatmap_depth]: /experiments/images/JNet_498_microglia_0_heatmap_depth.png
+[JNet_498_microglia_0_heatmap_plane]: /experiments/images/JNet_498_microglia_0_heatmap_plane.png
+[JNet_498_microglia_0_original_depth]: /experiments/images/JNet_498_microglia_0_original_depth.png
+[JNet_498_microglia_0_original_plane]: /experiments/images/JNet_498_microglia_0_original_plane.png
+[JNet_498_microglia_0_outputx_depth]: /experiments/images/JNet_498_microglia_0_outputx_depth.png
+[JNet_498_microglia_0_outputx_plane]: /experiments/images/JNet_498_microglia_0_outputx_plane.png
+[JNet_498_microglia_0_outputz_depth]: /experiments/images/JNet_498_microglia_0_outputz_depth.png
+[JNet_498_microglia_0_outputz_plane]: /experiments/images/JNet_498_microglia_0_outputz_plane.png
+[JNet_498_microglia_0_reconst_depth]: /experiments/images/JNet_498_microglia_0_reconst_depth.png
+[JNet_498_microglia_0_reconst_plane]: /experiments/images/JNet_498_microglia_0_reconst_plane.png
+[JNet_498_microglia_1_heatmap_depth]: /experiments/images/JNet_498_microglia_1_heatmap_depth.png
+[JNet_498_microglia_1_heatmap_plane]: /experiments/images/JNet_498_microglia_1_heatmap_plane.png
+[JNet_498_microglia_1_original_depth]: /experiments/images/JNet_498_microglia_1_original_depth.png
+[JNet_498_microglia_1_original_plane]: /experiments/images/JNet_498_microglia_1_original_plane.png
+[JNet_498_microglia_1_outputx_depth]: /experiments/images/JNet_498_microglia_1_outputx_depth.png
+[JNet_498_microglia_1_outputx_plane]: /experiments/images/JNet_498_microglia_1_outputx_plane.png
+[JNet_498_microglia_1_outputz_depth]: /experiments/images/JNet_498_microglia_1_outputz_depth.png
+[JNet_498_microglia_1_outputz_plane]: /experiments/images/JNet_498_microglia_1_outputz_plane.png
+[JNet_498_microglia_1_reconst_depth]: /experiments/images/JNet_498_microglia_1_reconst_depth.png
+[JNet_498_microglia_1_reconst_plane]: /experiments/images/JNet_498_microglia_1_reconst_plane.png
+[JNet_498_microglia_2_heatmap_depth]: /experiments/images/JNet_498_microglia_2_heatmap_depth.png
+[JNet_498_microglia_2_heatmap_plane]: /experiments/images/JNet_498_microglia_2_heatmap_plane.png
+[JNet_498_microglia_2_original_depth]: /experiments/images/JNet_498_microglia_2_original_depth.png
+[JNet_498_microglia_2_original_plane]: /experiments/images/JNet_498_microglia_2_original_plane.png
+[JNet_498_microglia_2_outputx_depth]: /experiments/images/JNet_498_microglia_2_outputx_depth.png
+[JNet_498_microglia_2_outputx_plane]: /experiments/images/JNet_498_microglia_2_outputx_plane.png
+[JNet_498_microglia_2_outputz_depth]: /experiments/images/JNet_498_microglia_2_outputz_depth.png
+[JNet_498_microglia_2_outputz_plane]: /experiments/images/JNet_498_microglia_2_outputz_plane.png
+[JNet_498_microglia_2_reconst_depth]: /experiments/images/JNet_498_microglia_2_reconst_depth.png
+[JNet_498_microglia_2_reconst_plane]: /experiments/images/JNet_498_microglia_2_reconst_plane.png
+[JNet_498_microglia_3_heatmap_depth]: /experiments/images/JNet_498_microglia_3_heatmap_depth.png
+[JNet_498_microglia_3_heatmap_plane]: /experiments/images/JNet_498_microglia_3_heatmap_plane.png
+[JNet_498_microglia_3_original_depth]: /experiments/images/JNet_498_microglia_3_original_depth.png
+[JNet_498_microglia_3_original_plane]: /experiments/images/JNet_498_microglia_3_original_plane.png
+[JNet_498_microglia_3_outputx_depth]: /experiments/images/JNet_498_microglia_3_outputx_depth.png
+[JNet_498_microglia_3_outputx_plane]: /experiments/images/JNet_498_microglia_3_outputx_plane.png
+[JNet_498_microglia_3_outputz_depth]: /experiments/images/JNet_498_microglia_3_outputz_depth.png
+[JNet_498_microglia_3_outputz_plane]: /experiments/images/JNet_498_microglia_3_outputz_plane.png
+[JNet_498_microglia_3_reconst_depth]: /experiments/images/JNet_498_microglia_3_reconst_depth.png
+[JNet_498_microglia_3_reconst_plane]: /experiments/images/JNet_498_microglia_3_reconst_plane.png
+[JNet_498_microglia_4_heatmap_depth]: /experiments/images/JNet_498_microglia_4_heatmap_depth.png
+[JNet_498_microglia_4_heatmap_plane]: /experiments/images/JNet_498_microglia_4_heatmap_plane.png
+[JNet_498_microglia_4_original_depth]: /experiments/images/JNet_498_microglia_4_original_depth.png
+[JNet_498_microglia_4_original_plane]: /experiments/images/JNet_498_microglia_4_original_plane.png
+[JNet_498_microglia_4_outputx_depth]: /experiments/images/JNet_498_microglia_4_outputx_depth.png
+[JNet_498_microglia_4_outputx_plane]: /experiments/images/JNet_498_microglia_4_outputx_plane.png
+[JNet_498_microglia_4_outputz_depth]: /experiments/images/JNet_498_microglia_4_outputz_depth.png
+[JNet_498_microglia_4_outputz_plane]: /experiments/images/JNet_498_microglia_4_outputz_plane.png
+[JNet_498_microglia_4_reconst_depth]: /experiments/images/JNet_498_microglia_4_reconst_depth.png
+[JNet_498_microglia_4_reconst_plane]: /experiments/images/JNet_498_microglia_4_reconst_plane.png
 [JNet_498_psf_post]: /experiments/images/JNet_498_psf_post.png
 [JNet_498_psf_pre]: /experiments/images/JNet_498_psf_pre.png
 [finetuned]: /experiments/tmp/JNet_498_train.png
