@@ -1,5 +1,5 @@
 {
-    "explanation":"trying with real data",
+    "explanation":"trying with real data, less ewc loss",
     "pretrained_model":"JNet_493_pretrain"    ,
     "params":
         {
