@@ -97,4 +97,3 @@ for _z in range(image.shape[1] // (crop_size[0] - overlap[0])):
 result = result[:, :-zpad*scale, :-xpad, :-ypad].detach().cpu().numpy()
 print(result.shape)
 array_to_tif(os.path.join(save_folder,  model_name+"_re_"+image_name), result)
-

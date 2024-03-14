@@ -240,6 +240,7 @@ class SimulationInference():
         self.params                = self.configs["params"]
         self.params["reconstruct"] = True
         self.params["apply_vq"]    = True
+        self.params["use_x_quantized"] = True
         val_dataset_params         = self.configs["pretrain_val_dataset"]
         self.is_finetuning         = is_finetuning
 
@@ -467,6 +468,7 @@ class MicrogliaInference():
         self.params                = self.configs["params"]
         self.params["reconstruct"] = True
         self.params["apply_vq"]    = True
+        self.params["use_x_quantized"] = True
         val_dataset_params         = self.configs["val_dataset"]
         self.is_finetuning         = is_finetuning
 

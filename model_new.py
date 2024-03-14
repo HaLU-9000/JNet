@@ -11,8 +11,6 @@ from fft_conv_pytorch import fft_conv
 import matplotlib.pyplot as plt
 import time
 
-from utils import tt
-
 
 class JNetBlock0(nn.Module):
     def __init__(self, in_channels, out_channels):

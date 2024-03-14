@@ -8,6 +8,8 @@ import tifffile
 import nd2
 #from metrics import jiffs
 
+import model_new as model
+
 class EarlyStopping():
     """
     path[str]: path you want to save your model
@@ -353,3 +355,131 @@ def load_anything(image_name):
         else:
             print(f"Your data must be 3d or 5d(TCZXY or CTZXY with C=1, T=1), but it is {image.dim()}d now!")
     return image
+
+def init_model(params, is_finetuning):
+    if is_finetuning:
+        params["reconstruct"]     = True
+        params["apply_vq"]        = True
+        params["use_x_quantized"] = True
+    net = model.JNet(params)
+    return net
+
+def load_model_weight(model, model_name):
+    model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
+
+def mount_model_to_device(model, configs):
+    model.to(configs["params"]["device"])
+
+
+class ImageProcessing():
+    def __init__(self, image):
+        self.image = image
+        self.original_shape = image.squeeze(0).shape
+
+    def process_image(self, model, params, chunk_shape, type):
+        chunks = self._make_chunks(self.image, chunk_shape)
+        processed_chunks = []
+        for chunk in chunks:
+            processed_chunk = self._process(chunk, model, params)
+            processed_chunks.append(processed_chunk)
+        processed_image = self._reconstruct_images(
+            processed_chunks, params, type)
+        return processed_image
+
+    def _make_chunks(self, image, chunk_shape):
+        shape = self.original_shape
+        chunks = []
+        print(shape)
+        print(chunk_shape)
+        for z in range(0, shape[0], chunk_shape[0]):
+            for x in range(0, shape[1], chunk_shape[1]):
+                for y in range(0, shape[2], chunk_shape[2]):
+                    chunk = image[
+                        :                     ,
+                        z : z + chunk_shape[0],
+                        x : x + chunk_shape[1],
+                        y : y + chunk_shape[2],
+                        ]
+                    if self._is_not_desired_shape(chunk, chunk_shape):
+                        chunk = self._add_zero_padding(chunk, chunk_shape)
+                    chunks.append(chunk)
+        print(len(chunks))
+        return chunks
+    
+    def _is_not_desired_shape(self, chunk, shape):
+        print
+        return chunk.squeeze(0).shape != shape
+
+    def _add_zero_padding(self, chunk, shape):
+        padded = torch.zeros(1, *shape)
+        padded[
+            :,
+            :chunk.shape[1],
+            :chunk.shape[2],
+            :chunk.shape[3],]\
+            += chunk
+        return padded
+    
+    
+    def _process(self, chunk, model, params):
+        chunk = self._make_5d(chunk)
+        chunk = self._to_model_device(chunk, params)
+        chunk = model(chunk)
+        return {
+            "enhanced_image" : chunk["enhanced_image" ]\
+                .squeeze(0).detach().clone().cpu(),
+            "estim_luminance": chunk["estim_luminance"]\
+                .squeeze(0).detach().clone().cpu(),
+            "reconstruction" : chunk["reconstruction" ]\
+                .squeeze(0).detach().clone().cpu(),
+        }
+
+    def _make_5d(self, chunk):
+        return chunk.unsqueeze(0)
+    
+    def _to_model_device(self, chunk, params):
+        return chunk.to(params["device"])
+        
+    def _reconstruct_images(self, chunks, params, type:str):
+        shape = self._gen_image_shape(type, params)
+        reconstruct = torch.zeros(1, *shape)
+        chunk_shape = self._gen_chunk_shape(chunks, type)
+        print(shape)
+        print(chunk_shape)
+        idx = 0
+        for z in range(0, shape[0], chunk_shape[0]):
+            for x in range(0, shape[1], chunk_shape[1]):
+                for y in range(0, shape[2], chunk_shape[2]):
+                    tmp_shape = reconstruct[
+                        :                     ,
+                        z : z + chunk_shape[0],
+                        x : x + chunk_shape[1],
+                        y : y + chunk_shape[2],
+                        ].shape
+                    reconstruct[
+                        :                     ,
+                        z : z + chunk_shape[0],
+                        x : x + chunk_shape[1],
+                        y : y + chunk_shape[2],
+                        ] \
+                    += chunks[idx][type][
+                        :,
+                        :tmp_shape[1],
+                        :tmp_shape[2],
+                        :tmp_shape[3],
+                        ]
+                    idx += 1
+        print(idx)
+        return reconstruct
+
+    def _gen_image_shape(self, type, params):
+        scale = params["scale"]
+        if type == "enhanced_image" or type == "estim_luminance":
+            z, x, y = self.original_shape
+            shape = [z * scale, x, y]
+        elif type == "reconstruction":
+            shape = self.original_shape[1:]
+        return shape
+    
+    def _gen_chunk_shape(self, chunks, type:str):
+        return chunks[0][type].shape[1:]
