@@ -163,25 +163,15 @@ else:
 
 print(f"============= model {args.model_name} train started =============")
 
-finetuning_loop(
-    n_epochs         = train_loop_params["n_epochs"]        , ####
+finetuning_loop( ####
     optimizer        = optimizer                            ,
     model            = JNet                                 ,
-    loss_fn          = eval(train_loop_params["loss_fn"])   ,
     train_loader     = train_data                           ,
     val_loader       = val_data                             ,
     device           = device                               ,
-    path             = train_loop_params["path"]            ,
-    savefig_path     = train_loop_params["savefig_path"]    ,
     model_name       = args.model_name                      ,
     ewc              = ewc                                  ,
     train_dataset_params = train_dataset_params             ,
-    adjust_luminance = train_loop_params["adjust_luminance"],
+    train_loop_params = train_loop_params             ,
     scheduler        = scheduler                            ,
-    es_patience      = train_loop_params["es_patience"]     ,
-    is_vibrate       = train_loop_params["is_vibrate"]      ,
-    zloss_weight     = train_loop_params["zloss_weight"]    ,
-    ewc_weight       = train_loop_params["ewc_weight"]      ,
-    qloss_weight     = train_loop_params["qloss_weight"]    ,
-    ploss_weight     = train_loop_params["ploss_weight"]    ,
 )

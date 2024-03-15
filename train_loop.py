@@ -37,8 +37,10 @@ def _loss_fnx(_input, target, a, sigma):
     """
     gaussian nll loss for poisson noise
     """
-    var  = torch.clamp_min(a * _input + sigma, min=0.)
-    loss = F.gaussian_nll_loss(_input, target, var)
+    a     = torch.max(a, 1e-3*torch.ones_like(a))
+    sigma = torch.max(sigma, 1e-3*torch.ones_like(sigma))
+    var   = torch.clamp_min(a * _input + sigma, min=0.)
+    loss  = F.gaussian_nll_loss(_input, target, var)
     return loss
 
 def pretrain_loop(n_epochs             ,
@@ -152,29 +154,30 @@ def luminance_adjustment(rec, image):
     alpha = torch.mean(image) - beta * torch.mean(rec)  
     return alpha + beta * rec
 
-def finetuning_loop(n_epochs               ,
-                    optimizer              ,
-                    model                  ,
-                    loss_fn                ,
-                    train_loader           ,
-                    val_loader             ,
-                    device                 ,
-                    path                   ,
-                    savefig_path           ,
-                    model_name             ,
-                    ewc                    ,
-                    train_dataset_params   ,
-                    adjust_luminance       ,
-                    scheduler    = None    ,
-                    es_patience  = 10      ,
-                    is_vibrate   = False   ,
-                    zloss_weight  = 1.     ,                    
-                    loss_weight  = 1.      ,
-                    ewc_weight   = 100000  ,
-                    qloss_weight = 1/100   ,
-                    ploss_weight = 1/100   ,
-                    v_verbose    = True
-                    ):
+def finetuning_loop(
+        optimizer              ,
+        model                  ,
+        train_loader           ,
+        val_loader             ,
+        device                 ,
+        model_name             ,
+        ewc                    ,
+        train_dataset_params   ,
+        train_loop_params      ,
+        scheduler    = None    ,
+        v_verbose    = True    ,
+        ):
+    
+    n_epochs         = train_loop_params["n_epochs"]        
+    path             = train_loop_params["path"]            
+    savefig_path     = train_loop_params["savefig_path"]    
+    adjust_luminance = train_loop_params["adjust_luminance"]
+    es_patience      = train_loop_params["es_patience"]     
+    is_vibrate       = train_loop_params["is_vibrate"]      
+    zloss_weight     = train_loop_params["zloss_weight"]    
+    ewc_weight       = train_loop_params["ewc_weight"]      
+    qloss_weight     = train_loop_params["qloss_weight"]    
+    ploss_weight     = train_loop_params["ploss_weight"]    
     
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
@@ -211,9 +214,9 @@ def finetuning_loop(n_epochs               ,
             #loss  = loss_fn(rec, image) * loss_weight
             loss = _loss_fnx(rec, image, a, sigma)
             loss_z = _loss_fnz(
-                _input =lum ,
-                mask   =None,
-                target =None ) * zloss_weight
+                _input = lum ,
+                mask   = None,
+                target = None ) * zloss_weight
             loss += loss_z
             if ewc is not None:
                 loss += ewc.calc_ewc_loss(ewc_weight)
@@ -239,6 +242,8 @@ def finetuning_loop(n_epochs               ,
                 lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss"]
                 ploss   = outdict["psf_loss"]
+                print("poisson_weight", a)
+                print("gaussian_sigma", sigma)
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
                 #vloss   = loss_fn(rec, image) * loss_weight
@@ -250,7 +255,7 @@ def finetuning_loop(n_epochs               ,
                 mask   =None,
                 target =None ) * zloss_weight
                 vloss += vloss_z
-                vloss_sum += vloss.detach().item() * loss_weight
+                vloss_sum += vloss.detach().item()
                 if v_verbose: print("valid loss plus loss_z\t", vloss)
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
@@ -287,14 +292,19 @@ def finetuning_loop(n_epochs               ,
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        earlystopping((vloss_sum / vnum), model, condition = True)
-        if earlystopping.early_stop:
-            break
+        condition = get_condition(optimizer, train_loop_params["lr"])
+        if condition:
+            earlystopping(vloss_list[-1], model, condition = condition)
+            if earlystopping.early_stop:
+                break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
     plt.savefig(f'{savefig_path}/{model_name}_train.png',
                 format='png', dpi=500)
+    
+def get_condition(optimizer, lr):
+    return optimizer.param_groups[0]["lr"] == lr
     
 def finetuning_with_simulation_loop(
                     n_epochs               ,
