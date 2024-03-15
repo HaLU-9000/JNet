@@ -339,6 +339,7 @@ def load_anything(image_name):
         image = torch.load(image_name)
         image = (image - image.min()) / (image.max() - image.min())
     elif image_name[-3:] == "nd2":
+
         image = nd2.imread(image_name).astype(np.float32)
         image = image.transpose(1,0,2,3)[0:1]
         image = image / (2**12-1)
@@ -356,6 +357,28 @@ def load_anything(image_name):
             print(f"Your data must be 3d or 5d(TCZXY or CTZXY with C=1, T=1), but it is {image.dim()}d now!")
     return image
 
+def find_best_int_n_bit(bit):
+    thresholds = [0, 16, 32, 64, 128, 256]
+    for threshold in thresholds:
+        if bit < threshold:
+            return threshold
+    return 256
+
+def convert_tensor_to_n_bit_ndarray(tensor, bit):
+    arr = tensor.detach().cpu().numpy() * (2 ** bit - 1)
+
+    arr = arr.astype(np.int16)
+
+def save_ndarray_in_any_format(array, file, format):
+    file = file + "." + format
+    if format == "tif":
+        tifffile.imwrite(file, array)
+    elif format == "npy":
+        np.save(file=file, arr=array)
+    else:
+        print(f"YOUR FORMAT `({format})` IS NOT AVAILABLE. \
+              Use 4D(CZXY, C=1) array of `npy` or `tif`")
+        
 def init_model(params, is_finetuning):
     if is_finetuning:
         params["reconstruct"]     = True
@@ -373,8 +396,11 @@ def mount_model_to_device(model, configs):
 
 class ImageProcessing():
     def __init__(self, image):
+        image_org_format ='aaa'
+        image_name_without_format = 'bbb'
         self.image = image
         self.original_shape = image.squeeze(0).shape
+        self.processed_image = None
 
     def process_image(self, model, params, chunk_shape, type):
         chunks = self._make_chunks(self.image, chunk_shape)
@@ -384,30 +410,38 @@ class ImageProcessing():
             processed_chunks.append(processed_chunk)
         processed_image = self._reconstruct_images(
             processed_chunks, params, type)
+        self.processed_image = processed_image
         return processed_image
+    
+    def save_processed_image(self, file, format, bit=12):
+        array = convert_tensor_to_n_bit_ndarray(
+            tensor = self.processed_image ,
+            bit    = bit                  ,
+        )
+        save_ndarray_in_any_format(array, file, format)
+        print(f"your processed image was saved in {file} with {bit} bit")
 
     def _make_chunks(self, image, chunk_shape):
         shape = self.original_shape
         chunks = []
-        print(shape)
-        print(chunk_shape)
         for z in range(0, shape[0], chunk_shape[0]):
             for x in range(0, shape[1], chunk_shape[1]):
                 for y in range(0, shape[2], chunk_shape[2]):
-                    chunk = image[
-                        :                     ,
-                        z : z + chunk_shape[0],
-                        x : x + chunk_shape[1],
-                        y : y + chunk_shape[2],
-                        ]
+                    chunk = self._make_chunk(image, z, x, y, chunk_shape)
                     if self._is_not_desired_shape(chunk, chunk_shape):
                         chunk = self._add_zero_padding(chunk, chunk_shape)
                     chunks.append(chunk)
-        print(len(chunks))
         return chunks
     
+    def _make_chunk(self, image, i, j, k , chunk_shape):
+        return image[
+            :                     ,
+            i : i + chunk_shape[0],
+            j : j + chunk_shape[1],
+            k : k + chunk_shape[2],
+            ]
+
     def _is_not_desired_shape(self, chunk, shape):
-        print
         return chunk.squeeze(0).shape != shape
 
     def _add_zero_padding(self, chunk, shape):
@@ -441,38 +475,22 @@ class ImageProcessing():
         return chunk.to(params["device"])
         
     def _reconstruct_images(self, chunks, params, type:str):
-        shape = self._gen_image_shape(type, params)
+        shape = self._get_image_shape(type, params)
         reconstruct = torch.zeros(1, *shape)
-        chunk_shape = self._gen_chunk_shape(chunks, type)
-        print(shape)
-        print(chunk_shape)
+        chunk_shape = self._get_processed_chunk_shape(chunks, type)
         idx = 0
         for z in range(0, shape[0], chunk_shape[0]):
             for x in range(0, shape[1], chunk_shape[1]):
                 for y in range(0, shape[2], chunk_shape[2]):
-                    tmp_shape = reconstruct[
-                        :                     ,
-                        z : z + chunk_shape[0],
-                        x : x + chunk_shape[1],
-                        y : y + chunk_shape[2],
-                        ].shape
-                    reconstruct[
-                        :                     ,
-                        z : z + chunk_shape[0],
-                        x : x + chunk_shape[1],
-                        y : y + chunk_shape[2],
-                        ] \
-                    += chunks[idx][type][
-                        :,
-                        :tmp_shape[1],
-                        :tmp_shape[2],
-                        :tmp_shape[3],
-                        ]
+                    tmp_shape = self._get_cropped_zeros_tensor_shape(
+                        reconstruct, z, x, y, chunk_shape)
+                    reconstruct = self._insert_chunk_into_zeros_tensor(
+                        reconstruct, chunks, z, x, y, 
+                        chunk_shape, idx, type, tmp_shape)
                     idx += 1
-        print(idx)
         return reconstruct
 
-    def _gen_image_shape(self, type, params):
+    def _get_image_shape(self, type, params):
         scale = params["scale"]
         if type == "enhanced_image" or type == "estim_luminance":
             z, x, y = self.original_shape
@@ -481,5 +499,28 @@ class ImageProcessing():
             shape = self.original_shape[1:]
         return shape
     
-    def _gen_chunk_shape(self, chunks, type:str):
+    def _get_processed_chunk_shape(self, chunks, type:str):
         return chunks[0][type].shape[1:]
+
+    def _get_cropped_zeros_tensor_shape(self, image, i, j, k , chunk_shape):
+        return image[
+            :                     ,
+            i : i + chunk_shape[0],
+            j : j + chunk_shape[1],
+            k : k + chunk_shape[2],
+            ].shape
+    
+    def _insert_chunk_into_zeros_tensor(self, zeros, chunks, i, j, k, chunk_shape, idx, type, tmp_shape):
+        zeros[
+            :                     ,
+            i : i + chunk_shape[0],
+            j : j + chunk_shape[1],
+            k : k + chunk_shape[2],
+            ] \
+        += chunks[idx][type][
+            :,
+            :tmp_shape[1],
+            :tmp_shape[2],
+            :tmp_shape[3],
+            ]
+        return zeros

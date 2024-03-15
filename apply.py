@@ -2,7 +2,6 @@ import os
 import argparse
 import json
 
-import inference
 import utils
 
 # get args
@@ -17,9 +16,8 @@ params  = configs["params"]
 shape = [80, 112, 112]
 
 # image load
-image  = utils.load_anything(args.image_name)
-print(image.shape)
-pimage = utils.ImageProcessing(image)
+image_org  = utils.load_anything(args.image_name)
+image      = utils.ImageProcessing(image_org)
 
 # model load
 model = utils.init_model(params, is_finetuning = True)
@@ -28,6 +26,10 @@ utils.mount_model_to_device(model, configs = configs)
 model.eval()
 
 # batch process
-pimage.process_image(model, params, shape, "enhanced_image")
+image.process_image(model, params, shape, "enhanced_image")
+print(image.processed_image.shape)
 
-# add overlap options
+# save image
+image.save_processed_image(file=f"_apply_test/{args.image_name[-14:-4]}",
+                           format="tif",
+                           bit=16)
