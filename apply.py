@@ -14,6 +14,7 @@ configs = open(os.path.join("experiments/configs",f"{args.model_name}.json"))
 configs = json.load(configs)
 params  = configs["params"]
 shape = [80, 112, 112]
+image_basename = utils.get_basename(args.image_name)
 
 # image load
 image_org  = utils.load_anything(args.image_name)
@@ -26,10 +27,12 @@ utils.mount_model_to_device(model, configs = configs)
 model.eval()
 
 # batch process
-image.process_image(model, params, shape, "enhanced_image")
+image.process_image(model, params, shape, "enhanced_image", 
+                    overlap=[10, 10, 10])
 print(image.processed_image.shape)
 
 # save image
-image.save_processed_image(file=f"_apply_test/{args.image_name[-14:-4]}",
-                           format="tif",
-                           bit=16)
+image.save_processed_image(
+    file   = f"_apply_test/{image_basename}_{args.model_name}",
+    format = "tif",
+    bit    = 12)

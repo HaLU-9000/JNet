@@ -364,12 +364,25 @@ def find_best_int_n_bit(bit):
             return threshold
     return 256
 
-def convert_tensor_to_n_bit_ndarray(tensor, bit):
-    arr = tensor.detach().cpu().numpy() * (2 ** bit - 1)
+def convert_tensor_to__8_bit_ndarray(tensor):
+    arr = tensor.detach().cpu().numpy() * (2 ** 8  - 1)
+    return arr.astype(np.int8)
 
-    arr = arr.astype(np.int16)
+def convert_tensor_to_16_bit_ndarray(tensor):
+    arr = tensor.detach().cpu().numpy() * (2 ** 16 - 1)
+    return arr.astype(np.int16)
 
-def save_ndarray_in_any_format(array, file, format):
+def convert_tensor_to_32_bit_ndarray(tensor):
+    arr = tensor.detach().cpu().numpy() * (2 ** 32 - 1)
+    return arr.astype(np.int32)
+
+def convert_tensor_to_64_bit_ndarray(tensor):
+    arr = tensor.detach().cpu().numpy() * (2 ** 64 - 1)
+    return arr.astype(np.int64)
+
+def save_ndarray_in_any_format(
+        array, file, format):
+    
     file = file + "." + format
     if format == "tif":
         tifffile.imwrite(file, array)
@@ -393,46 +406,100 @@ def load_model_weight(model, model_name):
 def mount_model_to_device(model, configs):
     model.to(configs["params"]["device"])
 
+def get_basename(pathlike:str):
+    return os.path.splitext(os.path.basename(pathlike))[0]
+
+def get_extention(pathlike:str):
+    return os.path.splitext(os.path.basename(pathlike))[1]
+
 
 class ImageProcessing():
-    def __init__(self, image):
-        image_org_format ='aaa'
-        image_name_without_format = 'bbb'
-        self.image = image
+    def __init__(self, image=None, image_name=None):
+        if self._exist(image_name) and self._exist(image):
+            raise ValueError("Both 'image' and 'image_name' cannot\
+                             be provided simultaneously.")
+
+        if self._exist(image_name):
+            self.image = load_anything(image_name)
+            self.image_name = get_basename(image_name)
+
+        elif self._exist(image):
+            self.image = image
+        
         self.original_shape = image.squeeze(0).shape
         self.processed_image = None
 
-    def process_image(self, model, params, chunk_shape, type):
-        chunks = self._make_chunks(self.image, chunk_shape)
+    def process_image(
+            self                    ,
+            model                   ,
+            params                  ,
+            chunk_shape             ,
+            type                    , 
+            overlap     = [ 0, 0, 0],):
+        
+        chunks = self._make_chunks(self.image, chunk_shape, overlap)
         processed_chunks = []
+
         for chunk in chunks:
             processed_chunk = self._process(chunk, model, params)
             processed_chunks.append(processed_chunk)
+
         processed_image = self._reconstruct_images(
-            processed_chunks, params, type)
+            processed_chunks, params, type, overlap)
+        
         self.processed_image = processed_image
         return processed_image
     
-    def save_processed_image(self, file, format, bit=12):
-        array = convert_tensor_to_n_bit_ndarray(
-            tensor = self.processed_image ,
-            bit    = bit                  ,
-        )
+    def save_processed_image(self, file, format, bit=16):
+        if   bit == 8:
+            array = convert_tensor_to__8_bit_ndarray(self.processed_image)
+        elif bit <= 16:
+            array = convert_tensor_to_16_bit_ndarray(self.processed_image)
+        elif bit <= 32:
+            array = convert_tensor_to_32_bit_ndarray(self.processed_image)
+        elif bit <= 64:
+            array = convert_tensor_to_64_bit_ndarray(self.processed_image)
+        else:
+            raise ValueError(f"bit must be between 8 and 64, Current: {bit}.")
+
         save_ndarray_in_any_format(array, file, format)
         print(f"your processed image was saved in {file} with {bit} bit")
 
-    def _make_chunks(self, image, chunk_shape):
+    def _exist(self, obj):
+        if obj is not None:
+            return True
+        else:
+            return False
+        
+    def _make_chunks(self, image, chunk_shape, overlap):
         shape = self.original_shape
+        strides = self._get_strides(chunk_shape, overlap)
         chunks = []
-        for z in range(0, shape[0], chunk_shape[0]):
-            for x in range(0, shape[1], chunk_shape[1]):
-                for y in range(0, shape[2], chunk_shape[2]):
+        for z in range(0, shape[0], strides[0]):
+            for x in range(0, shape[1], strides[1]):
+                for y in range(0, shape[2], strides[2]):
                     chunk = self._make_chunk(image, z, x, y, chunk_shape)
                     if self._is_not_desired_shape(chunk, chunk_shape):
                         chunk = self._add_zero_padding(chunk, chunk_shape)
                     chunks.append(chunk)
+
         return chunks
     
+    def _get_strides(self, chunk_shape, overlap):
+        strides = []
+        for c, o in zip(chunk_shape, overlap):
+            stride = self._get_stride(c, o)
+            strides.append(stride)
+        return strides
+
+    def _get_stride(self, chunk_length, overlap_length):
+        stride = chunk_length - overlap_length
+        if stride <= 0:
+            raise ValueError(f"stride must be larger than 1.\
+                              current stride is ({stride})")
+        else:
+            return stride
+        
     def _make_chunk(self, image, i, j, k , chunk_shape):
         return image[
             :                     ,
@@ -452,10 +519,10 @@ class ImageProcessing():
             :chunk.shape[2],
             :chunk.shape[3],]\
             += chunk
+        
         return padded
     
-    
-    def _process(self, chunk, model, params):
+    def _process(self, chunk, model, params):  
         chunk = self._make_5d(chunk)
         chunk = self._to_model_device(chunk, params)
         chunk = model(chunk)
@@ -474,23 +541,36 @@ class ImageProcessing():
     def _to_model_device(self, chunk, params):
         return chunk.to(params["device"])
         
-    def _reconstruct_images(self, chunks, params, type:str):
-        shape = self._get_image_shape(type, params)
+    def _reconstruct_images(self, chunks, params, type:str, overlap):
+        shape       = self._get_image_shape(type, params)
         reconstruct = torch.zeros(1, *shape)
+        _overlap    = torch.zeros(1, *shape)
         chunk_shape = self._get_processed_chunk_shape(chunks, type)
-        idx = 0
-        for z in range(0, shape[0], chunk_shape[0]):
-            for x in range(0, shape[1], chunk_shape[1]):
-                for y in range(0, shape[2], chunk_shape[2]):
+        overlap     = self._adjust_overlap_shape(overlap, type, params)
+        strides     = self._get_strides(chunk_shape, overlap)
+        idx         = 0
+
+        for z in range(0, shape[0], strides[0]):
+            for x in range(0, shape[1], strides[1]):
+                for y in range(0, shape[2], strides[2]):
+                    
                     tmp_shape = self._get_cropped_zeros_tensor_shape(
                         reconstruct, z, x, y, chunk_shape)
+                    
                     reconstruct = self._insert_chunk_into_zeros_tensor(
-                        reconstruct, chunks, z, x, y, 
-                        chunk_shape, idx, type, tmp_shape)
+                        reconstruct, chunks[idx][type], z, x, y, 
+                        chunk_shape, tmp_shape)
+                    
+                    _overlap = self._insert_chunk_into_zeros_tensor(
+                        _overlap, torch.ones_like(chunks[idx][type]), z, x, y, 
+                        chunk_shape, tmp_shape)
+                    
                     idx += 1
+
+        reconstruct = self._resolve_overlap(reconstruct, _overlap)
         return reconstruct
 
-    def _get_image_shape(self, type, params):
+    def _get_image_shape(self, type, params): 
         scale = params["scale"]
         if type == "enhanced_image" or type == "estim_luminance":
             z, x, y = self.original_shape
@@ -499,6 +579,15 @@ class ImageProcessing():
             shape = self.original_shape[1:]
         return shape
     
+    def _adjust_overlap_shape(self, overlap, type, params):
+        scale = params["scale"]
+        z, x, y = overlap 
+        if type == "enhanced_image" or type == "estim_luminance":
+            overlap = [z * scale, x, y]
+        elif type == "reconstruction":
+            overlap = overlap
+        return overlap
+        
     def _get_processed_chunk_shape(self, chunks, type:str):
         return chunks[0][type].shape[1:]
 
@@ -510,17 +599,21 @@ class ImageProcessing():
             k : k + chunk_shape[2],
             ].shape
     
-    def _insert_chunk_into_zeros_tensor(self, zeros, chunks, i, j, k, chunk_shape, idx, type, tmp_shape):
+    def _insert_chunk_into_zeros_tensor(
+            self, zeros, chunks, i, j, k, chunk_shape, tmp_shape):
         zeros[
             :                     ,
             i : i + chunk_shape[0],
             j : j + chunk_shape[1],
             k : k + chunk_shape[2],
             ] \
-        += chunks[idx][type][
+        += chunks[
             :,
             :tmp_shape[1],
             :tmp_shape[2],
             :tmp_shape[3],
             ]
         return zeros
+    
+    def _resolve_overlap(self, image, overlap):
+        return image / overlap
