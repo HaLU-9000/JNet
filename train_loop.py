@@ -1,13 +1,12 @@
 import torch
 import torchrl
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
 import pandas as pd
 from dataset import Vibrate, Mask
-
-vibrate = Vibrate()
 
 def imagen_instantblur(model, label, device, params):
     #image  = model.image.emission.sample(label, params)
@@ -43,36 +42,40 @@ def _loss_fnx(_input, target, a, sigma):
     loss  = F.gaussian_nll_loss(_input, target, var)
     return loss
 
-def pretrain_loop(n_epochs             ,
-                  optimizer            ,
-                  model                ,
-                  loss_fnx             ,
-                  loss_fnz             ,
-                  train_loader         ,
-                  val_loader           ,
-                  device               ,
-                  path                 ,
-                  savefig_path         ,
-                  model_name           ,
-                  params               ,
-                  train_dataset_params ,
-                  scheduler   = None   ,
-                  es_patience = 10     ,
-                  is_vibrate  = False  ,
-                  wx          = 1.     ,
-                  wz          = 1.     ,
-                  ):
+def pretrain_loop(
+        optimizer            ,
+        model                ,
+        train_loader         ,
+        val_loader           ,
+        model_name           ,
+        params               ,
+        train_loop_params    ,
+        train_dataset_params ,
+        vibration_params     ,
+        scheduler            ,
+        ):
+    
+    n_epochs     = train_loop_params["n_epochs"]  
+    device       = params["device"]                               
+    path         = train_loop_params["path"]            
+    savefig_path = train_loop_params["savefig_path"]
+    es_patience  = train_loop_params["es_patience"]
+    is_vibrate   = train_loop_params["is_vibrate"]
+    loss_fnx     = eval(train_loop_params["loss_fnx"])
+    wx           = train_loop_params["weight_x"]        
+    wz           = train_loop_params["weight_z"]
 
-    earlystopping = EarlyStopping(name        = model_name ,
-                                  path        = path       ,
-                                  patience    = es_patience,
-                                  window_size = 5          ,
-                                  metric      = "mean"     ,
-                                  verbose     = True       ,)
+    earlystopping = EarlyStopping(
+        name        = model_name ,
+        path        = path       ,
+        patience    = es_patience,
+        window_size = 3          ,
+        metric      = "mean"     ,
+        verbose     = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')
     train_curve = pd.DataFrame(columns=["training loss", "validatation loss"])
     loss_list, vloss_list = [], []
-    vibrate = Vibrate()
+    vibrate = Vibrate(vibration_params)
     mask = Mask()
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
@@ -81,21 +84,26 @@ def pretrain_loop(n_epochs             ,
             labelx = train_data["labelx"].to(device = device)
             labelz = train_data["labelz"].to(device = device)
             with torch.no_grad():
-                image = imagen_instantblur(model  = model ,
-                                           label  = labelz,
-                                           device = device,
-                                           params = params,)
+                image = imagen_instantblur(
+                    model  = model ,
+                    label  = labelz,
+                    device = device,
+                    params = params,)
                 image  = model.image.hill.sample(image)
-            image = mask.apply_mask(train_dataset_params["mask"]      ,
-                                    image                             ,
-                                    train_dataset_params["mask_size"] ,
-                                    train_dataset_params["mask_num"]  ,)
+            image = mask.apply_mask(
+                train_dataset_params["mask"]      ,
+                image                             ,
+                train_dataset_params["mask_size"] ,
+                train_dataset_params["mask_num"]  ,)
             vimage = vibrate(image) if is_vibrate else image
             outdict = model(vimage)
-            out = outdict["enhanced_image" ]
-            lum = outdict["estim_luminance"]
+            out   = outdict["enhanced_image" ]
+            lum   = outdict["estim_luminance"]
             lossx  = loss_fnx(out, labelx)
-            lossz  = _loss_fnz(lum, labelx, labelz)
+            lossz  = _loss_fnz(
+                _input = lum    ,
+                mask   = labelx ,
+                target = labelz  )
             loss = wx * lossx + wz * lossz
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
@@ -114,7 +122,7 @@ def pretrain_loop(n_epochs             ,
                                            params = params,)
                 vimage = vibrate(image) if is_vibrate else image
                 outdict = model(vimage)
-                out   = outdict["enhanced_image"]
+                out   = outdict["enhanced_image" ]
                 lum   = outdict["estim_luminance"]
                 lossx = loss_fnx(out, labelx)
                 lossz = _loss_fnz(lum, labelx, labelz)
@@ -134,7 +142,9 @@ def pretrain_loop(n_epochs             ,
                            index=False)
         
         if epoch == 1 or epoch % 10 == 0:
-            print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
+            print(f'Epoch {epoch}, Train {loss_list[-1]}, ' + \
+                  f'Val {vloss_list[-1]}')
+        vibrate.step()
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
         earlystopping((vloss_sum / vnum), model, condition = True)
@@ -143,7 +153,8 @@ def pretrain_loop(n_epochs             ,
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
-    plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
+    plt.savefig(
+        f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
 
 def luminance_adjustment(rec, image):
     e = 1e-7
@@ -164,32 +175,34 @@ def finetuning_loop(
         ewc                    ,
         train_dataset_params   ,
         train_loop_params      ,
+        vibration_params       ,
         scheduler    = None    ,
         v_verbose    = True    ,
         ):
     
-    n_epochs         = train_loop_params["n_epochs"]        
-    path             = train_loop_params["path"]            
-    savefig_path     = train_loop_params["savefig_path"]    
-    adjust_luminance = train_loop_params["adjust_luminance"]
-    es_patience      = train_loop_params["es_patience"]     
-    is_vibrate       = train_loop_params["is_vibrate"]      
-    zloss_weight     = train_loop_params["zloss_weight"]    
-    ewc_weight       = train_loop_params["ewc_weight"]      
-    qloss_weight     = train_loop_params["qloss_weight"]    
-    ploss_weight     = train_loop_params["ploss_weight"]    
+    n_epochs         = train_loop_params["n_epochs"         ]        
+    path             = train_loop_params["path"             ]            
+    savefig_path     = train_loop_params["savefig_path"     ]    
+    adjust_luminance = train_loop_params["adjust_luminance" ]
+    es_patience      = train_loop_params["es_patience"      ]
+    is_vibrate       = train_loop_params["is_vibrate"       ]      
+    zloss_weight     = train_loop_params["zloss_weight"     ]    
+    ewc_weight       = train_loop_params["ewc_weight"       ]      
+    qloss_weight     = train_loop_params["qloss_weight"     ]    
+    ploss_weight     = train_loop_params["ploss_weight"     ]
     
-    earlystopping = EarlyStopping(name        = model_name ,
-                                  path        = path       ,
-                                  patience    = es_patience,
-                                  window_size = 5          ,
-                                  metric      = "mean"     ,
-                                  verbose     = True       ,)
+    earlystopping = EarlyStopping(
+        name        = model_name ,
+        path        = path       ,
+        patience    = es_patience,
+        window_size = 3          ,
+        metric      = "mean"     ,
+        verbose     = True       )
     writer = SummaryWriter(f'runs/{model_name}')
     train_curve = pd.DataFrame(columns=["training loss"    ,
                                         "validatation loss"] )
     loss_list, vloss_list= [], []
-    vibrate = Vibrate()
+    vibrate = Vibrate(vibration_params)
     mask = Mask()
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
@@ -197,18 +210,19 @@ def finetuning_loop(
         for train_data in train_loader:
             image  = train_data["image"].to(device = device)
             _image = model.image.hill.sample(image)
-            _image = mask.apply_mask(train_dataset_params["mask"]      ,
-                                     _image                             ,
-                                     train_dataset_params["mask_size"] ,
-                                     train_dataset_params["mask_num"]  ,)
+            _image = mask.apply_mask(
+                train_dataset_params["mask"]      ,
+                _image                            ,
+                train_dataset_params["mask_size"] ,
+                train_dataset_params["mask_num"]  ,)
             vimage = vibrate(_image) if is_vibrate else _image
             outdict = model(vimage)
-            rec     = outdict["reconstruction"]
-            a       = outdict["poisson_weight"]
-            sigma   = outdict["gaussian_sigma"]
+            rec     = outdict["reconstruction" ]
+            a       = outdict["poisson_weight" ]
+            sigma   = outdict["gaussian_sigma" ]
             lum     = outdict["estim_luminance"]
-            qloss   = outdict["quantized_loss"]
-            ploss   = outdict["psf_loss"]
+            qloss   = outdict["quantized_loss" ]
+            ploss   = outdict["psf_loss"       ]
             if adjust_luminance:
                 rec = luminance_adjustment(rec, image)
             #loss  = loss_fn(rec, image) * loss_weight
@@ -236,13 +250,13 @@ def finetuning_loop(
                 _image  = model.image.hill.sample(image)
                 vimage  = vibrate(_image) if is_vibrate else _image
                 outdict = model(vimage)
-                rec     = outdict["reconstruction"]
-                a       = outdict["poisson_weight"]
-                sigma   = outdict["gaussian_sigma"]
+                rec     = outdict["reconstruction" ]
+                a       = outdict["poisson_weight" ]
+                sigma   = outdict["gaussian_sigma" ]
                 lum     = outdict["estim_luminance"]
-                qloss   = outdict["quantized_loss"]
-                ploss   = outdict["psf_loss"]
-                print("poisson_weight", a)
+                qloss   = outdict["quantized_loss" ]
+                ploss   = outdict["psf_loss"       ]
+                print("poisson_weight", a    )
                 print("gaussian_sigma", sigma)
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
@@ -289,7 +303,9 @@ def finetuning_loop(
                            index=False)
         
         if epoch == 1 or epoch % 10 == 0:
-            print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
+            print(f'Epoch {epoch}, Train {loss_list[-1]},'+\
+                  f' Val {vloss_list[-1]}')
+        vibrate.step()
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
         condition = get_condition(optimizer, train_loop_params["lr"])
@@ -320,6 +336,7 @@ def finetuning_with_simulation_loop(
                     params                 ,
                     ewc                    ,
                     train_dataset_params   ,
+                    vibration_params       ,
                     adjust_luminance       ,
                     scheduler    = None    ,
                     es_patience  = 10      ,
@@ -335,14 +352,14 @@ def finetuning_with_simulation_loop(
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
                                   patience    = es_patience,
-                                  window_size = 5          ,
+                                  window_size = 3          ,
                                   metric      = "mean"     ,
                                   verbose     = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')
     train_curve = pd.DataFrame(columns=["training loss"    ,
                                         "validatation loss"] )
     loss_list, vloss_list= [], []
-    vibrate = Vibrate()
+    vibrate = Vibrate(vibration_params)
     mask = Mask()
     torch.save(model.image.state_dict(),
                f"{path}/{model_name}_pre.pt")
@@ -470,6 +487,7 @@ def finetuning_with_simulation_loop(
         
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
+        vibrate.step()
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
         earlystopping((vloss_sum / vnum), model, condition = True)
@@ -485,14 +503,14 @@ class ElasticWeightConsolidation():
     modified from
     https://github.com/shivamsaboo17/Overcoming-Catastrophic-forgetting-in-Neural-Networks
     """
-    def __init__(self, model, params, prev_dataloader, loss_fnx, loss_fnz,wx, wz,
+    def __init__(self, model, params, vibration_params, prev_dataloader, loss_fnx, loss_fnz,wx, wz,
                  init_num_batch, ewc_dataset_params, is_vibrate, device):
         self.model = model
         num_params = 0
         for p in model.parameters():
             if p.requires_grad:
                 num_params += p.numel()
-        print(num_params)
+        #print(num_params)
         self.num_params = num_params
         self.device = device
         self.is_vibrate = is_vibrate
@@ -504,6 +522,8 @@ class ElasticWeightConsolidation():
         self.prev_dataloader = prev_dataloader
         self.ewc_dataset_params = ewc_dataset_params
         num_fisher = 0
+        self.vibrate = Vibrate(vibration_params)
+        self.vibrate.set_arbitrary_step(1000)
 
         for name, _ in self.model.named_buffers():
             if '_estimated_fisher' in name:
@@ -542,18 +562,22 @@ class ElasticWeightConsolidation():
                                     image                                ,
                                     self.ewc_dataset_params["mask_size"] ,
                                     self.ewc_dataset_params["mask_num"]  ,)
-            vimage = vibrate(image) if self.is_vibrate else image
+            vimage = self.vibrate(image) if self.is_vibrate else image
             outdict = self.model(vimage)
-            out   = outdict["enhanced_image"]
+            out   = outdict["enhanced_image" ]
             lum   = outdict["estim_luminance"]
-            lossx = self.loss_fnx(out, labelx)
-            lossz = _loss_fnz(lum,labelx,labelz)
+            lossx  = self.loss_fnx(out,labelx)
+            lossz  = _loss_fnz(
+                _input = lum    ,
+                mask   = labelx ,
+                target = labelz  )
             vloss = self.wx * lossx + self.wz * lossz
             log_likelihood = torch.log(vloss)
-            grad_log_likelihood = torch.autograd.grad(log_likelihood,
-                                                      self.model.parameters(),
-                                                      retain_graph=False,
-                                                      allow_unused=True)
+            grad_log_likelihood = torch.autograd.grad(
+                log_likelihood          ,
+                self.model.parameters() ,
+                retain_graph=False      ,
+                allow_unused=True        )
             grad_log_likelihood = list(grad_log_likelihood)
             for n, param in enumerate(grad_log_likelihood):
                 if param is None:

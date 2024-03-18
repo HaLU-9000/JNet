@@ -22,11 +22,11 @@ args   = parser.parse_args()
 
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs              = json.load(configs)
-params               = configs["params"]
-train_dataset_params = configs["pretrain_dataset"]
+params               = configs["params"              ]
+train_dataset_params = configs["pretrain_dataset"    ]
 val_dataset_params   = configs["pretrain_val_dataset"]
-train_loop_params    = configs["pretrain_loop"]
-params["device"]     = device
+train_loop_params    = configs["pretrain_loop"       ]
+vibration_params     = configs["vibration"           ]
 
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
@@ -94,22 +94,14 @@ val_data    = DataLoader(
 print(f'========= model {configs["pretrained_model"]} train started =========')
 model_path = 'model'
 pretrain_loop(
-    n_epochs             = train_loop_params["n_epochs"]        ,
-    optimizer            = optimizer                            ,
-    model                = JNet                                 ,
-    loss_fnx             = eval(train_loop_params["loss_fnx"])  ,
-    loss_fnz             = eval(train_loop_params["loss_fnz"])  ,
-    train_loader         = train_data                           ,
-    val_loader           = val_data                             ,
-    device               = device                               ,
-    path                 = train_loop_params["path"]            ,
-    savefig_path         = train_loop_params["savefig_path"]    ,
-    model_name           = configs["pretrained_model"]          ,
-    params               = params                               ,
-    train_dataset_params = train_dataset_params                 ,
-    scheduler            = scheduler                            ,
-    es_patience          = train_loop_params["es_patience"]     ,
-    is_vibrate           = train_loop_params["is_vibrate"]      ,
-    wx                   = train_loop_params["weight_x"]        ,
-    wz                   = train_loop_params["weight_z"]        ,
+    optimizer            = optimizer                   ,
+    model                = JNet                        ,
+    train_loader         = train_data                  ,
+    val_loader           = val_data                    ,
+    model_name           = configs["pretrained_model"] ,
+    params               = params                      ,
+    train_loop_params    = train_loop_params           ,
+    train_dataset_params = train_dataset_params        ,
+    vibration_params     = vibration_params            ,
+    scheduler            = scheduler
     )

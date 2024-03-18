@@ -12,8 +12,6 @@ from train_loop import imagen_instantblur
 from dataset import Vibrate
 from utils import array_to_tif, load_anything
 
-vibrate = Vibrate()
-
 class PretrainingInference():
     def __init__(self, model_name, pretrain=True):
         self.device = (torch.device('cuda') if torch.cuda.is_available()
@@ -23,6 +21,7 @@ class PretrainingInference():
         self.model_name      = self.configs["pretrained_model"] if pretrain else model_name
         self.params          = self.configs["params"]
         val_dataset_params   = self.configs["pretrain_val_dataset"]
+        self.vibrate = Vibrate(vibration_params=self.configs["vibration"])
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
@@ -67,7 +66,7 @@ class PretrainingInference():
                                            device = self.device, 
                                            params = self.params,)
                 if self.configs["pretrain_loop"]["is_vibrate"]:
-                    image   = vibrate(image).detach().clone()
+                    image   = self.vibrate(image).detach().clone()
                 outdict = self.JNet(image)
                 output  = F.sigmoid(outdict["enhanced_image"])
                 qloss   = outdict["quantized_loss"]
@@ -243,6 +242,7 @@ class SimulationInference():
         self.params["use_x_quantized"] = True
         val_dataset_params         = self.configs["pretrain_val_dataset"]
         self.is_finetuning         = is_finetuning
+        self.vibrate = Vibrate(vibration_params=self.configs["vibration"])
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
@@ -302,7 +302,7 @@ class SimulationInference():
                 if self.is_finetuning:            
                     self.JNet.image.load_state_dict(torch.load(f"model/{self.model_name}.pt"), strict=False)
                 if self.configs["pretrain_loop"]["is_vibrate"]:
-                    image   = vibrate(image).detach().clone()
+                    image   = self.vibrate(image).detach().clone()
                 outdict  = self.JNet(image)
                 outputx  = outdict["enhanced_image"]
                 outputz  = outdict["estim_luminance"]
@@ -471,7 +471,7 @@ class MicrogliaInference():
         self.params["use_x_quantized"] = True
         val_dataset_params         = self.configs["val_dataset"]
         self.is_finetuning         = is_finetuning
-
+        self.vibrate = Vibrate(vibration_params=self.configs["vibration"])
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
@@ -521,7 +521,7 @@ class MicrogliaInference():
                 image   = val_data["image"].to(device = self.device)
                 _image  = self.JNet.image.hill.sample(image)
                 if self.configs["pretrain_loop"]["is_vibrate"]:
-                    _image   = vibrate(_image).detach().clone()
+                    _image   = self.vibrate(_image).detach().clone()
                 outdict  = self.JNet(_image)
                 outputx  = outdict["enhanced_image"]
                 outputz  = outdict["estim_luminance"]

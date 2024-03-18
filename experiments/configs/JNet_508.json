@@ -1,6 +1,6 @@
 {
-    "explanation":"trying with real data, 500 but training without es while warming up, and clipping a and sigma value",
-    "pretrained_model":"JNet_493_pretrain"    ,
+    "explanation":"vibration without warming up pretraining and without vib in finetuning",
+    "pretrained_model":"JNet_507_pretrain",
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -95,7 +95,7 @@
            "partial"           : "params['partial']" ,
            "ewc"               : null                ,
            "es_patience"       : 10                  ,
-           "is_vibrate"        : false               ,
+           "is_vibrate"        : true                ,
            "weight_x"          : 1                   ,
            "weight_z"          : 1                                             
         }                                                                      , "$pretrain_loop" : "",
@@ -145,12 +145,11 @@
     
         "vibration":
         {
-        
-                "max_step"              : 20                        ,
-                "b_sigma"               : {"min" : 0 , "max" : 0.2} ,
-                "amp_alpha"             : {"min" : 0 , "max" : 1}   ,
-                "omega_alpha"           : {"min" : 0 , "max" : 2}   ,
-                "noise_inv_var_alpha"   : {"min" : 2 , "max" : 10}  
+            "max_step"              : 30                        ,
+            "b_sigma"               : {"min" : 0.2 , "max" : 0.2} ,
+            "amp_alpha"             : {"min" : 2   , "max" : 2  } ,
+            "omega_alpha"           : {"min" : 2   , "max" : 2  } ,
+            "noise_inv_var_alpha"   : {"min" : 2   , "max" : 2  }
         }                                                                      , "$vibration" : "",
 
     "train_loop":

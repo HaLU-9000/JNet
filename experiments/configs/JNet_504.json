@@ -1,6 +1,6 @@
 {
-    "explanation":"trying with real data, 500 but training without es while warming up, and clipping a and sigma value",
-    "pretrained_model":"JNet_493_pretrain"    ,
+    "explanation":"test for vibration, with **SMALL** epochs",
+    "pretrained_model":"JNet_503_pretrain"    ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -54,7 +54,7 @@
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,
-            "I"            : 200                       ,
+            "I"            : 2                         ,
             "low"          : 0                         ,
             "high"         : 16                        ,
             "scale"        : 3                         ,
@@ -71,7 +71,7 @@
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,
-            "I"            : 20                        ,
+            "I"            : 2                         ,
             "low"          : 16                        ,
             "high"         : 20                        ,
             "scale"        : 3                         ,
@@ -95,7 +95,7 @@
            "partial"           : "params['partial']" ,
            "ewc"               : null                ,
            "es_patience"       : 10                  ,
-           "is_vibrate"        : false               ,
+           "is_vibrate"        : true                ,
            "weight_x"          : 1                   ,
            "weight_z"          : 1                                             
         }                                                                      , "$pretrain_loop" : "",
@@ -117,7 +117,7 @@
             "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
-            "I"               : 200                               ,
+            "I"               : 2                               ,
             "scale"           : 3                                 ,
             "train"           : true                              ,
             "mask"            : true                              ,
@@ -132,7 +132,7 @@
             "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
-            "I"               : 20                                ,
+            "I"               : 2                                ,
             "scale"           : 3                                 ,
             "train"           : false                             ,
             "mask"            : false                             ,
@@ -145,12 +145,11 @@
     
         "vibration":
         {
-        
-                "max_step"              : 20                        ,
-                "b_sigma"               : {"min" : 0 , "max" : 0.2} ,
-                "amp_alpha"             : {"min" : 0 , "max" : 1}   ,
-                "omega_alpha"           : {"min" : 0 , "max" : 2}   ,
-                "noise_inv_var_alpha"   : {"min" : 2 , "max" : 10}  
+            "max_step"              : 30                        ,
+            "b_sigma"               : {"min" : 0 , "max" : 0.2} ,
+            "amp_alpha"             : {"min" : 0 , "max" : 2}   ,
+            "omega_alpha"           : {"min" : 0 , "max" : 2}   ,
+            "noise_inv_var_alpha"   : {"min" : 2 , "max" : 10}
         }                                                                      , "$vibration" : "",
 
     "train_loop":

@@ -452,12 +452,16 @@ class ImageProcessing():
     
     def save_processed_image(self, file, format, bit=16):
         if   bit == 8:
+            bit = 8
             array = convert_tensor_to__8_bit_ndarray(self.processed_image)
         elif bit <= 16:
+            bit = 16
             array = convert_tensor_to_16_bit_ndarray(self.processed_image)
         elif bit <= 32:
+            bit = 32
             array = convert_tensor_to_32_bit_ndarray(self.processed_image)
         elif bit <= 64:
+            bit = 64
             array = convert_tensor_to_64_bit_ndarray(self.processed_image)
         else:
             raise ValueError(f"bit must be between 8 and 64, Current: {bit}.")

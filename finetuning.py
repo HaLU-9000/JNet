@@ -24,11 +24,12 @@ args   = parser.parse_args()
 
 configs = open(os.path.join("experiments/configs",f"{args.model_name}.json"))
 configs              = json.load(configs)
-params               = configs["params"]
-train_dataset_params = configs["train_dataset"]
-ewc_dataset_params   = configs["pretrain_dataset"]
-val_dataset_params   = configs["val_dataset"]
-train_loop_params    = configs["train_loop"]
+params               = configs["params"           ]
+train_dataset_params = configs["train_dataset"    ]
+ewc_dataset_params   = configs["pretrain_dataset" ]
+val_dataset_params   = configs["val_dataset"      ]
+train_loop_params    = configs["train_loop"       ]
+vibration_params     = configs["vibration"        ]
 
 #infer = PretrainingInference(args.model_name, pretrain=True)
 #results = infer.get_result(10)
@@ -148,6 +149,7 @@ if  train_loop_params["ewc"] != None:
     ewc = ElasticWeightConsolidation(
         model              = JNet                                       ,
         params             = params                                     ,
+        vibration_params   = vibration_params                           ,
         prev_dataloader    = ewc_data                                   ,
         loss_fnx           = eval(configs["pretrain_loop"]["loss_fnx"]) ,
         loss_fnz           = eval(configs["pretrain_loop"]["loss_fnz"]) ,
@@ -164,14 +166,15 @@ else:
 print(f"============= model {args.model_name} train started =============")
 
 finetuning_loop( ####
-    optimizer        = optimizer                            ,
-    model            = JNet                                 ,
-    train_loader     = train_data                           ,
-    val_loader       = val_data                             ,
-    device           = device                               ,
-    model_name       = args.model_name                      ,
-    ewc              = ewc                                  ,
-    train_dataset_params = train_dataset_params             ,
-    train_loop_params = train_loop_params             ,
-    scheduler        = scheduler                            ,
+    optimizer            = optimizer            ,
+    model                = JNet                 ,
+    train_loader         = train_data           ,
+    val_loader           = val_data             ,
+    device               = device               ,
+    model_name           = args.model_name      ,
+    ewc                  = ewc                  ,
+    train_dataset_params = train_dataset_params ,
+    train_loop_params    = train_loop_params    ,
+    vibration_params     = vibration_params     ,
+    scheduler            = scheduler
 )

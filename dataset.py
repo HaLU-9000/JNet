@@ -929,38 +929,122 @@ class ParamScaler():
 import torch
 import torchvision.transforms as T
 from torchvision.transforms.functional import InterpolationMode as I
-# prob distribution version
+
+
 class Vibrate():
-    def __init__(self):
-        pass
-    def __call__(self, img, params_x=None, params_y=None):
+    def __init__(self, vibration_params:dict):
+        self.max_step      = vibration_params["max_step"            ]
+        self.b_sigma       = vibration_params["b_sigma"             ]
+        self.amp_alpha     = vibration_params["amp_alpha"           ]
+        self.omega_alpha   = vibration_params["omega_alpha"         ]
+        self.inv_var_alpha = vibration_params["noise_inv_var_alpha" ]
+
+        self.num_step = 0
+
+    def __call__(self, img, determined=False):
         if img.dim() == 5:
             for i in range(img.size(0)):
-                if params_y is None:
-                    params_y = self._gen_params()
-                if params_x is None:
-                    params_x = self._gen_params()
+                if determined:
+                    params_y = self._gen_deterministic_params(self.num_step)
+                    params_x = self._gen_deterministic_params(self.num_step)
+                else:
+                    params_x = self._gen_params(self.num_step)
+                    params_y = self._gen_params(self.num_step)
                 len_t = img.size(-3)
                 vib_y = self._vibration(len_t, *params_y)
                 vib_x = self._vibration(len_t, *params_x)
                 shift = np.stack([vib_y, vib_x], 1)
                 img[i] = self._shift3d(img[i], shift)
+
         return img
+    
+    def step(self):
+        self.num_step += 1
+        return self.num_step
+    
+    def set_arbitrary_step(self, num):
+        self.num_step = num
+
+    def _gen_params(self, num_step):
+        b_sigma = self._hyper_param_linear_schedule(
+            num_step = num_step       ,
+            param    = self.b_sigma   ,
+            option   = "up"           ,)
         
-    def _gen_params(self):
-        amp = np.random.gamma(2, 2) * 10
-        b = np.random.normal(0, 1)
-        c = 0
-        omega = np.random.gamma(2, 2) * 1e-2
-        phi = np.random.uniform(0, 2 * np.pi)
-        noise_inv_var = np.random.gamma(8, 1)
+        amp_alpha  = self._hyper_param_linear_schedule(
+            num_step = num_step       ,
+            param    = self.amp_alpha ,
+            option   = "up"           ,)
+        
+        omega_alpha = self._hyper_param_linear_schedule(
+            num_step = num_step         ,
+            param    = self.omega_alpha ,
+            option   = "up"             ,)
+        
+        inv_var_alpha = self._hyper_param_linear_schedule(
+            num_step = num_step           ,
+            param    = self.inv_var_alpha ,
+            option   = "down"             ,)
+        
+        amp           = np.random.gamma(amp_alpha, 1)
+        b             = np.random.normal(0, b_sigma)
+        c             = 0
+        omega         = np.random.gamma(omega_alpha, 1)
+        phi           = np.random.uniform(0, 2 * np.pi)
+        noise_inv_var = np.random.gamma(inv_var_alpha, 1)
+        
         return amp, b, c, omega, phi, noise_inv_var
     
+    def _gen_deterministic_params(self, num_step):
+        
+        amp_alpha  = self._hyper_param_linear_schedule(
+            num_step = num_step       ,
+            param    = self.amp_alpha ,
+            option   = "up"           ,)
+        
+        omega_alpha = self._hyper_param_linear_schedule(
+            num_step = num_step         ,
+            param    = self.omega_alpha ,
+            option   = "up"             ,)
+        
+        inv_var_alpha = self._hyper_param_linear_schedule(
+            num_step = num_step           ,
+            param    = self.inv_var_alpha ,
+            option   = "down"             ,)
+        
+        amp           = amp_alpha
+        b             = 0
+        c             = 0
+        omega         = omega_alpha
+        phi           = 0
+        noise_inv_var = np.random.gamma(inv_var_alpha, 1)
+        
+        return amp, b, c, omega, phi, noise_inv_var
+    
+    def _hyper_param_linear_schedule(
+            self, num_step, param:dict, option)->float:
+        
+        if option == "up":
+            org = param["min"]
+            fin = param["max"]
+
+        elif option == "down":
+            org = param["max"]
+            fin = param["min"]
+
+        else:
+            raise ValueError(f"option must be 'up' or 'down'\
+                             (current option is '{option}')")
+    
+        rate = min(num_step / self.max_step, 1.)
+        return org + (fin - org) * rate
+
+
     def _vibration(self, len_t, amp, b, c, omega, phi, noise_inv_var):
         t = np.arange(0, len_t, 1)
-        x = b * t
-        x += amp * np.exp( - c * t) * np.cos(omega * t + phi)
-        x += np.random.randn(len_t) / noise_inv_var
+        x = b * t \
+          + amp * np.exp( - c * t) * np.cos(omega * t + phi) \
+          + np.random.randn(len_t) / noise_inv_var
         x = x - x.mean()
         return x
 
