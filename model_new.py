@@ -712,6 +712,51 @@ class JNet(nn.Module):
         out = dict(**out, **psl)
         return out
 
+class DeepAlignNet(nn.Module):
+    def __init__(self, params):
+        super().__init__()
+        t1 = time.time()
+        print('initializing model...')
+        hidden_channels_list =  params["hidden_channels_list"].copy()
+        attn_list            =  params["attn_list"].copy()
+        hidden_channels      = hidden_channels_list.pop(0)
+        attn_list.pop(0)
+        self.prev0 = JNetBlock0(in_channels  = 1              ,
+                                out_channels = hidden_channels,)
+        self.prev  = nn.ModuleList(
+            [JNetBlock(
+                in_channels     = hidden_channels,
+                hidden_channels = hidden_channels,
+                dropout         = params["dropout"],
+                ) for _ in range(params["nblocks"])
+            ])
+        
+        self.mid   = JNetLayer(
+            in_channels           = hidden_channels      ,
+            hidden_channels_list  = hidden_channels_list ,
+            attn_list             = attn_list            ,
+            nblocks               = params["nblocks"]    ,
+            dropout               = params["dropout"]    ,
+            ) if hidden_channels_list else nn.Identity()
+
+        self.post = JNetBlockN(
+            in_channels  = hidden_channels ,
+            out_channels = 1               ,
+            )
+        self.activation  = params["activation"]
+        t2 = time.time()
+        print(f'init done ({t2-t1:.2f} s)')
+
+    def forward(self, x):
+        x = self.prev0(x)
+        for f in self.prev:
+            x = f(x)
+        x = self.mid(x)
+        x = self.post(x)
+        
+        out = {"enhanced_image" : x}
+        return out
+
 
 if __name__ == '__main__':
     import torchinfo

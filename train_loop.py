@@ -144,10 +144,17 @@ def pretrain_loop(
         if epoch == 1 or epoch % 10 == 0:
             print(f'Epoch {epoch}, Train {loss_list[-1]}, ' + \
                   f'Val {vloss_list[-1]}')
-        vibrate.step()
+            
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        earlystopping((vloss_sum / vnum), model, condition = True)
+
+        vibrate.step()
+        if vibrate.num_step >= vibrate.max_step:
+            condition = True
+        else:
+            condition = False
+
+        earlystopping((vloss_sum / vnum), model, condition = condition)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
@@ -323,31 +330,31 @@ def get_condition(optimizer, lr):
     return optimizer.param_groups[0]["lr"] == lr
     
 def finetuning_with_simulation_loop(
-                    n_epochs               ,
-                    optimizer              ,
-                    model                  ,
-                    loss_fn                ,
-                    train_loader           ,
-                    val_loader             ,
-                    device                 ,
-                    path                   ,
-                    savefig_path           ,
-                    model_name             ,
-                    params                 ,
-                    ewc                    ,
-                    train_dataset_params   ,
-                    vibration_params       ,
-                    adjust_luminance       ,
-                    scheduler    = None    ,
-                    es_patience  = 10      ,
-                    is_vibrate   = False   ,
-                    zloss_weight  = 1.     ,
-                    ewc_weight   = 1000000 ,
-                    qloss_weight = 1/100   ,
-                    ploss_weight = 1/100   ,
-                    verbose      = False   ,
-                    v_verbose    = True    ,
-                    ):
+        n_epochs               ,
+        optimizer              ,
+        model                  ,
+        loss_fn                ,
+        train_loader           ,
+        val_loader             ,
+        device                 ,
+        path                   ,
+        savefig_path           ,
+        model_name             ,
+        params                 ,
+        ewc                    ,
+        train_dataset_params   ,
+        vibration_params       ,
+        adjust_luminance       ,
+        scheduler    = None    ,
+        es_patience  = 10      ,
+        is_vibrate   = False   ,
+        zloss_weight  = 1.     ,
+        ewc_weight   = 1000000 ,
+        qloss_weight = 1/100   ,
+        ploss_weight = 1/100   ,
+        verbose      = False   ,
+        v_verbose    = True    ,
+        ):
     
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
@@ -616,3 +623,116 @@ class ElasticWeightConsolidation():
             if fisher is not None and mean is not None and param is not None:
                 losses.append((fisher * (param - mean) ** 2).sum())
         return (lambda_ / 2) * sum(losses) / self.num_params
+
+
+def deep_align_net_train_loop(
+        optimizer            ,
+        model                ,
+        train_loader         ,
+        val_loader           ,
+        model_name           ,
+        params               ,
+        train_loop_params    ,
+        train_dataset_params ,
+        vibration_params     ,
+        scheduler            ,
+        ):
+    
+    n_epochs     = train_loop_params["n_epochs"]  
+    device       = params["device"]                               
+    path         = train_loop_params["path"]            
+    savefig_path = train_loop_params["savefig_path"]
+    es_patience  = train_loop_params["es_patience"]
+    is_vibrate   = train_loop_params["is_vibrate"]
+    loss_fn      = nn.MSELoss()
+    wx           = train_loop_params["weight_x"]        
+    wz           = train_loop_params["weight_z"]
+
+    earlystopping = EarlyStopping(
+        name        = model_name ,
+        path        = path       ,
+        patience    = es_patience,
+        window_size = 3          ,
+        metric      = "mean"     ,
+        verbose     = True       ,)
+    writer = SummaryWriter(f'runs/{model_name}')
+    train_curve = pd.DataFrame(columns=["training loss", "validatation loss"])
+    loss_list, vloss_list = [], []
+    vibrate = Vibrate(vibration_params)
+    mask = Mask()
+    for epoch in range(1, n_epochs + 1):
+        loss_sum = 0.
+        model.train()
+        for train_data in train_loader:
+            labelz = train_data["labelz"].to(device = device)
+            with torch.no_grad():
+                image = imagen_instantblur(
+                    model  = model ,
+                    label  = labelz,
+                    device = device,
+                    params = params,)
+                image  = model.image.hill.sample(image)
+            _image = mask.apply_mask(
+                train_dataset_params["mask"]      ,
+                image                             ,
+                train_dataset_params["mask_size"] ,
+                train_dataset_params["mask_num"]  ,)
+            vimage = vibrate(_image) if is_vibrate else _image
+            outdict = model(vimage)
+            out   = outdict["enhanced_image"]
+            loss  = loss_fn(out, image)
+            optimizer.zero_grad()
+            loss.backward(retain_graph=False)
+            optimizer.step()
+            loss_sum += loss.detach().item()
+        
+        vloss_sum = 0.
+        model.eval()
+        with torch.no_grad():
+            for val_data in val_loader:
+                labelx = val_data["labelx"].to(device = device)
+                labelz = val_data["labelz"].to(device = device)
+                image = imagen_instantblur(model  = model ,
+                                           label  = labelz,
+                                           device = device,
+                                           params = params,)
+                vimage = vibrate(image) if is_vibrate else image
+                outdict = model(vimage)
+                out   = outdict["enhanced_image" ]
+                lum   = outdict["estim_luminance"]
+                vloss = loss_fn(out, image)
+                vloss_sum += vloss.detach().item()
+        
+        num  = len(train_loader)
+        vnum = len(val_loader)
+        loss_list.append(loss_sum / num)
+        vloss_list.append(vloss_sum / vnum)
+        writer.add_scalar('train loss', loss_sum / num, epoch)
+        writer.add_scalar('val loss', vloss_sum / vnum, epoch)
+        row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
+                           columns = train_curve.columns)
+        train_curve = pd.concat([train_curve, row], ignore_index=True)
+        train_curve.to_csv(f"./experiments/traincurves/{model_name}.csv",
+                           index=False)
+        
+        if epoch == 1 or epoch % 10 == 0:
+            print(f'Epoch {epoch}, Train {loss_list[-1]}, ' + \
+                  f'Val {vloss_list[-1]}')
+            
+        if scheduler is not None:
+            scheduler.step(epoch, vloss_list[-1])
+
+        vibrate.step()
+        if vibrate.num_step >= vibrate.max_step:
+            condition = True
+        else:
+            condition = False
+            
+        earlystopping((vloss_sum / vnum), model, condition = condition)
+        if earlystopping.early_stop:
+            break
+    plt.plot(loss_list , label='train loss')
+    plt.plot(vloss_list, label='validation loss')
+    plt.legend()
+    plt.savefig(
+        f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
