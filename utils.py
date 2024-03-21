@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -369,7 +370,7 @@ def convert_tensor_to__8_bit_ndarray(tensor):
     return arr.astype(np.int8)
 
 def convert_tensor_to_16_bit_ndarray(tensor):
-    arr = tensor.detach().cpu().numpy() * (2 ** 16 - 1)
+    arr = tensor.detach().cpu().numpy() * (2 ** 12 - 1)
     return arr.astype(np.int16)
 
 def convert_tensor_to_32_bit_ndarray(tensor):
@@ -436,14 +437,14 @@ class ImageProcessing():
             chunk_shape             ,
             type                    , 
             overlap     = [ 0, 0, 0],):
-        
+        print("[1/3] making chunks...")
         chunks = self._make_chunks(self.image, chunk_shape, overlap)
         processed_chunks = []
-
-        for chunk in chunks:
+        print("[2/3] processing chunks...")
+        for chunk in tqdm(chunks):
             processed_chunk = self._process(chunk, model, params)
             processed_chunks.append(processed_chunk)
-
+        print("[3/3] reconstrusting image...")
         processed_image = self._reconstruct_images(
             processed_chunks, params, type, overlap)
         

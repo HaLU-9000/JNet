@@ -40,7 +40,7 @@
             "poisson_weight"        : 0.1                                      ,
             "sig_eps"               : 0.01                                     ,
             "background"            : 0.01                                     ,
-            "scale"                 : 3                                       ,
+            "scale"                 : 6                                       ,
             "mid"                   : 20                                       , "$mid"                   : "num of NeurIPSF middle channel"     ,
             "loss_fn"               : "nn.MSELoss()"                           , "$loss_fn"               : "loss func for NeurIPSF"             ,  
             "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,

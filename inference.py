@@ -247,15 +247,22 @@ class SimulationInference():
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
-        #torch.save(self.JNet.image.state_dict(),  f'model/{self.model_name}_image_tmp.pt')
-        self.JNet.load_state_dict(torch.load(f'model/{self.pre_model_name}.pt'),
-                                      strict=False)
+        if self.is_finetuning:
+            torch.save(
+                self.JNet.image.state_dict(), 
+                f'model/{self.model_name}_image_tmp.pt')
+        self.JNet.load_state_dict(
+            torch.load(f'model/{self.pre_model_name}.pt'),
+            strict=False)
         self.psf_post = self.JNet.image.blur.show_psf_3d()
-        #self.JNet.image.load_state_dict(torch.load(f'model/{self.model_name}_image_tmp.pt'),
-        #                              strict=False)
+        
         if is_finetuning:
-            self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
-                                          strict=False)
+            self.JNet.load_state_dict(
+                torch.load(f'model/{self.model_name}.pt'),
+                strict=False)
+            self.JNet.image.load_state_dict(
+                torch.load(f'model/{self.model_name}_image_tmp.pt'),
+                strict=False)
         else:
             self.model_name = self.pre_model_name
         self.psf_post = self.JNet.image.blur.show_psf_3d()
@@ -475,12 +482,9 @@ class MicrogliaInference():
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
-        #torch.save(self.JNet.image.state_dict(),  f'model/{self.model_name}_image_tmp.pt')
         self.JNet.load_state_dict(torch.load(f'model/{self.pre_model_name}.pt'),
                                       strict=False)
         self.psf_post = self.JNet.image.blur.show_psf_3d()
-        #self.JNet.image.load_state_dict(torch.load(f'model/{self.model_name}_image_tmp.pt'),
-        #                              strict=False)
         if is_finetuning:
             self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
                                           strict=False)
@@ -519,14 +523,12 @@ class MicrogliaInference():
                 if n >= num_results:
                     break
                 image   = val_data["image"].to(device = self.device)
-                _image  = self.JNet.image.hill.sample(image)
-                if self.configs["pretrain_loop"]["is_vibrate"]:
-                    _image   = self.vibrate(_image).detach().clone()
-                outdict  = self.JNet(_image)
-                outputx  = outdict["enhanced_image"]
+                image  = self.JNet.image.hill.sample(image)
+                outdict  = self.JNet(image)
+                outputx  = outdict["enhanced_image" ]
                 outputz  = outdict["estim_luminance"]
-                reconst  = outdict["reconstruction"]
-                qloss    = outdict["quantized_loss"]
+                reconst  = outdict["reconstruction" ]
+                qloss    = outdict["quantized_loss" ]
                 qloss    = qloss.item() if qloss is not None else 0
                 image    = image[0].detach().cpu().numpy()
                 outputx  = outputx[0].detach().cpu().numpy()
