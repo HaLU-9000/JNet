@@ -582,6 +582,12 @@ class Hill(nn.Module):
     def hill(self, x, n, ka):
         return (1. + ka ** n) * x ** n / (ka ** n + x ** n)
     
+    def find_best_ka(self, image):
+        x1 = 0.5
+        x2 = 0.99
+        
+
+    
 
 class ImagingProcess(nn.Module):
     def __init__(self, params):

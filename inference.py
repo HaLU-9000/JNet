@@ -22,6 +22,7 @@ class PretrainingInference():
         self.params          = self.configs["params"]
         val_dataset_params   = self.configs["pretrain_val_dataset"]
         self.vibrate = Vibrate(vibration_params=self.configs["vibration"])
+        self.vibrate.set_arbitrary_step(100)
 
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
@@ -238,8 +239,9 @@ class SimulationInference():
         self.pre_model_name        = self.configs["pretrained_model"]
         self.params                = self.configs["params"]
         self.params["reconstruct"] = True
-        self.params["apply_vq"]    = True
-        self.params["use_x_quantized"] = True
+        if is_finetuning:
+            self.params["apply_vq"]    = True
+            self.params["use_x_quantized"] = True
         val_dataset_params         = self.configs["pretrain_val_dataset"]
         self.is_finetuning         = is_finetuning
         self.vibrate = Vibrate(vibration_params=self.configs["vibration"])
@@ -474,8 +476,9 @@ class MicrogliaInference():
         self.pre_model_name        = self.configs["pretrained_model"]
         self.params                = self.configs["params"]
         self.params["reconstruct"] = True
-        self.params["apply_vq"]    = True
-        self.params["use_x_quantized"] = True
+        if is_finetuning:
+            self.params["apply_vq"]    = True
+            self.params["use_x_quantized"] = True
         val_dataset_params         = self.configs["val_dataset"]
         self.is_finetuning         = is_finetuning
         self.vibrate = Vibrate(vibration_params=self.configs["vibration"])

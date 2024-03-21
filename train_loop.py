@@ -202,7 +202,7 @@ def finetuning_loop(
         name        = model_name ,
         path        = path       ,
         patience    = es_patience,
-        window_size = 3          ,
+        window_size = 1          ,
         metric      = "mean"     ,
         verbose     = True       )
     writer = SummaryWriter(f'runs/{model_name}')
@@ -316,7 +316,7 @@ def finetuning_loop(
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
         condition = get_condition(optimizer, train_loop_params["lr"])
-        if condition:
+        if get_condition(optimizer, train_loop_params["lr"]):
             earlystopping(vloss_list[-1], model, condition = condition)
             if earlystopping.early_stop:
                 break
@@ -326,6 +326,9 @@ def finetuning_loop(
     plt.savefig(f'{savefig_path}/{model_name}_train.png',
                 format='png', dpi=500)
     
+def get_vibrate_condition(vibrateclass):
+    return vibrateclass.num_step >= vibrateclass.max_step
+
 def get_condition(optimizer, lr):
     return optimizer.param_groups[0]["lr"] == lr
     

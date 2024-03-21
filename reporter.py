@@ -151,7 +151,7 @@ md.new_line("If the pixels are red, the reconstructed image is brighter than the
 ## Finetuning Results with Microglia ##
 #######################################
 md.new_header(level=3, title="Finetuning Results with Microglia")
-btype_list = ["original", "outputx","outputz", "reconst", "heatmap"]
+btype_list = ["original", "outputx", "outputz", "reconst", "heatmap"]
 slice_list = ["plane", "depth"]
 for is_finetuning in [False, True]:
     md.new_header(level=4, title=f"finetuning == {is_finetuning}")
