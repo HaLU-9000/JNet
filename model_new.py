@@ -566,8 +566,8 @@ class Hill(nn.Module):
         super().__init__()
         self.n_init  = n
         self.ka_init = ka
-        self.x1 = 0.5
-        self.x2 = 0.9
+        self.x1 = torch.ones(1).to(device=params["device"]) * 0.5
+        self.x2 = torch.ones(1).to(device=params["device"]) * 0.8
         #self.n  = nn.Parameter(torch.tensor(n ).to(device=params["device"]))
         #self.ka = nn.Parameter(torch.tensor(ka).to(device=params["device"]))
 
@@ -577,10 +577,13 @@ class Hill(nn.Module):
         x = self.hill(x, n, ka)
         return x
     
-    def best_value_hill(self, x):
+    def hill_with_best_value(self, x):
         v = self.solve_hill(
-            self.x1, self.x2, self.find_y(self.x1), self.find_y(self.x2))
-        x = self.hill(x, v["n"], v["ka"])
+            self.find_y(x, self.x1),
+            self.find_y(x, self.x2),
+            self.hill_ideal(self.x1),
+            self.hill_ideal(self.x2),)
+        x = self.hill(x, v['n'], v["ka"])
         return x
     
     def sample(self, x):
@@ -588,21 +591,27 @@ class Hill(nn.Module):
         return x
 
     def hill(self, x, n, ka):
-        return (1. + ka ** n) * x ** n / (ka ** n + x ** n)
+        return (ka ** n + 1) * x ** n / (ka ** n + x ** n)
+    
+    def hill_ideal(self, x):
+        return x ** 0.5 / (1 + x ** 0.5)
     
     def find_y(self, x, x1):
         return torch.quantile(x.flatten(), x1)
     
-    def solve_hill(x1, x2, y1, y2):
+    def solve_hill(self, x1, x2, y1, y2):
         a = torch.log(x2) * (torch.log(1 - y1) - torch.log(y1))
         b = torch.log(x1) * (torch.log(1 - y2) - torch.log(y2))
         c = torch.log(y2) + torch.log(1 - y1)
         d = torch.log(y1) + torch.log(1 - y2)
-        k = torch.exp((a - b)/(c - d))
-        n = (torch.log(1 - y1) - torch.log(y1))\
-            / (torch.log(k) - torch.log(x1))
-        return {"n"  : n,
-                "ka" : k }
+        self.k = torch.exp((a - b) / (c - d))
+        self.n = (torch.log(1 - y1) - torch.log(y1)) \
+               / (torch.log(self.k) - torch.log(x1))
+        return {"n"  : self.n,
+                "ka" : self.k }
+        
+    def invertion_hill_with_current_coeffs(self, x):
+        return ((self.k-x+1) / (self.k*x)) ** (-1/self.n)
         
 
     
@@ -722,10 +731,11 @@ class JNet(nn.Module):
         else:
             r = x
         
-        out = {"enhanced_image"  : x,
-               "reconstruction"  : r,
-               "estim_luminance" : z,
-               "poisson_weight"  : self.a,
+        out = {"enhanced_image"  : x         ,
+               "reconstruction"  : r         ,
+               "mid"             : _x        ,
+               "estim_luminance" : z         ,
+               "poisson_weight"  : self.a    ,
                "gaussian_sigma"  : self.sigma,
                }
         vqd = {"quantized_loss" : qloss} if self.apply_vq\
@@ -778,7 +788,7 @@ class DeepAlignNet(nn.Module):
         x = self.mid(x)
         x = self.post(x)
         
-        out = {"enhanced_image" : x}
+        out = {"aligned_image" : x}
         return out
 
 

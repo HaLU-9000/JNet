@@ -89,7 +89,7 @@ def pretrain_loop(
                     label  = labelz,
                     device = device,
                     params = params,)
-                image  = model.image.hill.sample(image)
+                image  = model.image.hill.hill_with_best_value(image)
             image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
                 image                             ,
@@ -120,6 +120,7 @@ def pretrain_loop(
                                            label  = labelz,
                                            device = device,
                                            params = params,)
+                image  = model.image.hill.hill_with_best_value(image)
                 vimage = vibrate(image) if is_vibrate else image
                 outdict = model(vimage)
                 out   = outdict["enhanced_image" ]
@@ -216,7 +217,8 @@ def finetuning_loop(
         model.train()
         for train_data in train_loader:
             image  = train_data["image"].to(device = device)
-            _image = model.image.hill.sample(image)
+            #_image = model.image.hill.sample(image)
+            _image  = model.image.hill.hill_with_best_value(image)
             _image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
                 _image                            ,
@@ -254,7 +256,8 @@ def finetuning_loop(
         with torch.no_grad():
             for val_data in val_loader:
                 image   = val_data["image"].to(device = device)
-                _image  = model.image.hill.sample(image)
+                #_image  = model.image.hill.sample(image)
+                _image  = model.image.hill.hill_with_best_value(image)
                 vimage  = vibrate(_image) if is_vibrate else _image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction" ]
@@ -627,10 +630,29 @@ class ElasticWeightConsolidation():
                 losses.append((fisher * (param - mean) ** 2).sum())
         return (lambda_ / 2) * sum(losses) / self.num_params
 
+def loss_mode(pixelwise_loss, perceptual_loss, segmentation_loss, mode):
+    if mode == "pixelwise":
+        loss = pixelwise_loss
+    elif mode == "perceptual":
+        loss = perceptual_loss
+    elif mode == "segmentation":
+        loss = segmentation_loss
+    elif mode == "segmentation_plus_perceptual":
+        loss = segmentation_loss + perceptual_loss
+    elif mode == "pixelwise_plus_perceptual":
+        loss = pixelwise_loss + perceptual_loss
+    elif mode == "pixelwise_plus_segmentation":
+        loss = pixelwise_loss + segmentation_loss
+    elif mode == "all_in":
+        loss = pixelwise_loss + perceptual_loss + segmentation_loss
+    else:
+        raise ValueError(f"{mode} is not inplemented. ")
+    return loss
 
 def deep_align_net_train_loop(
         optimizer            ,
-        model                ,
+        align_model          ,
+        deconv_model         ,
         train_loader         ,
         val_loader           ,
         model_name           ,
@@ -646,10 +668,8 @@ def deep_align_net_train_loop(
     path         = train_loop_params["path"]            
     savefig_path = train_loop_params["savefig_path"]
     es_patience  = train_loop_params["es_patience"]
-    is_vibrate   = train_loop_params["is_vibrate"]
     loss_fn      = nn.MSELoss()
-    wx           = train_loop_params["weight_x"]        
-    wz           = train_loop_params["weight_z"]
+    mode         = train_loop_params["mode"]
 
     earlystopping = EarlyStopping(
         name        = model_name ,
@@ -665,45 +685,89 @@ def deep_align_net_train_loop(
     mask = Mask()
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
-        model.train()
+        align_model.train()
+        deconv_model.eval()
         for train_data in train_loader:
             labelz = train_data["labelz"].to(device = device)
             with torch.no_grad():
                 image = imagen_instantblur(
-                    model  = model ,
-                    label  = labelz,
-                    device = device,
-                    params = params,)
-                image  = model.image.hill.sample(image)
-            _image = mask.apply_mask(
+                    model  = deconv_model ,
+                    label  = labelz       ,
+                    device = device       ,
+                    params = params       ,)
+                image = deconv_model.image.hill.hill_with_best_value(image)
+
+            vimage = vibrate(image)
+            v_m_image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
-                image                             ,
+                vimage                            ,
                 train_dataset_params["mask_size"] ,
                 train_dataset_params["mask_num"]  ,)
-            vimage = vibrate(_image) if is_vibrate else _image
-            outdict = model(vimage)
-            out   = outdict["enhanced_image"]
-            loss  = loss_fn(out, image)
+            
+            outdict_a = align_model(v_m_image)
+            aligned_image = outdict_a["aligned_image"]
+            # segmentation with aligned_image 
+            outdict_d = deconv_model(aligned_image)
+            out_with_shake  = outdict_d["enhanced_image"]
+            lum_with_shake  = outdict_d["estim_luminance"]
+            mid_with_shake  = outdict_d["mid"]
+            # segmentation with true_image
+            with torch.no_grad():
+                outdict_d = deconv_model(image)
+                out_without_shake  = outdict_d["enhanced_image" ]
+                lum_without_shake  = outdict_d["estim_luminance"]
+                mid_without_shake  = outdict_d["mid"]
+            pixelwise_loss    = loss_fn(aligned_image, image)
+            segmentation_loss = loss_fn(out_with_shake, out_without_shake) \
+                              + loss_fn(lum_with_shake, lum_without_shake)
+            perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
+
+            loss = loss_mode(
+                pixelwise_loss    = pixelwise_loss   ,
+                perceptual_loss   = perceptual_loss  ,
+                segmentation_loss = segmentation_loss,
+                mode              = mode             ,
+            )
+
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             optimizer.step()
             loss_sum += loss.detach().item()
         
         vloss_sum = 0.
-        model.eval()
+        align_model.eval()
         with torch.no_grad():
             for val_data in val_loader:
-                labelx = val_data["labelx"].to(device = device)
                 labelz = val_data["labelz"].to(device = device)
-                image = imagen_instantblur(model  = model ,
-                                           label  = labelz,
-                                           device = device,
-                                           params = params,)
-                vimage = vibrate(image) if is_vibrate else image
-                outdict = model(vimage)
-                out   = outdict["enhanced_image" ]
-                lum   = outdict["estim_luminance"]
-                vloss = loss_fn(out, image)
+                image = imagen_instantblur(
+                    model  = deconv_model ,
+                    label  = labelz       ,
+                    device = device       ,
+                    params = params       ,)
+                image = deconv_model.image.hill.hill_with_best_value(image)
+                vimage = vibrate(image)
+                outdict_a = align_model(vimage)
+                aligned_image = outdict_a["aligned_image"]
+                # segmentation with aligned_image
+                outdict_d = deconv_model(aligned_image)
+                out_with_shake   = outdict_d["enhanced_image" ]
+                lum_with_shake   = outdict_d["estim_luminance"]
+                # segmentation with true_image
+                outdict_d = deconv_model(image)
+                out_without_shake = outdict_d["enhanced_image" ]
+                lum_without_shake = outdict_d["estim_luminance"]
+                mid_without_shake = outdict_d["mid"]
+                pixelwise_loss    = loss_fn(aligned_image, image)
+                segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
+                                  + loss_fn(lum_with_shake, lum_without_shake)
+                perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
+
+                vloss = loss_mode(
+                    pixelwise_loss    = pixelwise_loss   ,
+                    perceptual_loss   = perceptual_loss  ,
+                    segmentation_loss = segmentation_loss,
+                    mode              = mode             ,
+                )
                 vloss_sum += vloss.detach().item()
         
         num  = len(train_loader)
@@ -731,7 +795,7 @@ def deep_align_net_train_loop(
         else:
             condition = False
             
-        earlystopping((vloss_sum / vnum), model, condition = condition)
+        earlystopping((vloss_sum / vnum), align_model, condition = condition)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
@@ -739,3 +803,160 @@ def deep_align_net_train_loop(
     plt.legend()
     plt.savefig(
         f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
+    
+
+def finetuning_with_align_model_loop( # under construction
+        optimizer              ,
+        model                  ,
+        align_model            ,
+        train_loader           ,
+        val_loader             ,
+        device                 ,
+        model_name             ,
+        ewc                    ,
+        train_dataset_params   ,
+        train_loop_params      ,
+        vibration_params       ,
+        scheduler    = None    ,
+        v_verbose    = True    ,
+        ):
+    
+    n_epochs         = train_loop_params["n_epochs"         ]        
+    path             = train_loop_params["path"             ]            
+    savefig_path     = train_loop_params["savefig_path"     ]    
+    adjust_luminance = train_loop_params["adjust_luminance" ]
+    es_patience      = train_loop_params["es_patience"      ]
+    is_vibrate       = train_loop_params["is_vibrate"       ]      
+    zloss_weight     = train_loop_params["zloss_weight"     ]    
+    ewc_weight       = train_loop_params["ewc_weight"       ]      
+    qloss_weight     = train_loop_params["qloss_weight"     ]    
+    ploss_weight     = train_loop_params["ploss_weight"     ]
+    
+    earlystopping = EarlyStopping(
+        name        = model_name ,
+        path        = path       ,
+        patience    = es_patience,
+        window_size = 1          ,
+        metric      = "mean"     ,
+        verbose     = True       )
+    writer = SummaryWriter(f'runs/{model_name}')
+    train_curve = pd.DataFrame(columns=["training loss"    ,
+                                        "validatation loss"] )
+    loss_list, vloss_list= [], []
+    mask = Mask()
+    for epoch in range(1, n_epochs + 1):
+        loss_sum = 0.
+        model.train()
+        for train_data in train_loader:
+            image  = train_data["image"].to(device = device)
+            #_image = model.image.hill.sample(image)
+            _image  = model.image.hill.hill_with_best_value(image)
+            _image = mask.apply_mask(
+                train_dataset_params["mask"]      ,
+                _image                            ,
+                train_dataset_params["mask_size"] ,
+                train_dataset_params["mask_num"]  ,)
+            
+            outdict = model(image)
+            rec     = outdict["reconstruction" ]
+            a       = outdict["poisson_weight" ]
+            sigma   = outdict["gaussian_sigma" ]
+            lum     = outdict["estim_luminance"]
+            qloss   = outdict["quantized_loss" ]
+            ploss   = outdict["psf_loss"       ]
+            if adjust_luminance:
+                rec = luminance_adjustment(rec, image)
+            #loss  = loss_fn(rec, image) * loss_weight
+            loss = _loss_fnx(rec, image, a, sigma)
+            loss_z = _loss_fnz(
+                _input = lum ,
+                mask   = None,
+                target = None ) * zloss_weight
+            loss += loss_z
+            if ewc is not None:
+                loss += ewc.calc_ewc_loss(ewc_weight)
+            if qloss is not None:
+                loss += qloss * qloss_weight
+            if ploss is not None:
+                loss += ploss * ploss_weight
+            optimizer.zero_grad()
+            loss.backward(retain_graph=False)
+            optimizer.step()
+            loss_sum += loss.detach().item()
+        vloss_sum, vqloss_sum, vparam_loss_sum = 0., 0., 0.
+        model.eval()
+        with torch.no_grad():
+            for val_data in val_loader:
+                image   = val_data["image"].to(device = device)
+                #_image  = model.image.hill.sample(image)
+                _image  = model.image.hill.hill_with_best_value(image)
+                vimage  =  _image
+                outdict = model(vimage)
+                rec     = outdict["reconstruction" ]
+                a       = outdict["poisson_weight" ]
+                sigma   = outdict["gaussian_sigma" ]
+                lum     = outdict["estim_luminance"]
+                qloss   = outdict["quantized_loss" ]
+                ploss   = outdict["psf_loss"       ]
+                print("poisson_weight", a    )
+                print("gaussian_sigma", sigma)
+                if adjust_luminance:
+                    rec = luminance_adjustment(rec, image)
+                #vloss   = loss_fn(rec, image) * loss_weight
+                vloss = _loss_fnx(rec, image, a, sigma)
+                vloss = vloss.detach().item()
+                if v_verbose: print("valid loss for reconst\t", vloss)                
+                vloss_z = _loss_fnz(
+                _input =lum ,
+                mask   =None,
+                target =None ) * zloss_weight
+                vloss += vloss_z
+                vloss_sum += vloss.detach().item()
+                if v_verbose: print("valid loss plus loss_z\t", vloss)
+                if qloss is not None:
+                    qloss = qloss.detach().item() * qloss_weight
+                    vloss_sum += qloss
+                    vqloss_sum += qloss
+                    if v_verbose: print("valid loss plus qloss\t", vloss)
+                if ploss is not None:
+                    ploss = ploss.detach().item() * ploss_weight
+                    vloss_sum += ploss
+                    if v_verbose: print("valid loss plus ploss\t", vloss)
+                if v_verbose: print("valid loss without ewc\t", vloss)
+                if ewc is not None:
+                    ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
+                    vloss_sum += ewc_loss
+                    vloss += ewc_loss
+                    if v_verbose: print("valid loss with ewc\t", vloss)
+
+        num  = len(train_loader)
+        vnum = len(val_loader)
+        
+        loss_list.append(loss_sum / num)
+        vloss_list.append(vloss_sum / vnum)
+        writer.add_scalar('train loss', loss_sum / num, epoch)
+        writer.add_scalar('val loss', vloss_sum / vnum, epoch)
+        writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
+        writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
+        row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
+                           columns = train_curve.columns)
+        train_curve = pd.concat([train_curve, row], ignore_index=True)
+        train_curve.to_csv(f"./experiments/traincurves/{model_name}.csv",
+                           index=False)
+        
+        if epoch == 1 or epoch % 10 == 0:
+            print(f'Epoch {epoch}, Train {loss_list[-1]},'+\
+                  f' Val {vloss_list[-1]}')
+        
+        if scheduler is not None:
+            scheduler.step(epoch, vloss_list[-1])
+        condition = get_condition(optimizer, train_loop_params["lr"])
+        if get_condition(optimizer, train_loop_params["lr"]):
+            earlystopping(vloss_list[-1], model, condition = condition)
+            if earlystopping.early_stop:
+                break
+    plt.plot(loss_list , label='train loss')
+    plt.plot(vloss_list, label='validation loss')
+    plt.legend()
+    plt.savefig(f'{savefig_path}/{model_name}_train.png',
+                format='png', dpi=500)

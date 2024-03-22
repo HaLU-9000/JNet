@@ -68,6 +68,7 @@ class PretrainingInference():
                                            params = self.params,)
                 if self.configs["pretrain_loop"]["is_vibrate"]:
                     image   = self.vibrate(image).detach().clone()
+                image  = self.JNet.image.hill.hill_with_best_value(image)
                 outdict = self.JNet(image)
                 output  = F.sigmoid(outdict["enhanced_image"])
                 qloss   = outdict["quantized_loss"]
@@ -300,7 +301,10 @@ class SimulationInference():
                 if n >= num_results:
                     break
                 if self.is_finetuning:
-                    self.JNet.image.load_state_dict(torch.load(f"model/{self.pre_model_name}.pt"), strict=False)
+                    self.JNet.image.load_state_dict(
+                        torch.load(
+                            f"model/{self.pre_model_name}.pt"), 
+                            strict=False)
                 labelx = val_data["labelx"].to(device = self.device)
                 labelz = val_data["labelz"].to(device = self.device)
                 image = imagen_instantblur(model  = self.JNet  ,
@@ -309,9 +313,13 @@ class SimulationInference():
                                            params = self.params,)
                 image  = self.JNet.image.hill.sample(image)
                 if self.is_finetuning:            
-                    self.JNet.image.load_state_dict(torch.load(f"model/{self.model_name}.pt"), strict=False)
+                    self.JNet.image.load_state_dict(
+                        torch.load(
+                            f"model/{self.model_name}.pt"), 
+                            strict=False)
                 if self.configs["pretrain_loop"]["is_vibrate"]:
                     image   = self.vibrate(image).detach().clone()
+                image    = self.JNet.image.hill.hill_with_best_value(image)
                 outdict  = self.JNet(image)
                 outputx  = outdict["enhanced_image"]
                 outputz  = outdict["estim_luminance"]
@@ -526,7 +534,8 @@ class MicrogliaInference():
                 if n >= num_results:
                     break
                 image   = val_data["image"].to(device = self.device)
-                image  = self.JNet.image.hill.sample(image)
+                image   = self.JNet.image.hill.hill_with_best_value(image)
+                #image  = self.JNet.image.hill.sample(image)
                 outdict  = self.JNet(image)
                 outputx  = outdict["enhanced_image" ]
                 outputz  = outdict["estim_luminance"]
