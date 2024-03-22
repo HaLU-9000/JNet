@@ -566,6 +566,8 @@ class Hill(nn.Module):
         super().__init__()
         self.n_init  = n
         self.ka_init = ka
+        self.x1 = 0.5
+        self.x2 = 0.9
         #self.n  = nn.Parameter(torch.tensor(n ).to(device=params["device"]))
         #self.ka = nn.Parameter(torch.tensor(ka).to(device=params["device"]))
 
@@ -575,6 +577,12 @@ class Hill(nn.Module):
         x = self.hill(x, n, ka)
         return x
     
+    def best_value_hill(self, x):
+        v = self.solve_hill(
+            self.x1, self.x2, self.find_y(self.x1), self.find_y(self.x2))
+        x = self.hill(x, v["n"], v["ka"])
+        return x
+    
     def sample(self, x):
         x = self.hill(x, self.n_init, self.ka_init)
         return x
@@ -582,9 +590,19 @@ class Hill(nn.Module):
     def hill(self, x, n, ka):
         return (1. + ka ** n) * x ** n / (ka ** n + x ** n)
     
-    def find_best_ka(self, image):
-        x1 = 0.5
-        x2 = 0.99
+    def find_y(self, x, x1):
+        return torch.quantile(x.flatten(), x1)
+    
+    def solve_hill(x1, x2, y1, y2):
+        a = torch.log(x2) * (torch.log(1 - y1) - torch.log(y1))
+        b = torch.log(x1) * (torch.log(1 - y2) - torch.log(y2))
+        c = torch.log(y2) + torch.log(1 - y1)
+        d = torch.log(y1) + torch.log(1 - y2)
+        k = torch.exp((a - b)/(c - d))
+        n = (torch.log(1 - y1) - torch.log(y1))\
+            / (torch.log(k) - torch.log(x1))
+        return {"n"  : n,
+                "ka" : k }
         
 
     
