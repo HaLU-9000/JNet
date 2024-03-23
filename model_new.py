@@ -566,10 +566,10 @@ class Hill(nn.Module):
         super().__init__()
         self.n_init  = n
         self.ka_init = ka
+        self.n  = n
+        self.k  = ka
         self.x1 = torch.ones(1).to(device=params["device"]) * 0.5
         self.x2 = torch.ones(1).to(device=params["device"]) * 0.8
-        #self.n  = nn.Parameter(torch.tensor(n ).to(device=params["device"]))
-        #self.ka = nn.Parameter(torch.tensor(ka).to(device=params["device"]))
 
     def forward(self, x):
         n  = F.sigmoid(self.n)
@@ -602,8 +602,8 @@ class Hill(nn.Module):
     def solve_hill(self, x1, x2, y1, y2):
         a = torch.log(x2) * (torch.log(1 - y1) - torch.log(y1))
         b = torch.log(x1) * (torch.log(1 - y2) - torch.log(y2))
-        c = torch.log(y2) + torch.log(1 - y1)
-        d = torch.log(y1) + torch.log(1 - y2)
+        c = torch.log(y2) +  torch.log(1 - y1)
+        d = torch.log(y1) +  torch.log(1 - y2)
         self.k = torch.exp((a - b) / (c - d))
         self.n = (torch.log(1 - y1) - torch.log(y1)) \
                / (torch.log(self.k) - torch.log(x1))
@@ -611,10 +611,8 @@ class Hill(nn.Module):
                 "ka" : self.k }
         
     def invertion_hill_with_current_coeffs(self, x):
-        return ((self.k-x+1) / (self.k*x)) ** (-1/self.n)
-        
+        return ((self.k - x + 1) / (self.k * x)) ** (- 1 / self.n)
 
-    
 
 class ImagingProcess(nn.Module):
     def __init__(self, params):

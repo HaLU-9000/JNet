@@ -89,7 +89,7 @@ def pretrain_loop(
                     label  = labelz,
                     device = device,
                     params = params,)
-                image  = model.image.hill.hill_with_best_value(image)
+                image  = model.image.hill.sample(image)
             image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
                 image                             ,
@@ -120,7 +120,7 @@ def pretrain_loop(
                                            label  = labelz,
                                            device = device,
                                            params = params,)
-                image  = model.image.hill.hill_with_best_value(image)
+                image  = model.image.hill.sample(image)
                 vimage = vibrate(image) if is_vibrate else image
                 outdict = model(vimage)
                 out   = outdict["enhanced_image" ]
@@ -218,7 +218,7 @@ def finetuning_loop(
         for train_data in train_loader:
             image  = train_data["image"].to(device = device)
             #_image = model.image.hill.sample(image)
-            _image  = model.image.hill.hill_with_best_value(image)
+            _image  = model.image.hill.sample(image)
             _image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
                 _image                            ,
@@ -257,7 +257,7 @@ def finetuning_loop(
             for val_data in val_loader:
                 image   = val_data["image"].to(device = device)
                 #_image  = model.image.hill.sample(image)
-                _image  = model.image.hill.hill_with_best_value(image)
+                _image  = model.image.hill.sample(image)
                 vimage  = vibrate(_image) if is_vibrate else _image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction" ]
@@ -695,7 +695,7 @@ def deep_align_net_train_loop(
                     label  = labelz       ,
                     device = device       ,
                     params = params       ,)
-                image = deconv_model.image.hill.hill_with_best_value(image)
+                image = deconv_model.image.hill.sample(image)
 
             vimage = vibrate(image)
             v_m_image = mask.apply_mask(
@@ -744,7 +744,7 @@ def deep_align_net_train_loop(
                     label  = labelz       ,
                     device = device       ,
                     params = params       ,)
-                image = deconv_model.image.hill.hill_with_best_value(image)
+                image = deconv_model.image.hill.sample(image)
                 vimage = vibrate(image)
                 outdict_a = align_model(vimage)
                 aligned_image = outdict_a["aligned_image"]
@@ -850,7 +850,7 @@ def finetuning_with_align_model_loop( # under construction
         for train_data in train_loader:
             image  = train_data["image"].to(device = device)
             #_image = model.image.hill.sample(image)
-            _image  = model.image.hill.hill_with_best_value(image)
+            _image  = model.image.hill.sample(image)
             _image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
                 _image                            ,
@@ -889,7 +889,7 @@ def finetuning_with_align_model_loop( # under construction
             for val_data in val_loader:
                 image   = val_data["image"].to(device = device)
                 #_image  = model.image.hill.sample(image)
-                _image  = model.image.hill.hill_with_best_value(image)
+                _image  = model.image.hill.sample(image)
                 vimage  =  _image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction" ]
