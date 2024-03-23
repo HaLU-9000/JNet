@@ -21,14 +21,14 @@ image_org  = utils.load_anything(args.image_name)
 image      = utils.ImageProcessing(image_org)
 
 # model load
-model = utils.init_model(params, is_finetuning = True)
+model = utils.init_model(params, is_finetuning = False)
 utils.load_model_weight(model, model_name = args.model_name)
 utils.mount_model_to_device(model, configs = configs)
 model.eval()
 
 # batch process
 image.process_image(model, params, shape, "enhanced_image", 
-                    overlap=[10, 10, 10])
+                    overlap=[0, 0, 0])
 print(image.processed_image.shape)
 
 # save image
