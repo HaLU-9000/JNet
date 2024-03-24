@@ -638,7 +638,7 @@ def loss_mode(pixelwise_loss, perceptual_loss, segmentation_loss, mode):
     elif mode == "segmentation":
         loss = segmentation_loss
     elif mode == "segmentation_plus_perceptual":
-        loss = segmentation_loss + perceptual_loss
+        loss = segmentation_loss + perceptual_loss # referred in CellPose3
     elif mode == "pixelwise_plus_perceptual":
         loss = pixelwise_loss + perceptual_loss
     elif mode == "pixelwise_plus_segmentation":
@@ -669,7 +669,7 @@ def deep_align_net_train_loop(
     savefig_path = train_loop_params["savefig_path"]
     es_patience  = train_loop_params["es_patience"]
     loss_fn      = nn.MSELoss()
-    mode         = train_loop_params["mode"]
+    mode         = params["loss_mode"]
 
     earlystopping = EarlyStopping(
         name        = model_name ,
@@ -816,21 +816,20 @@ def finetuning_with_align_model_loop( # under construction
         ewc                    ,
         train_dataset_params   ,
         train_loop_params      ,
-        vibration_params       ,
-        scheduler    = None    ,
-        v_verbose    = True    ,
+        scheduler   = None     ,
+        v_verbose   = False    ,
         ):
     
     n_epochs         = train_loop_params["n_epochs"         ]        
     path             = train_loop_params["path"             ]            
     savefig_path     = train_loop_params["savefig_path"     ]    
     adjust_luminance = train_loop_params["adjust_luminance" ]
-    es_patience      = train_loop_params["es_patience"      ]
-    is_vibrate       = train_loop_params["is_vibrate"       ]      
+    es_patience      = train_loop_params["es_patience"      ] 
     zloss_weight     = train_loop_params["zloss_weight"     ]    
     ewc_weight       = train_loop_params["ewc_weight"       ]      
     qloss_weight     = train_loop_params["qloss_weight"     ]    
     ploss_weight     = train_loop_params["ploss_weight"     ]
+    align_model.eval()
     
     earlystopping = EarlyStopping(
         name        = model_name ,
@@ -850,14 +849,17 @@ def finetuning_with_align_model_loop( # under construction
         for train_data in train_loader:
             image  = train_data["image"].to(device = device)
             #_image = model.image.hill.sample(image)
-            _image  = model.image.hill.sample(image)
+            with torch.no_grad():
+                _image  = model.image.hill.sample(image)
+                aligned = align_model(_image)
+            _image  = aligned["aligned_image"]
+            image   = model.image.hill.inverse_hill(_image)
             _image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
                 _image                            ,
                 train_dataset_params["mask_size"] ,
                 train_dataset_params["mask_num"]  ,)
-            
-            outdict = model(image)
+            outdict = model(_image)
             rec     = outdict["reconstruction" ]
             a       = outdict["poisson_weight" ]
             sigma   = outdict["gaussian_sigma" ]
@@ -888,8 +890,10 @@ def finetuning_with_align_model_loop( # under construction
         with torch.no_grad():
             for val_data in val_loader:
                 image   = val_data["image"].to(device = device)
-                #_image  = model.image.hill.sample(image)
                 _image  = model.image.hill.sample(image)
+                aligned = align_model(_image)
+                _image  = aligned["aligned_image"]
+                image   = model.image.hill.inverse_hill(_image)
                 vimage  =  _image
                 outdict = model(vimage)
                 rec     = outdict["reconstruction" ]
@@ -898,11 +902,8 @@ def finetuning_with_align_model_loop( # under construction
                 lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss" ]
                 ploss   = outdict["psf_loss"       ]
-                print("poisson_weight", a    )
-                print("gaussian_sigma", sigma)
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
-                #vloss   = loss_fn(rec, image) * loss_weight
                 vloss = _loss_fnx(rec, image, a, sigma)
                 vloss = vloss.detach().item()
                 if v_verbose: print("valid loss for reconst\t", vloss)                

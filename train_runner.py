@@ -10,7 +10,7 @@ import timm.scheduler
 
 import model_new as model
 from dataset import RandomCutDataset
-from train_loop import pretrain_loop
+from train_loop import pretrain_loop, deep_align_net_train_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -18,7 +18,8 @@ print(f"Training on device {device}.")
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
-args   = parser.parse_args()
+parser.add_argument('--train_align', action="store_true")
+args = parser.parse_args()
 
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs              = json.load(configs)
@@ -28,19 +29,34 @@ val_dataset_params   = configs["pretrain_val_dataset"]
 train_loop_params    = configs["pretrain_loop"       ]
 vibration_params     = configs["vibration"           ]
 
+
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
-train_params = JNet.parameters()
 
-lr = train_loop_params['lr']
+if args.train_align:
+    align_params   = configs["align_params"]
+    deep_align_net = model.DeepAlignNet(align_params)
+    deep_align_net = deep_align_net.to(device=device)
+    lr             = align_params["lr"]
+    train_params   = deep_align_net.parameters()
+    optimizer_a    = optim.Adam(train_params, lr = align_params["lr"])
+    scheduler      = timm.scheduler.PlateauLRScheduler(
+        optimizer      = optimizer_a ,
+        patience_t     = 5           ,
+        warmup_lr_init = lr * 0.1    ,
+        warmup_t       = 10          ,
+        )
 
-optimizer = optim.Adam(train_params, lr = lr)
-scheduler = timm.scheduler.PlateauLRScheduler(
-    optimizer      = optimizer   ,
-    patience_t     = 5           ,
-    warmup_lr_init = lr * 0.1    ,
-    warmup_t       = 10          ,
-    )
+else:
+    train_params = JNet.parameters()
+    lr = train_loop_params['lr']
+    optimizer = optim.Adam(train_params, lr = lr)
+    scheduler = timm.scheduler.PlateauLRScheduler(
+        optimizer      = optimizer   ,
+        patience_t     = 5           ,
+        warmup_lr_init = lr * 0.1    ,
+        warmup_t       = 10          ,
+        )
 
 train_dataset = RandomCutDataset(
     folderpath    = train_dataset_params["folderpath"]   ,
@@ -91,17 +107,34 @@ val_data    = DataLoader(
     num_workers = 0#os.cpu_count()                 ,
     )
 
-print(f'========= model {configs["pretrained_model"]} train started =========')
 model_path = 'model'
-pretrain_loop(
-    optimizer            = optimizer                   ,
-    model                = JNet                        ,
-    train_loader         = train_data                  ,
-    val_loader           = val_data                    ,
-    model_name           = configs["pretrained_model"] ,
-    params               = params                      ,
-    train_loop_params    = train_loop_params           ,
-    train_dataset_params = train_dataset_params        ,
-    vibration_params     = vibration_params            ,
-    scheduler            = scheduler
-    )
+if args.train_align:
+    print(f'========= model {align_params["name"]} train started =========')
+    deep_align_net_train_loop(
+        optimizer            = optimizer_a                 ,
+        align_model          = deep_align_net              ,
+        deconv_model         = JNet                        ,
+        train_loader         = train_data                  ,
+        val_loader           = val_data                    ,
+        model_name           = align_params["name"]        ,
+        params               = align_params                ,
+        train_loop_params    = train_loop_params           ,
+        train_dataset_params = train_dataset_params        ,
+        vibration_params     = vibration_params            ,
+        scheduler            = scheduler
+        )
+    
+else:
+    print(f'========= model {configs["pretrained_model"]} train started =========')
+    pretrain_loop(
+        optimizer            = optimizer                   ,
+        model                = JNet                        ,
+        train_loader         = train_data                  ,
+        val_loader           = val_data                    ,
+        model_name           = configs["pretrained_model"] ,
+        params               = params                      ,
+        train_loop_params    = train_loop_params           ,
+        train_dataset_params = train_dataset_params        ,
+        vibration_params     = vibration_params            ,
+        scheduler            = scheduler
+        )

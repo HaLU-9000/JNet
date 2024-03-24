@@ -11,7 +11,11 @@ import timm.scheduler
 
 import model_new as model
 from dataset import DensityDataset, RandomCutDataset
-from   train_loop import finetuning_loop, ElasticWeightConsolidation
+
+from   train_loop                           \
+    import finetuning_loop,                 \
+           ElasticWeightConsolidation,      \
+           finetuning_with_align_model_loop
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -19,6 +23,7 @@ print(f"Training on device {device}.")
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
+parser.add_argument('--train_with_align', action="store_true")
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
 args   = parser.parse_args()
 
@@ -92,6 +97,11 @@ params["use_x_quantized"] = True
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 
+if args.train_with_align:
+    align_params   = configs["align_params"]
+    deep_align_net = model.DeepAlignNet(align_params)
+    deep_align_net = deep_align_net.to(device=device)
+
 if args.train_mode == 'decoder' or args.train_mode == 'old':
     JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
                          strict=False)
@@ -163,18 +173,35 @@ if  train_loop_params["ewc"] != None:
 else:
     ewc = None
 
-print(f"============= model {args.model_name} train started =============")
+if args.train_with_align:
+    print(f"============= model {args.model_name} train started " + \
+          f"with {align_params['name']} =============")
+    finetuning_with_align_model_loop(
+        optimizer            = optimizer            ,
+        model                = JNet                 ,
+        align_model          = deep_align_net       ,
+        train_loader         = train_data           ,
+        val_loader           = val_data             ,
+        device               = device               ,
+        model_name           = args.model_name      ,
+        ewc                  = ewc                  ,
+        train_dataset_params = train_dataset_params ,
+        train_loop_params    = train_loop_params    ,
+        scheduler            = scheduler
+    )
 
-finetuning_loop( ####
-    optimizer            = optimizer            ,
-    model                = JNet                 ,
-    train_loader         = train_data           ,
-    val_loader           = val_data             ,
-    device               = device               ,
-    model_name           = args.model_name      ,
-    ewc                  = ewc                  ,
-    train_dataset_params = train_dataset_params ,
-    train_loop_params    = train_loop_params    ,
-    vibration_params     = vibration_params     ,
-    scheduler            = scheduler
-)
+else:
+    print(f"============= model {args.model_name} train started =============")
+    finetuning_loop( ####
+        optimizer            = optimizer            ,
+        model                = JNet                 ,
+        train_loader         = train_data           ,
+        val_loader           = val_data             ,
+        device               = device               ,
+        model_name           = args.model_name      ,
+        ewc                  = ewc                  ,
+        train_dataset_params = train_dataset_params ,
+        train_loop_params    = train_loop_params    ,
+        vibration_params     = vibration_params     ,
+        scheduler            = scheduler
+    )

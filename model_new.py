@@ -610,7 +610,8 @@ class Hill(nn.Module):
         return {"n"  : self.n,
                 "ka" : self.k }
         
-    def invertion_hill_with_current_coeffs(self, x):
+    def inverse_hill(self, x):
+        x = x.clip(min = 0., max = 1.)
         return ((self.k - x + 1) / (self.k * x)) ** (- 1 / self.n)
 
 
@@ -698,9 +699,13 @@ class JNet(nn.Module):
         print(f'init done ({t2-t1:.2f} s)')
         self.use_x_quantized = params["use_x_quantized"]
         self.tau = 1.
-        self.a     = nn.Parameter(torch.tensor(params["poisson_weight"])
+        a = params["poisson_weight"]
+        a_inv_sig = np.log(a / (1 - a))
+        self.a     = nn.Parameter(torch.tensor(a_inv_sig)
                                   .to(device=params["device"]))
-        self.sigma = nn.Parameter(torch.tensor(params["sig_eps"])
+        s = params["sig_eps"]
+        s_inv_sig = np.log(s / (1 - s))
+        self.sigma = nn.Parameter(torch.tensor(s_inv_sig)
                                   .to(device=params["device"]))
 
     def forward(self, x):
@@ -733,8 +738,8 @@ class JNet(nn.Module):
                "reconstruction"  : r         ,
                "mid"             : _x        ,
                "estim_luminance" : z         ,
-               "poisson_weight"  : self.a    ,
-               "gaussian_sigma"  : self.sigma,
+               "poisson_weight"  : F.sigmoid(self.a)    ,
+               "gaussian_sigma"  : F.sigmoid(self.sigma),
                }
         vqd = {"quantized_loss" : qloss} if self.apply_vq\
             else {"quantized_loss" : None}
