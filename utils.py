@@ -530,7 +530,7 @@ class ImageProcessing():
     def _process(self, chunk, model, params):  
         chunk = self._make_5d(chunk)
         chunk = self._to_model_device(chunk, params)
-        chunk = model.image.hill.hill_with_best_value(chunk)
+        chunk = model.image.hill.sample(chunk)
         chunk = model(chunk)
         return {
             "enhanced_image" : chunk["enhanced_image" ]\
@@ -623,3 +623,11 @@ class ImageProcessing():
     
     def _resolve_overlap(self, image, overlap):
         return image / overlap
+    
+
+class MRFLoss(nn.Module):
+    def __init__(self, ):
+        super.__init__()
+
+    def forward(self, x):
+        pass

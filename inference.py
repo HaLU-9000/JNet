@@ -68,7 +68,7 @@ class PretrainingInference():
                                            params = self.params,)
                 if self.configs["pretrain_loop"]["is_vibrate"]:
                     image   = self.vibrate(image).detach().clone()
-                image  = self.JNet.image.hill.hill_with_best_value(image)
+                image  = self.JNet.image.hill.sample(image)
                 outdict = self.JNet(image)
                 output  = F.sigmoid(outdict["enhanced_image"])
                 qloss   = outdict["quantized_loss"]
@@ -319,7 +319,7 @@ class SimulationInference():
                             strict=False)
                 if self.configs["pretrain_loop"]["is_vibrate"]:
                     image   = self.vibrate(image).detach().clone()
-                image    = self.JNet.image.hill.hill_with_best_value(image)
+                image    = self.JNet.image.hill.sample(image)
                 outdict  = self.JNet(image)
                 outputx  = outdict["enhanced_image"]
                 outputz  = outdict["estim_luminance"]
@@ -534,7 +534,7 @@ class MicrogliaInference():
                 if n >= num_results:
                     break
                 image   = val_data["image"].to(device = self.device)
-                image   = self.JNet.image.hill.hill_with_best_value(image)
+                image   = self.JNet.image.hill.sample(image)
                 #image  = self.JNet.image.hill.sample(image)
                 outdict  = self.JNet(image)
                 outputx  = outdict["enhanced_image" ]

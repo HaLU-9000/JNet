@@ -21,7 +21,7 @@ image_org  = utils.load_anything(args.image_name)
 image      = utils.ImageProcessing(image_org)
 
 # model load
-model = utils.init_model(params, is_finetuning = False)
+model = utils.init_model(params, is_finetuning = True)
 utils.load_model_weight(model, model_name = args.model_name)
 utils.mount_model_to_device(model, configs = configs)
 model.eval()
