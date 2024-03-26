@@ -86,6 +86,8 @@ _*
 
 experiments/images
 experiment/tmp
+experiment/imagetests
+
 experiments/traincurves
 
 model/
