@@ -12,9 +12,7 @@ import model_new as model
 from dataset import RandomCutDataset
 from train_loop import pretrain_loop, deep_align_net_train_loop
 
-device = (torch.device('cuda') if torch.cuda.is_available()
-          else torch.device('cpu'))
-print(f"Training on device {device}.")
+
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
@@ -29,7 +27,8 @@ val_dataset_params   = configs["pretrain_val_dataset"]
 train_loop_params    = configs["pretrain_loop"       ]
 vibration_params     = configs["vibration"           ]
 
-
+device = params["device"]
+print(f"Training on device {device}.")
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 

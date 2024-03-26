@@ -47,7 +47,7 @@
             "loss_fn"               : "nn.MSELoss()"                           , "$loss_fn"               : "loss func for NeurIPSF"             ,  
             "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
             "num_iter_psf_pretrain" : 1000                                     , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
-            "device"                : "cuda"
+            "device"                : "cuda:"
         }                                                                      ,  "$params" : "model configs",
 
     "align_params":

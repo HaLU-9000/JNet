@@ -17,9 +17,7 @@ from   train_loop                           \
            ElasticWeightConsolidation,      \
            finetuning_with_align_model_loop
 
-device = (torch.device('cuda') if torch.cuda.is_available()
-          else torch.device('cpu'))
-print(f"Training on device {device}.")
+
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
@@ -36,6 +34,8 @@ val_dataset_params   = configs["val_dataset"      ]
 train_loop_params    = configs["train_loop"       ]
 vibration_params     = configs["vibration"        ]
 
+device = params["device"]
+print(f"Training on device {device}.")
 #infer = PretrainingInference(args.model_name, pretrain=True)
 #results = infer.get_result(10)
 #threshold = infer.threshold_argmax_f1score(results)

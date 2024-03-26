@@ -951,8 +951,7 @@ def finetuning_with_align_model_loop(
         
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        condition = get_condition(optimizer, train_loop_params["lr"])
-        earlystopping(vloss_list[-1], model, condition = condition)
+        earlystopping(vloss_list[-1], model)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
