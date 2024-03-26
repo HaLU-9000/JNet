@@ -293,7 +293,7 @@ def finetuning_loop(
                 if train_with_mrf:
                     loss_mrf = mrf_loss(out)
                     print("mrf", loss_mrf.item())
-                    vloss_sum += loss_mrf * mrf_loss_weight
+                    vloss_sum += loss_mrf.item() * mrf_loss_weight
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
