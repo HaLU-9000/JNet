@@ -100,3 +100,6 @@ train/
 
 *.ipynb
 _*.ipynb
+
+images_psj/
+result_psj/
