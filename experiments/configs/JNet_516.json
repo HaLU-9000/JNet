@@ -1,6 +1,6 @@
 {
     "explanation":"training with danet",
-    "pretrained_model"  :   "JNet_493_pretrain" ,
+    "pretrained_model"  :   "JNet_487_pretrain" ,
     "align_model"       :   "danet_0"           ,
 
     "params":
@@ -130,7 +130,7 @@
 
     "train_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
+            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 200                               ,
@@ -145,7 +145,7 @@
 
     "val_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
+            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 20                                ,
