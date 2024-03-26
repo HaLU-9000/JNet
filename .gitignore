@@ -83,3 +83,11 @@ formermodel.py
 
 beadsscore
 _*
+
+experiments/images
+experiment/tmp
+experiments/traincurves
+
+model/
+result/
+runs/
