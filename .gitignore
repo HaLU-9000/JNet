@@ -90,6 +90,13 @@ experiment/imagetests
 
 experiments/traincurves
 
-model/
 result/
 runs/
+images_psj/
+result_psj/
+roc_test/
+roc/
+train/
+
+*.ipynb
+_*.ipynb
