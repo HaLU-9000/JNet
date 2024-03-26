@@ -73,44 +73,6 @@ class EarlyStopping():
         torch.save(model.state_dict(), f'{self.path}/{self.name}.pt')
 
 
-class ModelSizeEstimator():
-    def __init__(self, model):
-        param_size = 0
-        for param in model.parameters():
-            param_size += param.nelement() * param.element_size()
-        buffer_size = 0
-        for buffer in model.buffers():
-            buffer_size += buffer.nelement() * buffer.element_size()
-        self.size_all_mb = (param_size + buffer_size) / 1024**2
-    def __call__(self):
-        print('model size: {:.3f} MB'.format(self.size_all_mb))
-
-def save(data, zsize, xsize, ysize, path, name='', label=True, scale=1, num=0):
-    """
-    input  : 4d pt.tensor
-    output : 4d numpy.ndarray
-    * not working well in x12. modify when needed.
-    """
-    if name:
-        label = False
-    if label:
-        l = '_label'
-    else:
-        l = name    
-    zsize = zsize // scale
-    z_r   = data.shape[1] // zsize
-    x_r   = data.shape[2] // xsize
-    y_r   = data.shape[3] // ysize
-    for k in range(z_r):
-        for i in range(x_r):
-            for j in range(y_r):
-                pt = data[0 : , k * zsize : (k + 1) * zsize ,
-                                i * xsize : (i + 1) * xsize ,
-                                j * ysize : (j + 1) * ysize ,].clone()
-                np.save(f'{path}/{str(num).zfill(4)}{l}', pt.detach().cpu().numpy())
-                num += 1
-    return num
-
 def path_blur():
     return 0
 
@@ -625,9 +587,131 @@ class ImageProcessing():
         return image / overlap
     
 
-class MRFLoss(nn.Module):
-    def __init__(self, ):
-        super.__init__()
-        
-    def forward(self, x):
-        pass
+class MRFLoss():
+    """
+    usage \n
+    ```
+    mrf_loss = MRFLoss(dims=2, mode="all")
+    x = torch.randn(100).view(1,1,10,10)
+    mrf_loss(x)
+    >> torch.tensor(1.4376)
+    ```
+    """
+    def __init__(self, dims, order=1, mode="orthogonal"):
+        if dims == 1:
+            self.axis = [-1]
+        if dims == 2:
+            self.axis = [-2, -1]
+        if dims == 3:
+            self.axis = [-3, -2, -1]
+        self.dims = dims
+        self.order = order
+        if mode == "orthogonal":
+            self.shifts = self._get_orthogonal_shift_list(self.order)
+        elif mode == "all":
+            self.shifts = self._get_shift_list(self.order)
+        else:
+            raise ValueError(f"mode '{mode}' is not implemented." +\
+                 " Try 'all' or 'orthogonal'. ")
+
+    def __call__(self, x):
+        energy = 0
+        for shift in self.shifts:
+            euclid = self._calc_euclid_distance(shift)
+            markov = self._markov_difference(x, shift)
+            energy = energy + self._criterion(diff=markov, dist=euclid)
+        return energy
+
+    def _criterion(self, diff, dist, mode="mean", loss_type="gaussian"):
+        if loss_type == "gaussian":
+            loss = self._gaussian_loss(diff, dist)
+        elif loss_type == "squared":
+            loss = self._squared_loss(diff, dist)
+        else:
+            raise ValueError(f"loss_type '{loss_type}' is not implemented." +\
+                             " Try 'gaussian' or 'squared'. ")
+        if mode == "mean":
+            return loss.mean()
+        elif mode == "sum":
+            return loss.sum()
+        else:
+            raise ValueError(f"mode '{mode}' is not implemented." +\
+                             " Try 'mean' or 'sum'. ")
+
+    def _gaussian_loss(self, diff, dist):
+        coeffs = 1 / (dist * (2 * 3.14) ** 1/2)
+        loss = coeffs * torch.exp((-1/2)*(diff / dist) ** 2)
+        return loss
+
+    def _squared_loss(self, diff, dist):
+        return (diff / dist) ** 2
+
+    def _get_orthogonal_shift_list(self, order):
+        shifts = []
+        distance = [o for o in range(-order, order+1)]
+        org = [0 for _ in range(self.dims)]
+        for dim in range(self.dims):
+            for dist in distance:
+                shift      = org.copy()
+                shift[dim] = dist
+                shifts.append(shift)
+        shifts.sort()
+        shifts = self._get_unique_list(shifts)
+        shifts = self._remove_zeros(shifts)
+        return shifts
+
+    def _get_shift_list(self, order):
+        shifts = []
+        distance = [o for o in range(-order, order + 1)]
+        org = [0 for _ in range(self.dims)]
+        shifts.append(org)
+        for dim in range(self.dims):
+            _shifts = []
+            for shift in shifts:
+                for dist in distance:
+                    shift = shift.copy()
+                    shift[dim] = dist
+                    _shifts.append(shift)
+            shifts = _shifts
+        shifts = self._remove_zeros(shifts)
+        return shifts
+
+    def _remove_zeros(self, seq):
+        return [s for s in seq if not all(e == 0 for e in s)]
+
+    def _get_unique_list(self, seq):
+        seen = []
+        return [x for x in seq if x not in seen and not seen.append(x)]
+
+    def _calc_euclid_distance(self, shift):
+        d = np.array(shift) ** 2
+        return np.sqrt(d.sum())
+
+    def _markov_difference(self, x, shift):
+        return x - self._modified_roll(x, shift)
+
+    def _modified_roll(self, x, shift):
+        org = torch.roll(x, shift, dims=self.axis)
+        mask = self._get_mask(x, shift)
+        return org * mask
+
+    def _get_mask(self, arr, shift):
+        mask = torch.ones_like(arr)
+        _shift = shift.copy()
+        while len(_shift) < arr.dim():
+            _shift.insert(0, 0)
+        for dim, s in enumerate(_shift):
+            if s >= 0:
+                mask = mask.narrow(dim, 0, arr.size(dim) - s)
+                mask = torch.cat([
+                    torch.zeros_like(mask).narrow(dim, 0, s),
+                    mask], 
+                                 dim=dim)
+            else:
+                s = -s
+                mask = mask.narrow(dim, s, arr.size(dim) - s)
+                mask = torch.cat([
+                    mask, 
+                    torch.zeros_like(mask).narrow(dim, 0, s)],
+                                 dim=dim)
+        return mask

@@ -805,7 +805,7 @@ def deep_align_net_train_loop(
         f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
     
 
-def finetuning_with_align_model_loop( # under construction
+def finetuning_with_align_model_loop(
         optimizer              ,
         model                  ,
         align_model            ,
@@ -952,10 +952,9 @@ def finetuning_with_align_model_loop( # under construction
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
         condition = get_condition(optimizer, train_loop_params["lr"])
-        if get_condition(optimizer, train_loop_params["lr"]):
-            earlystopping(vloss_list[-1], model, condition = condition)
-            if earlystopping.early_stop:
-                break
+        earlystopping(vloss_list[-1], model, condition = condition)
+        if earlystopping.early_stop:
+            break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()

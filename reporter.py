@@ -97,14 +97,16 @@ md.new_header(level=2, title="Results")
 #########################
 md.new_header(level=3, title="Pretraining")
 num_result = 5
-infer = inference.SimulationInference(args.model_name, is_finetuning=False)
+infer = inference.SimulationInference(args.model_name, is_finetuning=False,
+                                      is_vibrate = True,
+                                      with_align=True,)
 results = infer.get_result(num_result)
 evals = infer.evaluate(results)
 md.new_line(f'Segmentation: mean MSE: {np.mean(evals["MSEx"])}, mean BCE: {np.mean(evals["BCEx"])}')
 md.new_line(f'Luminance Estimation: mean MSE: {np.mean(evals["MSEz"])}, mean BCE: {np.mean(evals["BCEz"])}')
 infer.visualize(results)
 slice_list = ["plane", "depth"]
-type_list  = ["original", "outputx", "labelx", "outputz", "labelz"]
+type_list  = ["original","novibrate","aligned", "outputx", "labelx", "outputz", "labelz"]
 for n in range(num_result):
     md.new_header(level=3, title=f"{n}")
     for slice in slice_list:
@@ -130,8 +132,11 @@ torch.cuda.empty_cache()
 ## Finetuning Results with Simulation ##
 ########################################
 md.new_header(level=3, title="Finetuning Results with Simulation")
-type_list = ["original", "reconst", "heatmap", "outputx", "labelx", "outputz", "labelz"]
-infer = inference.SimulationInference(args.model_name, is_finetuning=True)
+type_list = ["original","novibrate","aligned", "reconst", "heatmap", "outputx", "labelx", "outputz", "labelz"]
+infer = inference.SimulationInference(args.model_name, 
+                                      is_finetuning=True,
+                                      is_vibrate = True,
+                                      with_align=True,)
 results = infer.get_result(num_result)
 evals  = infer.evaluate(results)
 infer.visualize(results)
@@ -151,7 +156,7 @@ md.new_line("If the pixels are red, the reconstructed image is brighter than the
 ## Finetuning Results with Microglia ##
 #######################################
 md.new_header(level=3, title="Finetuning Results with Microglia")
-btype_list = ["original", "outputx", "outputz", "reconst", "heatmap"]
+btype_list = ["original", "aligned", "outputx", "outputz", "reconst", "heatmap"]
 slice_list = ["plane", "depth"]
 for is_finetuning in [False, True]:
     md.new_header(level=4, title=f"finetuning == {is_finetuning}")
@@ -165,7 +170,7 @@ for is_finetuning in [False, True]:
             for tp in btype_list:
                 path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_microglia_{n}_{tp}_{slice}.png'
                 im_list.append(md.new_reference_image(text=f"{binfer.model_name}_microglia_{n}_{tp}_{slice}", path=path[1:]))
-            md.new_table(columns=5, rows=2, text=[*btype_list, *im_list],)
+            md.new_table(columns=len(btype_list), rows=len(slice_list), text=[*btype_list, *im_list],)
             md.new_line()
 md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
 binfer.psf_visualize()
