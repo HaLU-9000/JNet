@@ -3,7 +3,7 @@ import torchrl
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
-from utils import EarlyStopping
+from utils import EarlyStopping, MRFLoss
 import matplotlib.pyplot as plt
 import pandas as pd
 from dataset import Vibrate, Mask
@@ -212,6 +212,10 @@ def finetuning_loop(
     loss_list, vloss_list= [], []
     vibrate = Vibrate(vibration_params)
     mask = Mask()
+    train_with_mrf = True
+    mrf_loss = MRFLoss(dims=3, order=1, mode="orthogonal")
+    mrf_loss_weight = 0.1
+
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
         model.train()
@@ -229,6 +233,7 @@ def finetuning_loop(
             rec     = outdict["reconstruction" ]
             a       = outdict["poisson_weight" ]
             sigma   = outdict["gaussian_sigma" ]
+            out     = outdict["enhanced_image" ]
             lum     = outdict["estim_luminance"]
             qloss   = outdict["quantized_loss" ]
             ploss   = outdict["psf_loss"       ]
@@ -241,6 +246,9 @@ def finetuning_loop(
                 mask   = None,
                 target = None ) * zloss_weight
             loss += loss_z
+            if train_with_mrf:
+                loss_mrf = mrf_loss(out) * mrf_loss_weight
+                loss += loss_mrf
             if ewc is not None:
                 loss += ewc.calc_ewc_loss(ewc_weight)
             if qloss is not None:
@@ -263,6 +271,7 @@ def finetuning_loop(
                 rec     = outdict["reconstruction" ]
                 a       = outdict["poisson_weight" ]
                 sigma   = outdict["gaussian_sigma" ]
+                out     = outdict["enhanced_image" ]
                 lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss" ]
                 ploss   = outdict["psf_loss"       ]
@@ -280,16 +289,20 @@ def finetuning_loop(
                 target =None ) * zloss_weight
                 vloss += vloss_z
                 vloss_sum += vloss.detach().item()
-                if v_verbose: print("valid loss plus loss_z\t", vloss)
+                if v_verbose: print("valid loss plus loss_z\t", vloss_sum)
+                if train_with_mrf:
+                    loss_mrf = mrf_loss(out)
+                    print("mrf", loss_mrf.item())
+                    vloss_sum += loss_mrf * mrf_loss_weight
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                    if v_verbose: print("valid loss plus qloss\t", vloss)
+                    if v_verbose: print("valid loss plus qloss\t", vloss_sum)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
-                    if v_verbose: print("valid loss plus ploss\t", vloss)
+                    if v_verbose: print("valid loss plus ploss\t", vloss_sum)
                 if v_verbose: print("valid loss without ewc\t", vloss)
                 if ewc is not None:
                     ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
