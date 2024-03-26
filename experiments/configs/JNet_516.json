@@ -70,7 +70,7 @@
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,
-            "I"            : 2                     ,
+            "I"            : 200                       ,
             "low"          : 0                         ,
             "high"         : 16                        ,
             "scale"        : 3                         ,
@@ -87,7 +87,7 @@
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,
-            "I"            : 2                        ,
+            "I"            : 20                        ,
             "low"          : 16                        ,
             "high"         : 20                        ,
             "scale"        : 3                         ,
@@ -133,7 +133,7 @@
             "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
-            "I"               : 2                               ,
+            "I"               : 200                               ,
             "scale"           : 3                                 ,
             "train"           : true                              ,
             "mask"            : true                              ,
@@ -148,7 +148,7 @@
             "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
-            "I"               : 2                                ,
+            "I"               : 20                                ,
             "scale"           : 3                                 ,
             "train"           : false                             ,
             "mask"            : false                             ,
@@ -165,7 +165,7 @@
             "b_sigma"               : {"min" : 0   , "max" : 0.2} ,
             "amp_alpha"             : {"min" : 0   , "max" : 2  } ,
             "omega_alpha"           : {"min" : 0   , "max" : 2  } ,
-            "noise_inv_var_alpha"   : {"min" : 2   , "max" : 10 }
+            "noise_inv_var_alpha"   : {"min" : 1   , "max" : 10 }
         }                                                                      , "$vibration" : "",
 
     "train_loop":

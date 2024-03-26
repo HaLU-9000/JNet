@@ -695,6 +695,7 @@ def deep_align_net_train_loop(
     train_curve = pd.DataFrame(columns=["training loss", "validatation loss"])
     loss_list, vloss_list = [], []
     vibrate = Vibrate(vibration_params)
+    vibrate.set_arbitrary_step(100)
     mask = Mask()
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
