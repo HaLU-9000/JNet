@@ -85,8 +85,8 @@ beadsscore
 _*
 
 experiments/images
-experiment/tmp
-experiment/imagetests
+experiment/tmp/
+experiment/imagetests/
 
 experiments/traincurves
 
