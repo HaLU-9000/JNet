@@ -285,8 +285,6 @@ def finetuning_loop(
                 lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss" ]
                 ploss   = outdict["psf_loss"       ]
-                print("poisson_weight", a    )
-                print("gaussian_sigma", sigma)
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
                 #vloss   = loss_fn(rec, image) * loss_weight
@@ -302,7 +300,6 @@ def finetuning_loop(
                 if v_verbose: print("valid loss plus loss_z\t", vloss_sum)
                 if train_with_mrf:
                     loss_mrf = mrf_loss(out)
-                    print("mrf", loss_mrf.item())
                     vloss_sum += loss_mrf.item()
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
