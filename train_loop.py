@@ -688,7 +688,7 @@ def deep_align_net_train_loop(
         name        = model_name ,
         path        = path       ,
         patience    = es_patience,
-        window_size = 3          ,
+        window_size = 1          ,
         metric      = "mean"     ,
         verbose     = True       ,)
     writer = SummaryWriter(f'runs/{model_name}')

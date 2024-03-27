@@ -98,8 +98,8 @@ md.new_header(level=2, title="Results")
 md.new_header(level=3, title="Pretraining")
 num_result = 5
 infer = inference.SimulationInference(args.model_name, is_finetuning=False,
-                                      is_vibrate = True,
-                                      with_align=True,)
+                                      is_vibrate = False,
+                                      with_align=False,)
 results = infer.get_result(num_result)
 evals = infer.evaluate(results)
 md.new_line(f'Segmentation: mean MSE: {np.mean(evals["MSEx"])}, mean BCE: {np.mean(evals["BCEx"])}')
