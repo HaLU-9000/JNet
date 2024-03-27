@@ -296,13 +296,15 @@ def finetuning_loop(
                     vloss_sum += loss_mrf.item() * mrf_loss_weight
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
+                    vloss += qloss
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                    if v_verbose: print("valid loss plus qloss\t", vloss_sum)
+                    if v_verbose: print("valid loss plus qloss\t", vloss)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
+                    vloss += ploss
                     vloss_sum += ploss
-                    if v_verbose: print("valid loss plus ploss\t", vloss_sum)
+                    if v_verbose: print("valid loss plus ploss\t", vloss)
                 if v_verbose: print("valid loss without ewc\t", vloss)
                 if ewc is not None:
                     ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
@@ -347,7 +349,7 @@ def get_vibrate_condition(vibrateclass):
 
 def get_condition(optimizer, lr):
     return optimizer.param_groups[0]["lr"] == lr
-    
+
 def finetuning_with_simulation_loop(
         n_epochs               ,
         optimizer              ,
