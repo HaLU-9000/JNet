@@ -587,6 +587,7 @@ class ImageProcessing():
     def _resolve_overlap(self, image, overlap):
         return image / overlap
     
+    
 class MRFLoss():
     """
     usage \n
