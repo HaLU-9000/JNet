@@ -15,17 +15,17 @@ from utils import array_to_tif, load_anything
 
 class SimulationInference():
     def __init__(self, model_name, is_finetuning, is_vibrate, with_align):
-        self.device = (torch.device('cuda') if torch.cuda.is_available()
-              else torch.device('cpu'))
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
         self.configs               = json.load(config)
         self.model_name            = model_name
         self.pre_model_name        = self.configs["pretrained_model"]
         self.params                = self.configs["params"]
         self.params["reconstruct"] = True
+        self.device = self.params["device"]
         if is_finetuning:
-            self.params["apply_vq"]        = True
-            self.params["use_x_quantized"] = True
+            pass
+        self.params["apply_vq"]        = True
+        self.params["use_x_quantized"] = True
         val_dataset_params = self.configs["pretrain_val_dataset"]
         self.is_finetuning = is_finetuning
         self.is_vibrate    = is_vibrate
@@ -256,14 +256,14 @@ class SimulationInference():
 
 class MicrogliaInference():
     def __init__(self, model_name, is_finetuning, with_align=True):
-        self.device = (torch.device('cuda') if torch.cuda.is_available()
-              else torch.device('cpu'))
+        
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
         self.configs               = json.load(config)
         self.model_name            = model_name
         self.pre_model_name        = self.configs["pretrained_model"]
         self.params                = self.configs["params"]
         self.params["reconstruct"] = True
+        self.device = self.params["device"]
         if is_finetuning:
             self.params["apply_vq"]        = True
             self.params["use_x_quantized"] = True
