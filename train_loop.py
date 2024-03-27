@@ -3,7 +3,7 @@ import torchrl
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
-from utils import EarlyStopping, MRFLoss
+from utils import EarlyStopping, MRFLoss, OldMRFLoss
 import matplotlib.pyplot as plt
 import pandas as pd
 from dataset import Vibrate, Mask
@@ -174,18 +174,18 @@ def luminance_adjustment(rec, image):
     return alpha + beta * rec
 
 def finetuning_loop(
-        optimizer              ,
-        model                  ,
-        train_loader           ,
-        val_loader             ,
-        device                 ,
-        model_name             ,
-        ewc                    ,
-        train_dataset_params   ,
-        train_loop_params      ,
-        vibration_params       ,
-        scheduler    = None    ,
-        v_verbose    = True    ,
+        optimizer            ,
+        model                ,
+        train_loader         ,
+        val_loader           ,
+        device               ,
+        model_name           ,
+        ewc                  ,
+        train_dataset_params ,
+        train_loop_params    ,
+        vibration_params     ,
+        scheduler = None     ,
+        v_verbose = False    ,
         ):
     
     n_epochs         = train_loop_params["n_epochs"         ]        
@@ -198,7 +198,9 @@ def finetuning_loop(
     ewc_weight       = train_loop_params["ewc_weight"       ]      
     qloss_weight     = train_loop_params["qloss_weight"     ]    
     ploss_weight     = train_loop_params["ploss_weight"     ]
+    mrfloss_order    = train_loop_params["mrfloss_order"    ]
     mrfloss_weights  = train_loop_params["mrfloss_weights"  ]
+    dilation         = train_loop_params["mrfloss_dilation" ]
     
     earlystopping = EarlyStopping(
         name        = model_name ,
@@ -214,8 +216,15 @@ def finetuning_loop(
     vibrate = Vibrate(vibration_params)
     mask = Mask()
     train_with_mrf = True
-    mrf_loss = MRFLoss(dims=3, order=1, mode="orthogonal")
-    mrf_loss_weight = 0.1
+    mrf_loss =\
+    MRFLoss(
+        dims     = 3               ,
+        order    = mrfloss_order   ,
+        weights  = mrfloss_weights ,
+        dilation = dilation        ,)
+    #OldMRFLoss(dims=3,
+    #           order = mrfloss_order,
+    #           mode="all")
 
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
@@ -248,7 +257,7 @@ def finetuning_loop(
                 target = None ) * zloss_weight
             loss += loss_z
             if train_with_mrf:
-                loss_mrf = mrf_loss(out) * mrf_loss_weight
+                loss_mrf = mrf_loss(out)
                 loss += loss_mrf
             if ewc is not None:
                 loss += ewc.calc_ewc_loss(ewc_weight)
@@ -294,7 +303,7 @@ def finetuning_loop(
                 if train_with_mrf:
                     loss_mrf = mrf_loss(out)
                     print("mrf", loss_mrf.item())
-                    vloss_sum += loss_mrf.item() * mrf_loss_weight
+                    vloss_sum += loss_mrf.item()
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss += qloss

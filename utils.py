@@ -598,27 +598,27 @@ class MRFLoss():
     >> torch.tensor(1.4376)
     ```
     """
-    def __init__(self, dims, order, l_00, l_01, l_10, l_11):
+    def __init__(self, dims, order, weights, dilation):
         self.dims = dims
         kernel_size = [order * 2 + 1] * 3
         self.unfoldnd = UnfoldNd(
             kernel_size = kernel_size,
-            dilation    = 1          ,
+            dilation    = dilation   ,
             padding     = "same"     ,
             stride      = 1          ,
             )
         euclid_vector = self._get_euclid_vector(kernel_size)
         self.weight_vector = self._inverse_euclid_with_zero_handling(
             euclid_vector)
-        self.l_00 = l_00
-        self.l_01 = l_01
-        self.l_10 = l_10
-        self.l_11 = l_11
+        self.l_00 = weights["l_00"]
+        self.l_01 = weights["l_01"]
+        self.l_10 = weights["l_10"]
+        self.l_11 = weights["l_11"]
 
     def __call__(self, x):
         x_unfolded_to_kernels = self.unfoldnd(x)
         energy = self._calc_batched_mrf_energy(x, x_unfolded_to_kernels)
-        loss   = energy * self.euclid_vector.to(energy.device)
+        loss   = energy * self.weight_vector.to(energy.device)
         return loss.mean()
 
     def _calc_batched_mrf_energy(self, x, neighbors):
@@ -654,3 +654,132 @@ class MRFLoss():
 
     def _inverse_euclid_with_zero_handling(self, vector):
         return torch.where(vector == 0., 0, 1 / vector,)
+    
+class OldMRFLoss():
+    """
+    usage \n
+    ```
+    mrf_loss = MRFLoss(dims=2, mode="all")
+    x = torch.randn(100).view(1,1,10,10)
+    mrf_loss(x)
+    >> torch.tensor(1.4376)
+    ```
+    """
+    def __init__(self, dims, order=1, mode="orthogonal"):
+        if dims == 1:
+            self.axis = [-1]
+        if dims == 2:
+            self.axis = [-2, -1]
+        if dims == 3:
+            self.axis = [-3, -2, -1]
+        self.dims = dims
+        self.order = order
+        if mode == "orthogonal":
+            self.shifts = self._get_orthogonal_shift_list(self.order)
+        elif mode == "all":
+            self.shifts = self._get_shift_list(self.order)
+        else:
+            raise ValueError(f"mode '{mode}' is not implemented." +\
+                 " Try 'all' or 'orthogonal'. ")
+
+    def __call__(self, x):
+        energy = 0
+        for shift in self.shifts:
+            euclid = self._calc_euclid_distance(shift)
+            markov = self._markov_difference(x, shift)
+            energy = energy + self._criterion(diff=markov, dist=euclid)
+        return energy
+
+    def _criterion(self, diff, dist, mode="mean", loss_type="squared"):
+        if loss_type == "gaussian":
+            loss = self._gaussian_loss(diff, dist)
+        elif loss_type == "squared":
+            loss = self._squared_loss(diff, dist)
+        else:
+            raise ValueError(f"loss_type '{loss_type}' is not implemented." +\
+                             " Try 'gaussian' or 'squared'. ")
+        if mode == "mean":
+            return loss.mean()
+        elif mode == "sum":
+            return loss.sum()
+        else:
+            raise ValueError(f"mode '{mode}' is not implemented." +\
+                             " Try 'mean' or 'sum'. ")
+
+    def _gaussian_loss(self, diff, dist):
+        coeffs = 1 / (dist * (2 * 3.14) ** 1/2)
+        loss = coeffs * torch.exp((-1/2)*(diff / dist) ** 2)
+        return loss
+
+    def _squared_loss(self, diff, dist):
+        return (diff / dist) ** 2
+
+    def _get_orthogonal_shift_list(self, order):
+        shifts = []
+        distance = [o for o in range(-order, order+1)]
+        org = [0 for _ in range(self.dims)]
+        for dim in range(self.dims):
+            for dist in distance:
+                shift      = org.copy()
+                shift[dim] = dist
+                shifts.append(shift)
+        shifts.sort()
+        shifts = self._get_unique_list(shifts)
+        shifts = self._remove_zeros(shifts)
+        return shifts
+
+    def _get_shift_list(self, order):
+        shifts = []
+        distance = [o for o in range(-order, order + 1)]
+        org = [0 for _ in range(self.dims)]
+        shifts.append(org)
+        for dim in range(self.dims):
+            _shifts = []
+            for shift in shifts:
+                for dist in distance:
+                    shift = shift.copy()
+                    shift[dim] = dist
+                    _shifts.append(shift)
+            shifts = _shifts
+        shifts = self._remove_zeros(shifts)
+        return shifts
+
+    def _remove_zeros(self, seq):
+        return [s for s in seq if not all(e == 0 for e in s)]
+
+    def _get_unique_list(self, seq):
+        seen = []
+        return [x for x in seq if x not in seen and not seen.append(x)]
+
+    def _calc_euclid_distance(self, shift):
+        d = np.array(shift) ** 2
+        return np.sqrt(d.sum())
+
+    def _markov_difference(self, x, shift):
+        return x - self._modified_roll(x, shift)
+
+    def _modified_roll(self, x, shift):
+        org = torch.roll(x, shift, dims=self.axis)
+        mask = self._get_mask(x, shift)
+        return org * mask
+
+    def _get_mask(self, arr, shift):
+        mask = torch.ones_like(arr)
+        _shift = shift.copy()
+        while len(_shift) < arr.dim():
+            _shift.insert(0, 0)
+        for dim, s in enumerate(_shift):
+            if s >= 0:
+                mask = mask.narrow(dim, 0, arr.size(dim) - s)
+                mask = torch.cat([
+                    torch.zeros_like(mask).narrow(dim, 0, s),
+                    mask], 
+                                 dim=dim)
+            else:
+                s = -s
+                mask = mask.narrow(dim, s, arr.size(dim) - s)
+                mask = torch.cat([
+                    mask, 
+                    torch.zeros_like(mask).narrow(dim, 0, s)],
+                                 dim=dim)
+        return mask
