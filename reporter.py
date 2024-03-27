@@ -136,7 +136,7 @@ type_list = ["original","novibrate","aligned", "reconst", "heatmap", "outputx", 
 infer = inference.SimulationInference(args.model_name, 
                                       is_finetuning=True,
                                       is_vibrate = True,
-                                      with_align=True,)
+                                      with_align=False,)
 results = infer.get_result(num_result)
 evals  = infer.evaluate(results)
 infer.visualize(results)
@@ -160,7 +160,7 @@ btype_list = ["original", "aligned", "outputx", "outputz", "reconst", "heatmap"]
 slice_list = ["plane", "depth"]
 for is_finetuning in [False, True]:
     md.new_header(level=4, title=f"finetuning == {is_finetuning}")
-    binfer = inference.MicrogliaInference(args.model_name, is_finetuning=is_finetuning)
+    binfer = inference.MicrogliaInference(args.model_name, is_finetuning=is_finetuning, with_align=False)
     results = binfer.get_result(5)
     binfer.visualize(results)
     for n in range(5):
