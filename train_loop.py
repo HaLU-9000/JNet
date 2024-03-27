@@ -16,6 +16,12 @@ def imagen_instantblur(model, label, device, params):
     image  = model.image.preprocess.sample(image)
     return image
 
+def imagen_instantblur_without_noise(model, label, device, params):
+    out    = model.image.blur(label)
+    image  = out["out"]
+    image  = model.image.preprocess.sample(image)
+    return image
+
 def _loss_fnz(_input, mask, target):
     if mask is not None:
         label_loss = F.gaussian_nll_loss(
@@ -743,7 +749,8 @@ def deep_align_net_train_loop(
                 out_without_shake  = outdict_d["enhanced_image" ]
                 lum_without_shake  = outdict_d["estim_luminance"]
                 mid_without_shake  = outdict_d["mid"]
-            pixelwise_loss    = loss_fn(aligned_image, image)
+            pixelwise_loss    = F.gaussian_nll_loss(
+                aligned_image, image, image*0.1+0.01)
             segmentation_loss = loss_fn(out_with_shake, out_without_shake) \
                               + loss_fn(lum_with_shake, lum_without_shake)
             perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
@@ -783,7 +790,8 @@ def deep_align_net_train_loop(
                 out_without_shake = outdict_d["enhanced_image" ]
                 lum_without_shake = outdict_d["estim_luminance"]
                 mid_without_shake = outdict_d["mid"]
-                pixelwise_loss    = loss_fn(aligned_image, image)
+                pixelwise_loss    = F.gaussian_nll_loss(
+                    aligned_image, image, image*0.1+0.01)
                 segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
                                   + loss_fn(lum_with_shake, lum_without_shake)
                 perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)

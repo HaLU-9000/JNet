@@ -58,7 +58,7 @@
             "nblocks"               : 2                                        ,     
             "activation"            : "nn.ReLU(inplace=True)"                  ,     
             "dropout"               : 0.5                                      ,
-            "loss_mode"             : "segmentation_plus_perceptual"           ,
+            "loss_mode"             : "pixelwise_plus_perceptual"              ,
             "lr"                    : 1e-3                                     , "$lr"                    : "lr for deep align net"       ,
             "device"                : "cuda:6"
         }                                                                      ,  "$align_params" : "model configs",
