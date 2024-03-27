@@ -198,6 +198,7 @@ def finetuning_loop(
     ewc_weight       = train_loop_params["ewc_weight"       ]      
     qloss_weight     = train_loop_params["qloss_weight"     ]    
     ploss_weight     = train_loop_params["ploss_weight"     ]
+    mrfloss_weights  = train_loop_params["mrfloss_weights"  ]
     
     earlystopping = EarlyStopping(
         name        = model_name ,

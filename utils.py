@@ -586,8 +586,8 @@ class ImageProcessing():
     
     def _resolve_overlap(self, image, overlap):
         return image / overlap
-    
-    
+
+
 class MRFLoss():
     """
     usage \n
@@ -598,20 +598,22 @@ class MRFLoss():
     >> torch.tensor(1.4376)
     ```
     """
-    def __init__(self, dims, order=1):
+    def __init__(self, dims, order, l_00, l_01, l_10, l_11):
         self.dims = dims
-        kernel_size = [order*2+1] * 3
+        kernel_size = [order * 2 + 1] * 3
         self.unfoldnd = UnfoldNd(
             kernel_size = kernel_size,
             dilation    = 1          ,
             padding     = "same"     ,
             stride      = 1          ,
             )
-        self.euclid_vector = self._get_euclid_vector(kernel_size)
-        self.l_00 = 0.
-        self.l_01 = 1.
-        self.l_10 = 2.
-        self.l_11 = 1.
+        euclid_vector = self._get_euclid_vector(kernel_size)
+        self.weight_vector = self._inverse_euclid_with_zero_handling(
+            euclid_vector)
+        self.l_00 = l_00
+        self.l_01 = l_01
+        self.l_10 = l_10
+        self.l_11 = l_11
 
     def __call__(self, x):
         x_unfolded_to_kernels = self.unfoldnd(x)
@@ -649,3 +651,6 @@ class MRFLoss():
     def _get_vector_from_3d_distance(self, distance):
         vec = distance.flatten()[None]
         return vec[..., None]
+
+    def _inverse_euclid_with_zero_handling(self, vector):
+        return torch.where(vector == 0., 0, 1 / vector,)

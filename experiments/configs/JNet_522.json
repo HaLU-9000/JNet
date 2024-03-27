@@ -1,5 +1,5 @@
 {
-    "explanation":"vibration without warming up slowly pretraining and without vib in finetuning",
+    "explanation":"vibration without warming up slowly pretraining and without vib in finetuning, finetuning with mrf loss",
     "pretrained_model":"JNet_509_pretrain",
     "params":
         {
@@ -171,12 +171,7 @@
             "zloss_weight"      : 1              ,
             "ewc_weight"        : 0.1            ,
             "qloss_weight"      : 1              ,
-            "ploss_weight"      : 0.00           ,
-            "mfrloss_weights"   : {"l_00" : 1 ,
-                                   "l_01" : 1 ,
-                                   "l_10" : 1 ,
-                                   "l_11" : 1
-                                   }                                
+            "ploss_weight"      : 0.00                                            
         }                                                                      , "$train_loop" : "",
     
     "visualization":
