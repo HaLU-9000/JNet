@@ -695,7 +695,7 @@ def deep_align_net_train_loop(
     path         = train_loop_params["path"]            
     savefig_path = train_loop_params["savefig_path"]
     es_patience  = train_loop_params["es_patience"]
-    loss_fn      = nn.MSELoss()
+    loss_fn      = nn.GaussianNLLLoss()
     mode         = params["loss_mode"]
 
     earlystopping = EarlyStopping(
@@ -747,9 +747,9 @@ def deep_align_net_train_loop(
                 mid_without_shake  = outdict_d["mid"]
             pixelwise_loss    = F.gaussian_nll_loss(
                 aligned_image, image, image*0.1+0.01)
-            segmentation_loss = loss_fn(out_with_shake, out_without_shake) \
-                              + loss_fn(lum_with_shake, lum_without_shake)
-            perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
+            segmentation_loss = loss_fn(out_with_shake, out_without_shake, var=torch.ones_like(out_without_shake)) \
+                              + loss_fn(lum_with_shake, lum_without_shake, var=torch.ones_like(out_without_shake))
+            perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake, var=torch.ones_like(mid_with_shake))
 
             loss = loss_mode(
                 pixelwise_loss    = pixelwise_loss   ,
@@ -788,10 +788,9 @@ def deep_align_net_train_loop(
                 mid_without_shake = outdict_d["mid"]
                 pixelwise_loss    = F.gaussian_nll_loss(
                     aligned_image, image, image*0.1+0.01)
-                segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
-                                  + loss_fn(lum_with_shake, lum_without_shake)
-                perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
-
+                segmentation_loss = loss_fn(out_with_shake, out_without_shake, var=torch.ones_like(out_without_shake)) \
+                              + loss_fn(lum_with_shake, lum_without_shake, var=torch.ones_like(out_without_shake))
+                perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake, var=torch.ones_like(mid_with_shake))
                 vloss = loss_mode(
                     pixelwise_loss    = pixelwise_loss   ,
                     perceptual_loss   = perceptual_loss  ,
