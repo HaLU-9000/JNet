@@ -346,11 +346,10 @@ def finetuning_loop(
         vibrate.step()
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        condition = get_condition(optimizer, train_loop_params["lr"])
-        if get_condition(optimizer, train_loop_params["lr"]):
-            earlystopping(vloss_list[-1], model, condition = condition)
-            if earlystopping.early_stop:
-                break
+        #condition = get_condition(optimizer, train_loop_params["lr"])
+        earlystopping(vloss_list[-1], model, condition = True)
+        if earlystopping.early_stop:
+            break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
