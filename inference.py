@@ -23,9 +23,8 @@ class SimulationInference():
         self.params["reconstruct"] = True
         self.device = self.params["device"]
         if is_finetuning:
-            pass
-        self.params["apply_vq"]        = True
-        self.params["use_x_quantized"] = True
+            self.params["apply_vq"]        = True
+            self.params["use_x_quantized"] = True
         val_dataset_params = self.configs["pretrain_val_dataset"]
         self.is_finetuning = is_finetuning
         self.is_vibrate    = is_vibrate
