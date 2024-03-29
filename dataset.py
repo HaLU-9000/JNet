@@ -942,6 +942,7 @@ class Vibrate():
         self.num_step = 0
 
     def __call__(self, img, determined=False):
+        img = img.clone().detach()
         if img.dim() == 5:
             for i in range(img.size(0)):
                 if determined:

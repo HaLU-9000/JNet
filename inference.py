@@ -103,26 +103,26 @@ class SimulationInference():
                     label  = labelz     ,
                     device = self.device, 
                     params = self.params,)
-                _image = self.JNet.image.hill.sample(image)
+                _image = self.JNet.image.hill.sample(image).detach().clone()
                 if self.is_finetuning:            
                     self.JNet.image.load_state_dict(
                         torch.load(
                             f"model/{self.model_name}.pt"), 
                             strict=False)
                 if self.is_vibrate:
-                    image = self.vibrate(_image).detach().clone()
+                    image = self.vibrate(_image.detach().clone())
                 else:
-                    image = _image
+                    image = _image.detach().clone()
                 if self.with_align:
                     outdic_a = self.deep_align_net(image)
-                    image_a  = outdic_a["aligned_image"]
+                    image_a  = outdic_a["aligned_image"].detach().clone()
                 else:
-                    image_a = image
+                    image_a = image.detach().clone()
                 outdict  = self.JNet(image_a)
                 outputx  = outdict["enhanced_image"]
                 outputz  = outdict["estim_luminance"]
                 reconst  = outdict["reconstruction"]
-                reconst  = self.JNet.image.hill.sample(reconst)
+                reconst  = self.JNet.image.hill.sample(reconst).detach().clone()
                 qloss    = outdict["quantized_loss"]
                 qloss    = qloss.item() if qloss is not None else 0
 

@@ -644,7 +644,7 @@ class JNet(nn.Module):
     def __init__(self, params):
         super().__init__()
         t1 = time.time()
-        print('initializing model...')
+        print('initializing JNet model...')
         scale_factor         = (params["scale"], 1, 1)
         hidden_channels_list =  params["hidden_channels_list"].copy()
         attn_list            =  params["attn_list"].copy()
@@ -695,7 +695,7 @@ class JNet(nn.Module):
         self.vq = VectorQuantizer(threshold=params["threshold"],
                                   device=params["device"])
         t2 = time.time()
-        print(f'init done ({t2-t1:.2f} s)')
+        print(f'JNet init done ({t2-t1:.2f} s)')
         self.use_x_quantized = params["use_x_quantized"]
         self.tau = 1.
         a = params["poisson_weight"]
@@ -752,7 +752,7 @@ class DeepAlignNet(nn.Module):
     def __init__(self, params):
         super().__init__()
         t1 = time.time()
-        print('initializing model...')
+        print('initializing DeNoiseAligner...')
         hidden_channels_list =  params["hidden_channels_list"].copy()
         attn_list            =  params["attn_list"].copy()
         hidden_channels      = hidden_channels_list.pop(0)
@@ -781,7 +781,7 @@ class DeepAlignNet(nn.Module):
             )
         self.activation  = params["activation"]
         t2 = time.time()
-        print(f'init done ({t2-t1:.2f} s)')
+        print(f'DeNoiseAligner init done ({t2-t1:.2f} s)')
 
     def forward(self, x):
         x = self.prev0(x)
