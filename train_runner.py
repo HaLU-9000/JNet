@@ -120,7 +120,8 @@ if args.train_align:
         train_loop_params    = train_loop_params           ,
         train_dataset_params = train_dataset_params        ,
         vibration_params     = vibration_params            ,
-        scheduler            = scheduler
+        scheduler            = scheduler                   ,
+        train_without_noise  = True                        , 
         )
     
 else:

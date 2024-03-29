@@ -1,6 +1,6 @@
 {
-    "explanation":"training with danet",
-    "pretrained_model"  :   "JNet_493_pretrain" ,
+    "explanation":"training with danet 517",
+    "pretrained_model"  :   "JNet_487_pretrain" ,
     "align_model"       :   "danet_0"           ,
 
     "params":
@@ -47,7 +47,7 @@
             "loss_fn"               : "nn.MSELoss()"                           , "$loss_fn"               : "loss func for NeurIPSF"             ,  
             "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
             "num_iter_psf_pretrain" : 1000                                     , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
-            "device"                : "cuda"
+            "device"                : "cuda:6"
         }                                                                      ,  "$params" : "model configs",
 
     "align_params":
@@ -58,9 +58,9 @@
             "nblocks"               : 2                                        ,     
             "activation"            : "nn.ReLU(inplace=True)"                  ,     
             "dropout"               : 0.5                                      ,
-            "loss_mode"             : "segmentation_plus_perceptual"           ,
+            "loss_mode"             : "pixelwise_plus_segmentation"              ,
             "lr"                    : 1e-3                                     , "$lr"                    : "lr for deep align net"       ,
-            "device"                : "cuda"
+            "device"                : "cuda:6"
         }                                                                      ,  "$align_params" : "model configs",
 
 
@@ -70,7 +70,7 @@
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,
-            "I"            : 200                     ,
+            "I"            : 200                       ,
             "low"          : 0                         ,
             "high"         : 16                        ,
             "scale"        : 3                         ,
@@ -102,7 +102,7 @@
     "pretrain_loop":
         {
            "batch_size"        : 1                   ,
-           "n_epochs"          : 200                 ,
+           "n_epochs"          : 50                  ,
            "lr"                : 1e-3                ,
            "loss_fnx"          : "nn.BCELoss()"      ,
            "loss_fnz"          : "nn.BCELoss()"      ,
@@ -130,7 +130,7 @@
 
     "train_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
+            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 200                               ,
@@ -145,7 +145,7 @@
 
     "val_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
+            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
             "size"            : [333,1024,1024]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 20                                ,
@@ -165,13 +165,13 @@
             "b_sigma"               : {"min" : 0   , "max" : 0.2} ,
             "amp_alpha"             : {"min" : 0   , "max" : 2  } ,
             "omega_alpha"           : {"min" : 0   , "max" : 2  } ,
-            "noise_inv_var_alpha"   : {"min" : 2   , "max" : 10 }
+            "noise_inv_var_alpha"   : {"min" : 1   , "max" : 10 }
         }                                                                      , "$vibration" : "",
 
     "train_loop":
         {
             "batch_size"        : 1              ,
-            "n_epochs"          : 200            ,
+            "n_epochs"          : 50            ,
             "lr"                : 1e-3           ,
             "loss_fn"           : "nn.MSELoss()" ,
             "path"              : "model"        ,
