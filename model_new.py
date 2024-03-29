@@ -11,7 +11,6 @@ from fft_conv_pytorch import fft_conv
 import matplotlib.pyplot as plt
 import time
 
-
 class JNetBlock0(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -416,10 +415,10 @@ class Blur(nn.Module):
         l2_psf_rz = torch.mean((psf_rz - self.init_psf_rz) ** 2)
         psf = torch.gather(psf_rz, 1, self.r_index_fe)
         psf = psf.reshape(self.psf_rz_s0, self.rps0, self.rps1)
-        psf = F.upsample(
-            input = psf[None, None, :],
-            size  = (self.size_z, self.rps0, self.rps1),
-            mode  = "nearest",
+        psf = F.interpolate(
+            input = psf[None, None, :]                  ,
+            size  = (self.size_z, self.rps0, self.rps1) ,
+            mode  = "nearest"                           ,
             )[0, 0]
         psf = psf /torch.sum(psf)#;print("sum: ", torch.sum(psf));print("max: ", torch.max(psf))#/ torch.sum(psf)
         if self.use_fftconv:
@@ -514,7 +513,7 @@ class GibsonLanniModel():
         W    = 2 * np.pi / wavelength * (OPDs + OPDi + OPDg)
         phase = np.cos(W) + 1j * np.sin(W)
         J = scipy.special.jv(0, scaling_factor.reshape(-1, 1) * rho)
-        C, residuals, _, _ = np.linalg.lstsq(J.T, phase.T)
+        C, residuals, _, _ = np.linalg.lstsq(J.T, phase.T, rcond=-1)
         b = 2 * np.pi * r.reshape(-1, 1) * NA / wavelength
         J0 = lambda x: scipy.special.j0(x)
         J1 = lambda x: scipy.special.j1(x)
