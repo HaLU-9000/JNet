@@ -1,5 +1,5 @@
 {
-    "explanation":"vibration without warming up slowly pretraining and without vib in finetuning, finetuning with mrf loss x10 as 523, PSF loss x10",
+    "explanation":"vibration without warming up slowly pretraining and without vib in finetuning, finetuning with mrf loss x100 as 523, PSF loss x10",
     "pretrained_model":"JNet_509_pretrain",
     "params":
         {
@@ -174,10 +174,10 @@
             "ploss_weight"      : 10.0           ,
             "mrfloss_order"     : 1              ,
             "mrfloss_dilation"  : 1              ,
-            "mrfloss_weights"   : {"l_00" : 0    ,
-                                   "l_01" : 1    ,
-                                   "l_10" : 0.1  ,
-                                   "l_11" : 0
+            "mrfloss_weights"   : {"l_00" : 0.0  ,
+                                   "l_01" : 10.0 ,
+                                   "l_10" : 1.0  ,
+                                   "l_11" : 0.0
                                    }                                                  
         }                                                                      , "$train_loop" : "",
     
