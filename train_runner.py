@@ -12,8 +12,6 @@ import model_new as model
 from dataset import RandomCutDataset
 from train_loop import pretrain_loop, deep_align_net_train_loop
 
-
-
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
 parser.add_argument('--train_align', action="store_true")
@@ -57,6 +55,7 @@ else:
         warmup_lr_init = lr * 0.1    ,
         warmup_t       = 10          ,
         )
+    
 
 train_dataset = RandomCutDataset(
     folderpath    = train_dataset_params["folderpath"]   ,
@@ -126,6 +125,7 @@ if args.train_align:
         )
     
 else:
+    JNet.image.blur.neuripsf.trainer(JNet.image.blur.init_psf_rz)
     print(f'========= model {configs["pretrained_model"]} train started =========')
     pretrain_loop(
         optimizer            = optimizer                   ,

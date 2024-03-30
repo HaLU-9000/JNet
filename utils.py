@@ -358,7 +358,6 @@ def save_ndarray_in_any_format(
         
 def init_model(params, is_finetuning):
     if is_finetuning:
-        params["reconstruct"]     = True
         params["apply_vq"]        = True
         params["use_x_quantized"] = True
     net = model.JNet(params)

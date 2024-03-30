@@ -101,6 +101,9 @@ if args.train_with_align:
     align_params   = configs["align_params"]
     deep_align_net = model.DeepAlignNet(align_params)
     deep_align_net = deep_align_net.to(device=device)
+    deep_align_net.load_state_dict(
+                torch.load(f'model/{configs["align_model"]}.pt'),
+                strict=False)
 
 if args.train_mode == 'decoder' or args.train_mode == 'old':
     JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),

@@ -96,12 +96,12 @@ def pretrain_loop(
                     device = device,
                     params = params,)
                 image  = model.image.hill.sample(image)
-            image = mask.apply_mask(
+            vimage = vibrate(image) if is_vibrate else image
+            vimage = mask.apply_mask(
                 train_dataset_params["mask"]      ,
-                image                             ,
+                vimage                            ,
                 train_dataset_params["mask_size"] ,
                 train_dataset_params["mask_num"]  ,)
-            vimage = vibrate(image) if is_vibrate else image
             outdict = model(vimage)
             out   = outdict["enhanced_image" ]
             lum   = outdict["estim_luminance"]

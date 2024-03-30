@@ -339,6 +339,10 @@ class NeuralImplicitPSF(nn.Module):
             )
         self.config = config
 
+    def _init_weights(self):
+        for m in self.parameters():
+            torch.nn.init.normal_(m)
+
     def forward(self, coords):
         return self.layers(coords)
 
@@ -351,10 +355,11 @@ class NeuralImplicitPSF(nn.Module):
     def _gen_coord(self, psf):
         self.psf_shape = psf.shape
         z, r = self.psf_shape
-        zs = torch.linspace(-1, 1, steps=z)
+        zs = torch.linspace(-1, 1, steps=z).abs()
         rs = torch.linspace(-1, 1, steps=r)
         grid_z, grid_r = torch.meshgrid(zs, rs, indexing='ij')
-        self.coord = torch.stack((grid_z.flatten(), grid_r.flatten()), -1).to(self.config["device"])
+        self.coord = torch.stack((
+            grid_z.flatten(), grid_r.flatten()), -1).to(self.config["device"])
 
     def _gen_label(self, psf):
         self.label = psf.flatten()[:, None]
@@ -362,13 +367,34 @@ class NeuralImplicitPSF(nn.Module):
     def _train(self):
         label = self.label.to(self.config["device"])
         coord = self.coord.to(self.config["device"])
-        optim = torch.optim.Rprop(self.parameters(), lr=self.config["lr"])
         loss_fn = eval(self.config["loss_fn"])
-        for i in range(self.config["num_iter_psf_pretrain"]):
-            loss = loss_fn(self(coord), label)
-            loss.backward(retain_graph=False)
-            optim.step()
-            optim.zero_grad()
+        loss = torch.tensor(1.)
+        while loss.item() >= self.config["nipsf_loss_target"]:
+            self._init_weights()
+            count = 0
+            label = label.to(self.config["device"])
+            coord = coord.to(self.config["device"])
+            optim = torch.optim.Rprop(self.parameters(), lr=self.config["lr"])
+            averaged_model = torch.optim.swa_utils.AveragedModel(
+                self,
+                multi_avg_fn=torch.optim.swa_utils.get_ema_multi_avg_fn(0.999))
+            sched = torch.optim.lr_scheduler.ExponentialLR(
+                optim,
+                gamma=0.999,)
+            while loss.item() >= self.config["nipsf_loss_target"]:
+                optim.zero_grad()
+                loss = loss_fn(self(coord), label)
+                loss.backward()
+                optim.step()
+                averaged_model.update_parameters(self)
+                sched.step()
+                count += 1
+                if count == self.config["num_iter_psf_pretrain"]:
+                    print("Neural Implicit PSF is not good enough. " \
+                          "Initializing NeuriPSF and trying again...")
+                    break
+        print(f"NeuriPSF train done with loss target"\
+              f" {self.config['nipsf_loss_target']}.")
 
     def array(self):
         return self(self.coord).view(self.psf_shape)
@@ -388,12 +414,12 @@ class Blur(nn.Module):
                 f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
         self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=False).float().to(self.device)
         self.neuripsf = NeuralImplicitPSF(params)
-        self.neuripsf.trainer(self.init_psf_rz)
+        # self.neuripsf.trainer(self.init_psf_rz) <- moved to train_runner.py
         self.psf_rz_s0 = self.init_psf_rz.shape[0]
         self.size_z = params["size_z"]
-        xy               = torch.meshgrid(torch.arange(params["size_y"]),
-                                          torch.arange(params["size_x"]),
-                                          indexing='ij')
+        xy = torch.meshgrid(torch.arange(params["size_y"]),
+             torch.arange(params["size_x"]),
+             indexing='ij')
         r = torch.tensor(psf_model.r)
         x0 = (params["size_x"] - 1) / 2
         y0 = (params["size_y"] - 1) / 2
@@ -420,7 +446,7 @@ class Blur(nn.Module):
             size  = (self.size_z, self.rps0, self.rps1) ,
             mode  = "nearest"                           ,
             )[0, 0]
-        psf = psf /torch.sum(psf)#;print("sum: ", torch.sum(psf));print("max: ", torch.max(psf))#/ torch.sum(psf)
+        psf = psf / torch.sum(psf)#;print("sum: ", torch.sum(psf));print("max: ", torch.max(psf))#/ torch.sum(psf)
         if self.use_fftconv:
             _x   = fft_conv(signal  = x                                    ,
                             kernel  = psf                                  ,
