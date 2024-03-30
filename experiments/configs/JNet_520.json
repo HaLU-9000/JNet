@@ -1,7 +1,7 @@
 {
-    "explanation":"training with danet",
+    "explanation":"training with danet 519, DeNoiseAligner",
     "pretrained_model"  :   "JNet_487_pretrain" ,
-    "align_model"       :   "danet_0"           ,
+    "align_model"       :   "danet_3"           ,
 
     "params":
         {
@@ -45,22 +45,22 @@
             "scale"                 : 3                                       ,
             "mid"                   : 20                                       , "$mid"                   : "num of NeurIPSF middle channel"     ,
             "loss_fn"               : "nn.MSELoss()"                           , "$loss_fn"               : "loss func for NeurIPSF"             ,  
-            "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
-            "num_iter_psf_pretrain" : 1000                                     , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
-            "device"                : "cuda:"
+            "lr"                    : 1e-3                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
+            "num_iter_psf_pretrain" : 2000                                     , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
+            "device"                : "cuda:5"
         }                                                                      ,  "$params" : "model configs",
 
     "align_params":
         {
-            "name"                  : "danet_0"                                ,
+            "name"                  : "danet_3"                                ,
             "hidden_channels_list"  : [16, 32, 64, 128]                        ,
             "attn_list"             : [false, false, false, false]             ,     
-            "nblocks"               : 2                                        ,     
+            "nblocks"               : 2                                        ,
             "activation"            : "nn.ReLU(inplace=True)"                  ,     
             "dropout"               : 0.5                                      ,
-            "loss_mode"             : "segmentation_plus_perceptual"           ,
+            "loss_mode"             : "pixelwise_plus_segmentation"            ,
             "lr"                    : 1e-3                                     , "$lr"                    : "lr for deep align net"       ,
-            "device"                : "cuda"
+            "device"                : "cuda:5"
         }                                                                      ,  "$align_params" : "model configs",
 
 
@@ -70,7 +70,7 @@
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,
-            "I"            : 200                     ,
+            "I"            : 200                       ,
             "low"          : 0                         ,
             "high"         : 16                        ,
             "scale"        : 3                         ,
@@ -102,7 +102,7 @@
     "pretrain_loop":
         {
            "batch_size"        : 1                   ,
-           "n_epochs"          : 200                 ,
+           "n_epochs"          : 50                  ,
            "lr"                : 1e-3                ,
            "loss_fnx"          : "nn.BCELoss()"      ,
            "loss_fnz"          : "nn.BCELoss()"      ,
@@ -161,17 +161,17 @@
     
         "vibration":
         {
-            "max_step"              : 60                          ,
+            "max_step"              : 10                          ,
             "b_sigma"               : {"min" : 0   , "max" : 0.2} ,
             "amp_alpha"             : {"min" : 0   , "max" : 2  } ,
             "omega_alpha"           : {"min" : 0   , "max" : 2  } ,
-            "noise_inv_var_alpha"   : {"min" : 2   , "max" : 10 }
+            "noise_inv_var_alpha"   : {"min" : 1   , "max" : 10 }
         }                                                                      , "$vibration" : "",
 
-    "train_loop":
+        "train_loop":
         {
             "batch_size"        : 1              ,
-            "n_epochs"          : 200            ,
+            "n_epochs"          : 60             ,
             "lr"                : 1e-3           ,
             "loss_fn"           : "nn.MSELoss()" ,
             "path"              : "model"        ,
@@ -187,7 +187,14 @@
             "zloss_weight"      : 1              ,
             "ewc_weight"        : 0.1            ,
             "qloss_weight"      : 1              ,
-            "ploss_weight"      : 1.00                                            
+            "ploss_weight"      : 10.0           ,
+            "mrfloss_order"     : 1              ,
+            "mrfloss_dilation"  : 1              ,
+            "mrfloss_weights"   : {"l_00" : 0.0  ,
+                                   "l_01" : 1.0 ,
+                                   "l_10" : 0.1 ,
+                                   "l_11" : 0.0
+                                   }                                                  
         }                                                                      , "$train_loop" : "",
     
     "visualization":

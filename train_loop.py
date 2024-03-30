@@ -657,62 +657,20 @@ class ElasticWeightConsolidation():
                 losses.append((fisher * (param - mean) ** 2).sum())
         return (lambda_ / 2) * sum(losses) / self.num_params
 
-def loss_mode(mode               ,
-              loss_fn            ,
-              train_without_noise,
-              aligned_image      ,
-              target_image       ,
-              out_with_shake     ,
-              out_without_shake  ,
-              lum_with_shake     ,
-              lum_without_shake  ,
-              mid_with_shake     ,
-              mid_without_shake  ,):
+def loss_mode(pixelwise_loss, perceptual_loss, segmentation_loss, mode):
     if mode == "pixelwise":
-        if train_without_noise:
-            pixelwise_loss = loss_fn(aligned_image , target_image)
-        else:
-            pixelwise_loss = F.gaussian_nll_loss(
-                aligned_image, target_image, target_image*0.1+0.01)
-        loss = pixelwise_loss
+        loss = pixelwise_loss + perceptual_loss * 0. + segmentation_loss * 0.
     elif mode == "perceptual":
-        perceptual_loss = loss_fn(mid_with_shake, mid_without_shake)
-        loss = perceptual_loss
+        loss = pixelwise_loss* 0. + perceptual_loss + segmentation_loss * 0.
     elif mode == "segmentation":
-        segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
-                          + loss_fn(lum_with_shake, lum_without_shake)
-        loss = segmentation_loss
+        loss = pixelwise_loss* 0. +  perceptual_loss * 0. + segmentation_loss
     elif mode == "segmentation_plus_perceptual":
-        segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
-                          + loss_fn(lum_with_shake, lum_without_shake)
-        perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
-        loss = segmentation_loss + perceptual_loss # referred in CellPose3
+        loss = pixelwise_loss * 0. + segmentation_loss + perceptual_loss# referred in CellPose3
     elif mode == "pixelwise_plus_perceptual":
-        if train_without_noise:
-            pixelwise_loss = loss_fn(aligned_image , target_image)
-        else:
-            pixelwise_loss = F.gaussian_nll_loss(
-                aligned_image, target_image, target_image*0.1+0.01)
-        perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
-        loss = pixelwise_loss + perceptual_loss
+        loss = pixelwise_loss + perceptual_loss + segmentation_loss * 0.
     elif mode == "pixelwise_plus_segmentation":
-        if train_without_noise:
-            pixelwise_loss = loss_fn(aligned_image , target_image)
-        else:
-            pixelwise_loss = F.gaussian_nll_loss(
-                aligned_image, target_image, target_image*0.1+0.01)
-        segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
-                          + loss_fn(lum_with_shake, lum_without_shake)
-        loss = pixelwise_loss + segmentation_loss
+        loss = pixelwise_loss + perceptual_loss * 0. + segmentation_loss 
     elif mode == "all_in":
-        if train_without_noise:
-            pixelwise_loss = loss_fn(aligned_image , target_image)
-        else:
-            pixelwise_loss = F.gaussian_nll_loss(
-                aligned_image, target_image, target_image*0.1+0.01)
-        segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
-                          + loss_fn(lum_with_shake, lum_without_shake)
-        perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
         loss = pixelwise_loss + perceptual_loss + segmentation_loss
     else:
         raise ValueError(f"{mode} is not inplemented. ")
@@ -755,7 +713,7 @@ def deep_align_net_train_loop(
     train_curve = pd.DataFrame(columns=["training loss", "validatation loss"])
     loss_list, vloss_list = [], []
     vibrate = Vibrate(vibration_params)
-    vibrate.set_arbitrary_step(100)
+    vibrate.set_arbitrary_step(0)
     mask = Mask()
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
@@ -769,19 +727,16 @@ def deep_align_net_train_loop(
                     label  = labelz       ,
                     device = device       ,
                     params = params       ,)
-                image_before_hill = image_with_noise
-                image = deconv_model.image.hill.sample(image_before_hill)
+                image_with_noise_hill = deconv_model.image.hill.sample(image_with_noise).detach().clone()
                 if train_without_noise:
-                    image = imagen_instantblur_without_noise(
+                    image_without_noise = imagen_instantblur_without_noise(
                         model  = deconv_model ,
                         label  = labelz       ,
                         device = device       ,
                         params = params       ,
                     )
-                    target_image = deconv_model.image.hill.sample(image)
-                else:
-                    target_image = image
-            vimage = vibrate(image)
+                    image_without_noise_hill = deconv_model.image.hill.sample(image_without_noise).detach().clone()
+            vimage = vibrate(image_with_noise_hill)
             v_m_image = mask.apply_mask(
                 train_dataset_params["mask"]      ,
                 vimage                            ,
@@ -794,27 +749,36 @@ def deep_align_net_train_loop(
             out_with_shake  = outdict_d["enhanced_image"]
             lum_with_shake  = outdict_d["estim_luminance"]
             mid_with_shake  = outdict_d["mid"]
+            plt.imsave(f"_target_image_{model_name}.png"  , image_without_noise_hill[0, 0,:,60].detach().clone().cpu().numpy(), cmap="gray")
+            plt.imsave(f"_input_image_{model_name}.png"   , vimage[0, 0,:,60].detach().clone().cpu().numpy(), cmap="gray")
+            plt.imsave(f"_aligned_image{model_name}.png" , aligned_image[0, 0,:,60].detach().clone().cpu().numpy(), cmap="gray")
             # segmentation with true_image
             with torch.no_grad():
                 if train_without_noise:
-                    outdict_d = deconv_model(target_image)
+                    outdict_d = deconv_model(image_without_noise_hill)
                 else:
-                    outdict_d = deconv_model(image)
+                    outdict_d = deconv_model(image_with_noise_hill)
                 out_without_shake  = outdict_d["enhanced_image" ]
                 lum_without_shake  = outdict_d["estim_luminance"]
                 mid_without_shake  = outdict_d["mid"]
+            if train_without_noise:
+                pixelwise_loss    = loss_fn(aligned_image, image_without_noise_hill)
+                segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
+                                  + loss_fn(lum_with_shake, lum_without_shake)
+                perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
+            else:
+                pixelwise_loss    = F.gaussian_nll_loss(
+                    aligned_image, image_with_noise_hill, image_with_noise_hill*0.1+0.01)
+                segmentation_loss = loss_fn(out_with_shake, out_without_shake, var=torch.ones_like(out_without_shake)) \
+                                  + loss_fn(lum_with_shake, lum_without_shake, var=torch.ones_like(out_without_shake))
+                perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake, var=torch.ones_like(mid_with_shake))
+
             loss = loss_mode(
-                mode                = mode               ,
-                loss_fn             = loss_fn            ,
-                train_without_noise = train_without_noise,
-                aligned_image       = aligned_image      , 
-                target_image        = target_image       ,
-                out_with_shake      = out_with_shake     , 
-                out_without_shake   = out_without_shake  ,
-                lum_with_shake      = lum_with_shake     , 
-                lum_without_shake   = lum_without_shake  ,
-                mid_with_shake      = mid_with_shake     , 
-                mid_without_shake   = mid_without_shake  ,)
+                pixelwise_loss    = pixelwise_loss   ,
+                perceptual_loss   = perceptual_loss  ,
+                segmentation_loss = segmentation_loss,
+                mode              = mode             ,
+            )
 
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
@@ -831,19 +795,16 @@ def deep_align_net_train_loop(
                     label  = labelz       ,
                     device = device       ,
                     params = params       ,)
-                image_before_hill = image_with_noise
-                image = deconv_model.image.hill.sample(image_before_hill)
+                image_with_noise_hill = deconv_model.image.hill.sample(image_with_noise).detach().clone()
                 if train_without_noise:
-                    image = imagen_instantblur_without_noise(
+                    image_without_noise = imagen_instantblur_without_noise(
                         model  = deconv_model ,
                         label  = labelz       ,
                         device = device       ,
                         params = params       ,
                     )
-                    target_image = deconv_model.image.hill.sample(image)
-                else:
-                    target_image = image
-                vimage = vibrate(image.detach().clone())
+                    image_without_noise_hill = deconv_model.image.hill.sample(image_without_noise).detach().clone()
+                vimage = vibrate(image_with_noise_hill)
                 outdict_a = align_model(vimage)
                 aligned_image = outdict_a["aligned_image"]
                 # segmentation with aligned_image
@@ -851,22 +812,30 @@ def deep_align_net_train_loop(
                 out_with_shake   = outdict_d["enhanced_image" ]
                 lum_with_shake   = outdict_d["estim_luminance"]
                 # segmentation with true_image
-                outdict_d = deconv_model(image)
+                if train_without_noise:
+                    outdict_d = deconv_model(image_without_noise_hill)
+                else:
+                    outdict_d = deconv_model(image_with_noise_hill)
                 out_without_shake = outdict_d["enhanced_image" ]
                 lum_without_shake = outdict_d["estim_luminance"]
                 mid_without_shake = outdict_d["mid"]
+                if train_without_noise:
+                    pixelwise_loss    = loss_fn(aligned_image, image_without_noise_hill)
+                    segmentation_loss = loss_fn(out_with_shake, out_without_shake)\
+                                      + loss_fn(lum_with_shake, lum_without_shake)
+                    perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake)
+                else:
+                    pixelwise_loss    = F.gaussian_nll_loss(
+                        aligned_image, image_with_noise_hill, image_with_noise_hill*0.1+0.01)
+                    segmentation_loss = loss_fn(out_with_shake, out_without_shake, var=torch.ones_like(out_without_shake)) \
+                                      + loss_fn(lum_with_shake, lum_without_shake, var=torch.ones_like(out_without_shake))
+                    perceptual_loss   = loss_fn(mid_with_shake, mid_without_shake, var=torch.ones_like(mid_with_shake))
                 vloss = loss_mode(
-                    mode                = mode               ,
-                    loss_fn             = loss_fn            ,
-                    train_without_noise = train_without_noise,
-                    aligned_image       = aligned_image      , 
-                    target_image        = target_image       ,
-                    out_with_shake      = out_with_shake     , 
-                    out_without_shake   = out_without_shake  ,
-                    lum_with_shake      = lum_with_shake     , 
-                    lum_without_shake   = lum_without_shake  ,
-                    mid_with_shake      = mid_with_shake     , 
-                    mid_without_shake   = mid_without_shake  ,)
+                    pixelwise_loss    = pixelwise_loss   ,
+                    perceptual_loss   = perceptual_loss  ,
+                    segmentation_loss = segmentation_loss,
+                    mode              = mode             ,
+                )
                 vloss_sum += vloss.detach().item()
         
         num  = len(train_loader)

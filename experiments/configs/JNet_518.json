@@ -1,7 +1,7 @@
 {
     "explanation":"training with danet 517",
     "pretrained_model"  :   "JNet_487_pretrain" ,
-    "align_model"       :   "danet_0"           ,
+    "align_model"       :   "danet_2"           ,
 
     "params":
         {
@@ -52,7 +52,7 @@
 
     "align_params":
         {
-            "name"                  : "danet_0"                                ,
+            "name"                  : "danet_3"                                ,
             "hidden_channels_list"  : [16, 32, 64, 128]                        ,
             "attn_list"             : [false, false, false, false]             ,     
             "nblocks"               : 2                                        ,     

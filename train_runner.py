@@ -45,7 +45,8 @@ if args.train_align:
         warmup_lr_init = lr * 0.1    ,
         warmup_t       = 10          ,
         )
-
+    JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
+                         strict=False)
 else:
     train_params = JNet.parameters()
     lr = train_loop_params['lr']

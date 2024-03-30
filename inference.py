@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from dataset import RandomCutDataset, DensityDataset
 import model_new as model
-from train_loop import imagen_instantblur
+from train_loop import imagen_instantblur, imagen_instantblur_without_noise
 from dataset import Vibrate
 from utils import array_to_tif, load_anything
 
@@ -34,6 +34,9 @@ class SimulationInference():
             align_params   = self.configs["align_params"]
             deep_align_net = model.DeepAlignNet(align_params)
             self.deep_align_net = deep_align_net.to(device=self.device)
+            self.deep_align_net.load_state_dict(
+                torch.load(f'model/{self.configs["align_model"]}.pt'),
+                strict=False)
             self.with_align = True
         else:
             self.with_align = False
@@ -110,12 +113,12 @@ class SimulationInference():
                             f"model/{self.model_name}.pt"), 
                             strict=False)
                 if self.is_vibrate:
-                    image = self.vibrate(_image.detach().clone())
+                    image = self.vibrate(_image)
                 else:
                     image = _image.detach().clone()
                 if self.with_align:
                     outdic_a = self.deep_align_net(image)
-                    image_a  = outdic_a["aligned_image"].detach().clone()
+                    image_a  = outdic_a["aligned_image"]
                 else:
                     image_a = image.detach().clone()
                 outdict  = self.JNet(image_a)
@@ -273,6 +276,9 @@ class MicrogliaInference():
             align_params   = self.configs["align_params"]
             deep_align_net = model.DeepAlignNet(align_params)
             self.deep_align_net = deep_align_net.to(device=self.device)
+            self.deep_align_net.load_state_dict(
+                torch.load(f'model/{self.configs["align_model"]}.pt'),
+                strict=False)
             self.with_align = True
         else:
             self.with_align = False
