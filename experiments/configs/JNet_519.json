@@ -45,7 +45,7 @@
             "scale"                 : 3                                       ,
             "mid"                   : 20                                       , "$mid"                   : "num of NeurIPSF middle channel"     ,
             "loss_fn"               : "nn.MSELoss()"                           , "$loss_fn"               : "loss func for NeurIPSF"             ,  
-            "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
+            "lr"                    : 1e-3                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
             "num_iter_psf_pretrain" : 1000                                     , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
             "device"                : "cuda:6"
         }                                                                      ,  "$params" : "model configs",
@@ -58,7 +58,7 @@
             "nblocks"               : 2                                        ,
             "activation"            : "nn.ReLU(inplace=True)"                  ,     
             "dropout"               : 0.5                                      ,
-            "loss_mode"             : "pixelwise"              ,
+            "loss_mode"             : "pixelwise"            ,
             "lr"                    : 1e-3                                     , "$lr"                    : "lr for deep align net"       ,
             "device"                : "cuda:6"
         }                                                                      ,  "$align_params" : "model configs",
