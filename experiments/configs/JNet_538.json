@@ -1,7 +1,7 @@
 {
     "explanation":"pretrain without noise,",
     "pretrained_model":"JNet_537_pretrain",
-    "align_model"     :   "dna_0"           ,
+    "align_model"     :   "dna_5"           ,
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -52,7 +52,7 @@
 
         "align_params":
         {
-            "name"                  : "dna_0"                                  ,
+            "name"                  : "dna_5"                                  ,
             "hidden_channels_list"  : [16, 32, 64, 128]                        ,
             "attn_list"             : [false, false, false, false]             ,     
             "nblocks"               : 2                                        ,
@@ -110,7 +110,7 @@
            "partial"           : "params['partial']" ,
            "ewc"               : null                ,
            "es_patience"       : 10                  ,
-           "is_vibrate"        : true                ,
+           "is_vibrate"        : false               ,
            "weight_x"          : 1                   ,
            "weight_z"          : 1                   ,
            "without_noise"     : true                                          

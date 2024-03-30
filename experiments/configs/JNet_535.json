@@ -110,7 +110,7 @@
            "partial"           : "params['partial']" ,
            "ewc"               : null                ,
            "es_patience"       : 10                  ,
-           "is_vibrate"        : true                ,
+           "is_vibrate"        : false               ,
            "weight_x"          : 1                   ,
            "weight_z"          : 1                   ,
            "without_noise"     : false                                         

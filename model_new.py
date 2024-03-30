@@ -326,7 +326,7 @@ class Emission(nn.Module):
 
 
 class NeuralImplicitPSF(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, psf):
         super().__init__()
         mid = config["mid"]
         self.layers = nn.Sequential(
@@ -338,6 +338,8 @@ class NeuralImplicitPSF(nn.Module):
             nn.Sigmoid()
             )
         self.config = config
+        self._gen_coord(psf)
+        self._gen_label(psf)
 
     def _init_weights(self):
         for m in self.parameters():
@@ -346,10 +348,8 @@ class NeuralImplicitPSF(nn.Module):
     def forward(self, coords):
         return self.layers(coords)
 
-    def trainer(self, psf):
+    def trainer(self):
         self.to(self.config["device"])
-        self._gen_coord(psf)
-        self._gen_label(psf)
         self._train()
 
     def _gen_coord(self, psf):
@@ -413,7 +413,7 @@ class Blur(nn.Module):
             raise(NotImplementedError(
                 f'blur_mode {params["blur_mode"]} is not implemented. Try "gaussian" or "gibsonlanni".'))
         self.init_psf_rz = torch.tensor(psf_model.PSF_rz, requires_grad=False).float().to(self.device)
-        self.neuripsf = NeuralImplicitPSF(params)
+        self.neuripsf = NeuralImplicitPSF(params, self.init_psf_rz)
         # self.neuripsf.trainer(self.init_psf_rz) <- moved to train_runner.py
         self.psf_rz_s0 = self.init_psf_rz.shape[0]
         self.size_z = params["size_z"]

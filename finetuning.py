@@ -30,6 +30,8 @@ configs              = json.load(configs)
 params               = configs["params"           ]
 train_dataset_params = configs["train_dataset"    ]
 ewc_dataset_params   = configs["pretrain_dataset" ]
+is_vibrate           = configs["pretrain_loop"]["is_vibrate"]
+without_noise        = configs["pretrain_loop"]["without_noise"]
 val_dataset_params   = configs["val_dataset"      ]
 train_loop_params    = configs["train_loop"       ]
 vibration_params     = configs["vibration"        ]
@@ -170,8 +172,9 @@ if  train_loop_params["ewc"] != None:
         wz                 = configs["pretrain_loop"]["weight_z"]       ,
         ewc_dataset_params = ewc_dataset_params                         ,
         init_num_batch     = 100                                        ,
-        is_vibrate         = True                                       ,
-        device             = device
+        is_vibrate         = is_vibrate                                       ,
+        device             = device,
+        without_noise = without_noise
         )
 else:
     ewc = None

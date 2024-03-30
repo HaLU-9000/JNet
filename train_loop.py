@@ -59,6 +59,7 @@ def pretrain_loop(
         train_dataset_params ,
         vibration_params     ,
         scheduler            ,
+        without_noise        ,
         ):
     
     n_epochs     = train_loop_params["n_epochs"]  
@@ -90,11 +91,18 @@ def pretrain_loop(
             labelx = train_data["labelx"].to(device = device)
             labelz = train_data["labelz"].to(device = device)
             with torch.no_grad():
-                image = imagen_instantblur(
-                    model  = model ,
-                    label  = labelz,
-                    device = device,
-                    params = params,)
+                if without_noise:
+                    image = imagen_instantblur_without_noise(
+                        model  = model ,
+                        label  = labelz,
+                        device = device,
+                        params = params,)
+                else:
+                    image = imagen_instantblur(
+                        model  = model ,
+                        label  = labelz,
+                        device = device,
+                        params = params,)
                 image  = model.image.hill.sample(image)
             vimage = vibrate(image) if is_vibrate else image
             vimage = mask.apply_mask(
@@ -122,10 +130,18 @@ def pretrain_loop(
             for val_data in val_loader:
                 labelx = val_data["labelx"].to(device = device)
                 labelz = val_data["labelz"].to(device = device)
-                image = imagen_instantblur(model  = model ,
-                                           label  = labelz,
-                                           device = device,
-                                           params = params,)
+                if without_noise:
+                    image = imagen_instantblur_without_noise(
+                        model  = model ,
+                        label  = labelz,
+                        device = device,
+                        params = params,)
+                else:
+                    image = imagen_instantblur(
+                        model  = model ,
+                        label  = labelz,
+                        device = device,
+                        params = params,)
                 image  = model.image.hill.sample(image)
                 vimage = vibrate(image) if is_vibrate else image
                 outdict = model(vimage)
@@ -387,6 +403,7 @@ def finetuning_with_simulation_loop(
         ploss_weight = 1/100   ,
         verbose      = False   ,
         v_verbose    = True    ,
+        train_with_align = False,
         ):
     
     earlystopping = EarlyStopping(name        = model_name ,
@@ -400,6 +417,7 @@ def finetuning_with_simulation_loop(
                                         "validatation loss"] )
     loss_list, vloss_list= [], []
     vibrate = Vibrate(vibration_params)
+    vibrate.set_arbitrary_step(100)
     mask = Mask()
     torch.save(model.image.state_dict(),
                f"{path}/{model_name}_pre.pt")
@@ -544,7 +562,7 @@ class ElasticWeightConsolidation():
     https://github.com/shivamsaboo17/Overcoming-Catastrophic-forgetting-in-Neural-Networks
     """
     def __init__(self, model, params, vibration_params, prev_dataloader, loss_fnx, loss_fnz,wx, wz,
-                 init_num_batch, ewc_dataset_params, is_vibrate, device):
+                 init_num_batch, ewc_dataset_params, is_vibrate, device, without_noise):
         self.model = model
         num_params = 0
         for p in model.parameters():
@@ -564,6 +582,7 @@ class ElasticWeightConsolidation():
         num_fisher = 0
         self.vibrate = Vibrate(vibration_params)
         self.vibrate.set_arbitrary_step(1000)
+        self.without_noise = without_noise
 
         for name, _ in self.model.named_buffers():
             if '_estimated_fisher' in name:
@@ -594,15 +613,24 @@ class ElasticWeightConsolidation():
             labelx = val_data["labelx"].to(device = self.device)
             labelz = val_data["labelz"].to(device = self.device)
             with torch.no_grad():
-                image = imagen_instantblur(model  = self.model ,
-                                           label  = labelz     ,
-                                           device = self.device,
-                                           params = self.params,)
+                if self.without_noise:
+                    image = imagen_instantblur_without_noise(
+                        model  = self.model ,
+                        label  = labelz,
+                        device = self.device,
+                        params = self.params,)
+                else:
+                    image = imagen_instantblur(
+                        model  = self.model ,
+                        label  = labelz     ,
+                        device = self.device,
+                        params = self.params,)
             image = mask.apply_mask(self.ewc_dataset_params["mask"]      ,
                                     image                                ,
                                     self.ewc_dataset_params["mask_size"] ,
                                     self.ewc_dataset_params["mask_num"]  ,)
             vimage = self.vibrate(image) if self.is_vibrate else image
+            
             outdict = self.model(vimage)
             out   = outdict["enhanced_image" ]
             lum   = outdict["estim_luminance"]

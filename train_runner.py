@@ -125,7 +125,7 @@ if args.train_align:
         )
     
 else:
-    JNet.image.blur.neuripsf.trainer(JNet.image.blur.init_psf_rz)
+    JNet.image.blur.neuripsf.trainer()
     print(f'========= model {configs["pretrained_model"]} train started =========')
     pretrain_loop(
         optimizer            = optimizer                   ,
@@ -137,5 +137,6 @@ else:
         train_loop_params    = train_loop_params           ,
         train_dataset_params = train_dataset_params        ,
         vibration_params     = vibration_params            ,
-        scheduler            = scheduler
+        scheduler            = scheduler                   ,
+        without_noise        = train_loop_params["without_noise"]
         )
