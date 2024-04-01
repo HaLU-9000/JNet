@@ -27,10 +27,8 @@ utils.mount_model_to_device(model, configs = configs)
 model.eval()
 
 # batch process
-image.process_image(model, params, shape, "enhanced_image", 
+image.process_image(model, params, shape, "enhanced_image",
                     overlap=[0, 0, 0])
-print(image.processed_image.shape)
-
 # save image
 image.save_processed_image(
     file   = f"_apply_test/{image_basename}_{args.model_name}",
