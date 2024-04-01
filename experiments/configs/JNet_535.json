@@ -47,7 +47,7 @@
             "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
             "num_iter_psf_pretrain" : 20000                                    , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
             "nipsf_loss_target"     : 1e-5                                     , "$nipsf_loss_target"     : "epoch for pre-training of NeurIPSF" ,
-            "device"                : "cuda:5"
+            "device"                : "cuda:4"
         }                                                                      ,  "$params" : "model configs",
 
         "align_params":
@@ -58,9 +58,9 @@
             "nblocks"               : 2                                        ,
             "activation"            : "nn.ReLU(inplace=True)"                  ,     
             "dropout"               : 0.5                                      ,
-            "loss_mode"             : "perceptual_plus_segmentation"           ,
+            "loss_mode"             : "segmentation_plus_perceptual"           ,
             "lr"                    : 1e-3                                     , "$lr"                    : "lr for deep align net"       ,
-            "device"                : "cuda:5"
+            "device"                : "cuda:4"
         }                                                                      ,  "$align_params" : "model configs",
 
     "pretrain_dataset":
@@ -130,32 +130,32 @@
 
     "train_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
-            "size"            : [333,1024,1024]                   ,
-            "cropsize"        : [240, 112, 112]                   ,
-            "I"               : 200                               ,
-            "scale"           : 3                                 ,
-            "train"           : true                              ,
-            "mask"            : true                              ,
-            "mask_size"       : [1, 10, 10]                       ,
-            "mask_num"        : 10                                ,
-            "surround"        : false                             ,
+            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
+            "size"            : [333,1024,1024]                      ,
+            "cropsize"        : [240, 112, 112]                      ,
+            "I"               : 200                                  ,
+            "scale"           : 3                                    ,
+            "train"           : true                                 ,
+            "mask"            : true                                 ,
+            "mask_size"       : [1, 10, 10]                          ,
+            "mask_num"        : 10                                   ,
+            "surround"        : false                                ,
             "surround_size"   : [32, 4, 4]                                
         }                                                                      , "$train_dataset" : "",
 
     "val_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Downloads/Set_03" ,
-            "size"            : [333,1024,1024]                   ,
-            "cropsize"        : [240, 112, 112]                   ,
-            "I"               : 20                                ,
-            "scale"           : 3                                 ,
-            "train"           : false                             ,
-            "mask"            : false                             ,
-            "mask_size"       : [1, 10, 10]                       ,
-            "mask_num"        : 10                                ,
-            "surround"        : false                             ,
-            "surround_size"   : [32, 4, 4]                        ,
+            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
+            "size"            : [333,1024,1024]                      ,
+            "cropsize"        : [240, 112, 112]                      ,
+            "I"               : 20                                   ,
+            "scale"           : 3                                    ,
+            "train"           : false                                ,
+            "mask"            : false                                ,
+            "mask_size"       : [1, 10, 10]                          ,
+            "mask_num"        : 10                                   ,
+            "surround"        : false                                ,
+            "surround_size"   : [32, 4, 4]                           ,
             "seed"            : 1204                                      
         }                                                                      , "$val_dataset" : "",
     

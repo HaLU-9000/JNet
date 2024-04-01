@@ -47,7 +47,7 @@
             "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
             "num_iter_psf_pretrain" : 20000                                    , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
             "nipsf_loss_target"     : 1e-5                                     , "$nipsf_loss_target"     : "epoch for pre-training of NeurIPSF" ,
-            "device"                : "cuda:5"
+            "device"                : "cuda:3"
         }                                                                      ,  "$params" : "model configs",
 
         "align_params":
@@ -60,7 +60,7 @@
             "dropout"               : 0.5                                      ,
             "loss_mode"             : "pixelwise_plus_segmentation"            ,
             "lr"                    : 1e-3                                     , "$lr"                    : "lr for deep align net"       ,
-            "device"                : "cuda:5"
+            "device"                : "cuda:3"
         }                                                                      ,  "$align_params" : "model configs",
 
     "pretrain_dataset":
