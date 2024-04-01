@@ -394,8 +394,30 @@ class ImageProcessing():
         self.short_progress_bar="{l_bar}{bar:10}{r_bar}{bar:-10b}"
         self.apply_hill = True
 
-    def apply_(self):
-        pass
+    def apply_both(
+            self                      ,
+            align_model               ,
+            deconv_model              ,
+            align_params              ,
+            params                    ,
+            chunk_shape               ,
+            overlap      = [ 0, 0, 0] ,
+            ):
+        processed = self.process_image(
+            model       = align_model     ,
+            params      = align_params    ,
+            chunk_shape = chunk_shape     ,
+            type        = "aligned_image" ,
+            overlap     = overlap         ,
+                           )
+        self.image = processed
+        processed = self.process_image(
+            model       = deconv_model    ,
+            params      = params          ,
+            chunk_shape = chunk_shape     ,
+            type        = "enhanced_image",
+            overlap     = overlap         ,
+                           )
 
     def process_image(
             self                    ,
