@@ -178,8 +178,8 @@ def pretrain_loop(
             condition = False
 
         earlystopping((vloss_sum / vnum), model, condition = condition)
-        if earlystopping.early_stop:
-            break
+        #if earlystopping.early_stop:
+        #    break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
@@ -289,6 +289,7 @@ def finetuning_loop(
                 loss += ploss * ploss_weight
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
+            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             loss_sum += loss.detach().item()
         vloss_sum, vqloss_sum, vparam_loss_sum = 0., 0., 0.
@@ -362,10 +363,10 @@ def finetuning_loop(
         vibrate.step()
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        #condition = get_condition(optimizer, train_loop_params["lr"])
-        earlystopping(vloss_list[-1], model, condition = True)
-        if earlystopping.early_stop:
-            break
+        condition = get_condition(optimizer, train_loop_params["lr"])
+        earlystopping(vloss_list[-1], model, condition = condition)
+        #if earlystopping.early_stop:
+        #    break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
@@ -810,6 +811,7 @@ def deep_align_net_train_loop(
 
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
+            nn.utils.clip_grad_norm_(align_model.parameters(), 1.0)
             optimizer.step()
             loss_sum += loss.detach().item()
         
@@ -976,6 +978,7 @@ def finetuning_with_align_model_loop(
                 loss += ploss * ploss_weight
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
+            nn.utils.clip_grad_norm_(align_model.parameters(), 1.0)
             optimizer.step()
             loss_sum += loss.detach().item()
         vloss_sum, vqloss_sum, vparam_loss_sum = 0., 0., 0.

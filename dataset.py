@@ -472,7 +472,7 @@ class DensityDataset(Dataset):
     '''
     def __init__(self, folderpath:str,
                  size:list, cropsize:list, I:int, scale:int,
-                 train=True, mask=True,
+                 train=True, mask=True, train_data_rate=0.8,
                  mask_size=[10, 10, 10], mask_num=1,
                  surround=True, surround_size=[64, 8, 8],
                  seed=904):
@@ -481,8 +481,11 @@ class DensityDataset(Dataset):
         self.size          = size
         self.ssize         = [size[0]//scale, size[1], size[2]]
         self.images        = [folderpath+"/"+file
-                              for file in sorted(os.listdir(folderpath)) if not file.startswith('_')]
-        self.high          = len(self.images)
+                              for file in sorted(
+                                  os.listdir(
+                                      folderpath)) if not file.startswith('_')]
+        self.high          = int(len(self.images) * train_data_rate)
+        self.num_images    = len(self.images)
         self.csize         = cropsize
         self.scsize        = [cropsize[0]//scale, cropsize[1], cropsize[2]]
         self.train         = train
@@ -499,8 +502,10 @@ class DensityDataset(Dataset):
         
         if train == False:
             np.random.seed(seed)
-            self.indiceslist = self.gen_indices(I * 100000, 0, self.high)
-            self.coordslist  = self.gen_coords(I * 100000, self.icoords_size)
+            self.indiceslist = self.gen_indices(
+                I * 100000, self.high, self.num_images)
+            self.coordslist  = self.gen_coords(
+                I * 100000, self.icoords_size)
         
     def gen_indices(self, I, low, high):
         return np.random.randint(low, high, (I,))
@@ -541,10 +546,10 @@ class DensityDataset(Dataset):
                 s = image.mean().item()
             image, _, _ = Rotate()(image)
             image = self.randomflip(image)
-            image = self.apply_mask(self.mask, image, self.mask_size,
-                                    self.mask_num)
-            image = self.apply_surround_mask(self.surround, image,
-                                             self.surround_size)
+            image = self.apply_mask(
+                self.mask, image, self.mask_size, self.mask_num)
+            image = self.apply_surround_mask(
+                self.surround, image, self.surround_size)
         else:
             r, s = 0.0001, 0
             valid = False
@@ -557,8 +562,8 @@ class DensityDataset(Dataset):
                                  )(load_anything(self.images[_idx]))
                     valid = (1, *self.scsize) == image.shape
                 s = image.mean().item()
-            image = self.apply_surround_mask(self.surround, image,
-                                             self.surround_size)
+            image = self.apply_surround_mask(
+                self.surround, image, self.surround_size)
         return {"image": image}
 
     def __len__(self):

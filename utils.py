@@ -391,20 +391,27 @@ class ImageProcessing():
         
         self.original_shape = image.squeeze(0).shape
         self.processed_image = None
+        self.short_progress_bar="{l_bar}{bar:10}{r_bar}{bar:-10b}"
+        self.apply_hill = True
+
+    def apply_(self):
+        pass
 
     def process_image(
             self                    ,
             model                   ,
             params                  ,
             chunk_shape             ,
-            type                    , 
-            overlap     = [ 0, 0, 0],):
+            type                    ,
+            overlap     = [ 0, 0, 0],
+            ):
         print("[1/3] making chunks...")
         chunks = self._make_chunks(self.image, chunk_shape, overlap)
         processed_chunks = []
         print("[2/3] processing chunks...")
-        for chunk in tqdm(chunks):
-            processed_chunk = self._process(chunk, model, params)
+        for chunk in tqdm(
+            chunks, bar_format=self.short_progress_bar):
+            processed_chunk = self._process(chunk, model, params, type)
             processed_chunks.append(processed_chunk)
         print("[3/3] reconstrusting image...")
         processed_image = self._reconstruct_images(
@@ -489,19 +496,27 @@ class ImageProcessing():
         
         return padded
     
-    def _process(self, chunk, model, params):  
+    def _process(self, chunk, model, params, type):  
         chunk = self._make_5d(chunk)
         chunk = self._to_model_device(chunk, params)
-        chunk = model.image.hill.sample(chunk)
+        if self.apply_hill:
+            chunk = model.image.hill.sample(chunk)
         chunk = model(chunk)
-        return {
-            "enhanced_image" : chunk["enhanced_image" ]\
-                .squeeze(0).detach().clone().cpu(),
-            "estim_luminance": chunk["estim_luminance"]\
-                .squeeze(0).detach().clone().cpu(),
-            "reconstruction" : chunk["reconstruction" ]\
-                .squeeze(0).detach().clone().cpu(),
-        }
+        if type == "aligned_image":
+            chunk = model(chunk)
+            return {
+                "aligned_image" : chunk["aligned_image"]\
+                    .squeeze(0).detach().clone().cpu(),
+            }
+        else:
+            return {
+                "enhanced_image" : chunk["enhanced_image" ]\
+                    .squeeze(0).detach().clone().cpu(),
+                "estim_luminance": chunk["estim_luminance"]\
+                    .squeeze(0).detach().clone().cpu(),
+                "reconstruction" : chunk["reconstruction" ]\
+                    .squeeze(0).detach().clone().cpu(),
+            }
 
     def _make_5d(self, chunk):
         return chunk.unsqueeze(0)
@@ -622,10 +637,10 @@ class MRFLoss():
 
     def _calc_batched_mrf_energy(self, x, neighbors):
         x = x.flatten(-self.dims)
-        loss = (1 - x) * (1 - neighbors) * self.l_00 \
-             + (1 - x) *  neighbors      * self.l_01 \
-             +  x      * (1 - neighbors) * self.l_10 \
-             +  x      *  neighbors      * self.l_11
+        loss = self.l_00 * (1 - x) * (1 - neighbors)              \
+             + self.l_01 * (1 - x) *  neighbors                   \
+             + self.l_10 *  x      * (1 - neighbors).prod(dim=1)  \
+             + self.l_11 *  x      * (1 - (1 - neighbors).prod(dim=1))
         return loss
 
     def _get_euclid_vector(self, kernel_size:list):
