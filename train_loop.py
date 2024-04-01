@@ -921,6 +921,7 @@ def finetuning_with_align_model_loop(
     ewc_weight       = train_loop_params["ewc_weight"       ]      
     qloss_weight     = train_loop_params["qloss_weight"     ]    
     ploss_weight     = train_loop_params["ploss_weight"     ]
+    loss_fn = nn.MSELoss()
     align_model.eval()
     
     earlystopping = EarlyStopping(
@@ -961,7 +962,7 @@ def finetuning_with_align_model_loop(
             if adjust_luminance:
                 rec = luminance_adjustment(rec, image)
             #loss  = loss_fn(rec, image) * loss_weight
-            loss = _loss_fnx(rec, image, a, sigma)
+            loss = loss_fn(rec, image)
             loss_z = _loss_fnz(
                 _input = lum ,
                 mask   = None,
@@ -996,7 +997,7 @@ def finetuning_with_align_model_loop(
                 ploss   = outdict["psf_loss"       ]
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
-                vloss = _loss_fnx(rec, image, a, sigma)
+                vloss = loss_fn(rec, image)
                 vloss = vloss.detach().item()
                 if v_verbose: print("valid loss for reconst\t", vloss)                
                 vloss_z = _loss_fnz(
@@ -1043,7 +1044,7 @@ def finetuning_with_align_model_loop(
         
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        earlystopping(vloss_list[-1], model)
+        earlystopping(vloss_list[-1], model, condition=True)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
