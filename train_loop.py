@@ -886,12 +886,8 @@ def deep_align_net_train_loop(
             scheduler.step(epoch, vloss_list[-1])
 
         vibrate.step()
-        #if vibrate.num_step >= vibrate.max_step:
-        #    condition = True
-        #else:
-        #    condition = False
-            
-        earlystopping((vloss_sum / vnum), align_model, condition = True)
+        earlystopping((vloss_sum / vnum), align_model,
+                      condition = vibrate.num_step >= vibrate.max_step)
         if earlystopping.early_stop:
             break
     plt.plot(loss_list , label='train loss')
