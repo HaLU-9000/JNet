@@ -363,6 +363,10 @@ def init_model(params, is_finetuning):
     net = model.JNet(params)
     return net
 
+def init_dna(params):
+    dna = model.DeepAlignNet(params)
+    return dna
+
 def load_model_weight(model, model_name):
     model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
 
@@ -392,32 +396,49 @@ class ImageProcessing():
         self.original_shape = image.squeeze(0).shape
         self.processed_image = None
         self.short_progress_bar="{l_bar}{bar:10}{r_bar}{bar:-10b}"
-        self.apply_hill = True
+        self.deconv_model = None
+        self.align_model  = None
 
     def apply_both(
-            self                      ,
-            align_model               ,
-            deconv_model              ,
-            align_params              ,
-            params                    ,
-            chunk_shape               ,
-            overlap      = [ 0, 0, 0] ,
+            self         ,
+            align_model  ,
+            deconv_model ,
+            align_params ,
+            params       ,
+            chunk_shape  ,
+            overlap      ,
+            file_align   ,
+            file_deconv  ,
+            format       ,
+            bit          ,
             ):
-        processed = self.process_image(
+        self.process_image(
             model       = align_model     ,
             params      = align_params    ,
             chunk_shape = chunk_shape     ,
             type        = "aligned_image" ,
             overlap     = overlap         ,
+            apply_hill  = True
                            )
-        self.image = processed
-        processed = self.process_image(
+        self.save_processed_image(
+            file   = file_align  ,
+            format = format      ,
+            bit    = bit         ,
+            )
+        self.image = self.processed_image
+        self.process_image(
             model       = deconv_model    ,
             params      = params          ,
             chunk_shape = chunk_shape     ,
             type        = "enhanced_image",
             overlap     = overlap         ,
+            apply_hill  = False
                            )
+        self.save_processed_image(
+            file   = file_deconv   ,
+            format = format        ,
+            bit    = bit           ,
+            )
 
     def process_image(
             self                    ,
@@ -426,6 +447,7 @@ class ImageProcessing():
             chunk_shape             ,
             type                    ,
             overlap     = [ 0, 0, 0],
+            apply_hill  = True
             ):
         print("[1/3] making chunks...")
         chunks = self._make_chunks(self.image, chunk_shape, overlap)
@@ -433,7 +455,8 @@ class ImageProcessing():
         print("[2/3] processing chunks...")
         for chunk in tqdm(
             chunks, bar_format=self.short_progress_bar):
-            processed_chunk = self._process(chunk, model, params, type)
+            processed_chunk = self._process(
+                chunk, model, params, type, apply_hill)
             processed_chunks.append(processed_chunk)
         print("[3/3] reconstrusting image...")
         processed_image = self._reconstruct_images(
@@ -518,14 +541,15 @@ class ImageProcessing():
         
         return padded
     
-    def _process(self, chunk, model, params, type):  
+    def _process(self, chunk, model, params, type, apply_hill):  
         chunk = self._make_5d(chunk)
         chunk = self._to_model_device(chunk, params)
-        if self.apply_hill:
-            chunk = model.image.hill.sample(chunk)
+        
+        if apply_hill:
+            chunk = self.deconv_model.image.hill.sample(chunk)
         chunk = model(chunk)
+
         if type == "aligned_image":
-            chunk = model(chunk)
             return {
                 "aligned_image" : chunk["aligned_image"]\
                     .squeeze(0).detach().clone().cpu(),
@@ -576,20 +600,20 @@ class ImageProcessing():
         return reconstruct
 
     def _get_image_shape(self, type, params): 
-        scale = params["scale"]
         if type == "enhanced_image" or type == "estim_luminance":
+            scale = params["scale"]
             z, x, y = self.original_shape
             shape = [z * scale, x, y]
-        elif type == "reconstruction":
-            shape = self.original_shape[1:]
+        elif type == "reconstruction" or type =="aligned_image":
+            shape = self.original_shape
         return shape
     
     def _adjust_overlap_shape(self, overlap, type, params):
-        scale = params["scale"]
         z, x, y = overlap 
         if type == "enhanced_image" or type == "estim_luminance":
+            scale = params["scale"]
             overlap = [z * scale, x, y]
-        elif type == "reconstruction":
+        elif type == "reconstruction" or type == "aligned_image":
             overlap = overlap
         return overlap
         

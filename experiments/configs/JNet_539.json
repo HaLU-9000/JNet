@@ -184,7 +184,7 @@
             "is_instantblur"    : false          ,
             "is_vibrate"        : false          ,
             "adjust_luminance"  : false          ,
-            "zloss_weight"      : 1              ,
+            "zloss_weight"      : 0.1            ,
             "ewc_weight"        : 0.1            ,
             "qloss_weight"      : 1              ,
             "ploss_weight"      : 10.0           ,
