@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+import sys
 
 import numpy as np
 import torch
@@ -15,13 +16,15 @@ from dataset import DensityDataset, RandomCutDataset
 from   train_loop                           \
     import finetuning_loop,                 \
            ElasticWeightConsolidation,      \
-           finetuning_with_align_model_loop
+           finetuning_with_align_model_loop, \
+           finetuning_see_loss
 
 
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
 parser.add_argument('--train_with_align', action="store_true")
+parser.add_argument('--just_wanna_see_loss', action="store_true")
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
 args   = parser.parse_args()
 
@@ -133,7 +136,7 @@ lr = train_loop_params["lr"]
 optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)
 scheduler            = timm.scheduler.PlateauLRScheduler(
     optimizer      = optimizer   ,
-    patience_t     = 10          ,
+    patience_t     = 20          ,
     warmup_lr_init = lr * 0.1    ,
     warmup_t       = 10          ,)
 
@@ -160,6 +163,8 @@ ewc_data    = DataLoader(
     num_workers = 0#os.cpu_count()  ,
     )
 
+
+
 if  train_loop_params["ewc"] != None:
     ewc = ElasticWeightConsolidation(
         model              = JNet                                       ,
@@ -178,6 +183,25 @@ if  train_loop_params["ewc"] != None:
         )
 else:
     ewc = None
+
+if args.just_wanna_see_loss:
+    JNet.load_state_dict(
+        torch.load(f'model/{args.model_name}.pt'),
+        strict=False)
+    finetuning_see_loss( ####
+        optimizer            = optimizer            ,
+        model                = JNet                 ,
+        train_loader         = train_data           ,
+        val_loader           = val_data             ,
+        device               = device               ,
+        model_name           = args.model_name      ,
+        ewc                  = ewc                  ,
+        train_dataset_params = train_dataset_params ,
+        train_loop_params    = train_loop_params    ,
+        vibration_params     = vibration_params     ,
+        scheduler            = scheduler
+    )
+    sys.exit()
 
 if args.train_with_align:
     print(f"============= model {args.model_name} train started " + \

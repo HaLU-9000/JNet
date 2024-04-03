@@ -292,7 +292,13 @@ def finetuning_loop(
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             loss_sum += loss.detach().item()
-        vloss_sum, vqloss_sum, vparam_loss_sum = 0., 0., 0.
+        vloss_sum    = 0.
+        vxloss_sum   = 0.
+        vzloss_sum   = 0.
+        vmrfloss_sum = 0.
+        vqloss_sum   = 0.
+        vploss_sum   = 0.
+        vewcloss_sum = 0.
         model.eval()
         with torch.no_grad():
             for val_data in val_loader:
@@ -312,45 +318,51 @@ def finetuning_loop(
                     rec = luminance_adjustment(rec, image)
                 #vloss   = loss_fn(rec, image) * loss_weight
                 vloss = _loss_fnx(rec, image, a, sigma)
-                vloss = vloss.detach().item()
-                if v_verbose: print("valid loss for reconst\t", vloss)                
+                vxloss_sum += vloss.detach().item()
+                vloss = vloss.detach().item()             
                 vloss_z = _loss_fnz(
                 _input =lum ,
                 mask   =None,
                 target =None ) * zloss_weight
                 vloss += vloss_z
+                vzloss_sum += vloss_z.detach().item()
                 vloss_sum += vloss.detach().item()
-                if v_verbose: print("valid loss plus loss_z\t", vloss_sum)
                 if train_with_mrf:
-                    loss_mrf = mrf_loss(out)
-                    vloss_sum += loss_mrf.item()
+                    loss_mrf = mrf_loss(out).detach().item()
+                    vloss_sum += loss_mrf
+                    vmrfloss_sum += loss_mrf
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss += qloss
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                    if v_verbose: print("valid loss plus qloss\t", vloss)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss += ploss
                     vloss_sum += ploss
-                    if v_verbose: print("valid loss plus ploss\t", vloss)
-                if v_verbose: print("valid loss without ewc\t", vloss)
+                    vploss_sum += ploss
                 if ewc is not None:
-                    ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
+                    ewc_loss = ewc.calc_ewc_loss(
+                        ewc_weight).detach().item() * ewc_weight
                     vloss_sum += ewc_loss
                     vloss += ewc_loss
-                    if v_verbose: print("valid loss with ewc\t", vloss)
+                    vewcloss_sum += ewc_loss
 
         num  = len(train_loader)
         vnum = len(val_loader)
-        
         loss_list.append(loss_sum / num)
         vloss_list.append(vloss_sum / vnum)
-        writer.add_scalar('train loss', loss_sum / num, epoch)
-        writer.add_scalar('val loss', vloss_sum / vnum, epoch)
-        writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
-        writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
+        writer.add_scalar('train loss'  , loss_sum     /  num  , epoch)
+        writer.add_scalar('val loss'    , vloss_sum    / vnum  , epoch)
+        writer.add_scalar('val x loss'  , vxloss_sum   / vnum  , epoch)
+        writer.add_scalar('val z loss'  , vzloss_sum   / vnum  , epoch)
+        writer.add_scalar('val mrf loss', vmrfloss_sum / vnum  , epoch)
+        writer.add_scalar('val p loss'  , vploss_sum   / vnum  , epoch)
+        writer.add_scalar('val q loss'  , vqloss_sum   / vnum  , epoch)
+        writer.add_scalar('val ewc loss', vewcloss_sum / vnum  , epoch)
+        writer.add_scalar('a'           , a.detach().item()    , epoch)
+        writer.add_scalar('sigma'       , sigma.detach().item(), epoch)
+        writer.add_scalar('lr', optimizer.param_groups[0]["lr"], epoch)
         row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
                            columns = train_curve.columns)
         train_curve = pd.concat([train_curve, row], ignore_index=True)
@@ -363,7 +375,7 @@ def finetuning_loop(
         vibrate.step()
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        condition = get_condition(optimizer, train_loop_params["lr"])
+        condition = True
         earlystopping(vloss_list[-1], model, condition = condition)
         #if earlystopping.early_stop:
         #    break
@@ -376,8 +388,139 @@ def finetuning_loop(
 def get_vibrate_condition(vibrateclass):
     return vibrateclass.num_step >= vibrateclass.max_step
 
-def get_condition(optimizer, lr):
-    return optimizer.param_groups[0]["lr"] == lr
+
+def finetuning_see_loss(
+        optimizer            ,
+        model                ,
+        train_loader         ,
+        val_loader           ,
+        device               ,
+        model_name           ,
+        ewc                  ,
+        train_dataset_params ,
+        train_loop_params    ,
+        vibration_params     ,
+        scheduler = None     ,
+        v_verbose = False    ,
+        ):
+    
+    n_epochs         = train_loop_params["n_epochs"         ]        
+    path             = train_loop_params["path"             ]            
+    savefig_path     = train_loop_params["savefig_path"     ]    
+    adjust_luminance = train_loop_params["adjust_luminance" ]
+    es_patience      = train_loop_params["es_patience"      ]
+    is_vibrate       = train_loop_params["is_vibrate"       ]      
+    zloss_weight     = train_loop_params["zloss_weight"     ]    
+    ewc_weight       = train_loop_params["ewc_weight"       ]      
+    qloss_weight     = train_loop_params["qloss_weight"     ]    
+    ploss_weight     = train_loop_params["ploss_weight"     ]
+    mrfloss_order    = train_loop_params["mrfloss_order"    ]
+    mrfloss_weights  = train_loop_params["mrfloss_weights"  ]
+    dilation         = train_loop_params["mrfloss_dilation" ]
+    
+    train_curve = pd.DataFrame(columns=["training loss"    ,
+                                        "validatation loss"] )
+    loss_list, vloss_list= [], []
+    vibrate = Vibrate(vibration_params)
+    mask = Mask()
+    train_with_mrf = True
+    mrf_loss =\
+    MRFLoss(
+        dims     = 3               ,
+        order    = mrfloss_order   ,
+        weights  = mrfloss_weights ,
+        dilation = dilation        ,)
+    #OldMRFLoss(dims=3,
+    #           order = mrfloss_order,
+    #           mode="all")
+
+    for epoch in range(1, 2):
+        loss_sum = 0.
+        model.train()
+        
+        vloss_sum    = 0.
+        vxloss_sum   = 0.
+        vzloss_sum   = 0.
+        vmrfloss_sum = 0.
+        vqloss_sum   = 0.
+        vploss_sum   = 0.
+        vewcloss_sum = 0.
+        model.eval()
+        with torch.no_grad():
+            for val_data in val_loader:
+                image   = val_data["image"].to(device = device)
+                #_image  = model.image.hill.sample(image)
+                _image  = model.image.hill.sample(image)
+                vimage  = vibrate(_image) if is_vibrate else _image
+                outdict = model(vimage)
+                rec     = outdict["reconstruction" ]
+                a       = outdict["poisson_weight" ]
+                sigma   = outdict["gaussian_sigma" ]
+                out     = outdict["enhanced_image" ]
+                lum     = outdict["estim_luminance"]
+                qloss   = outdict["quantized_loss" ]
+                ploss   = outdict["psf_loss"       ]
+                if adjust_luminance:
+                    rec = luminance_adjustment(rec, image)
+                #vloss   = loss_fn(rec, image) * loss_weight
+                vloss = _loss_fnx(rec, image, a, sigma)
+                vxloss_sum += vloss.detach().item()
+                vloss = vloss.detach().item()             
+                vloss_z = _loss_fnz(
+                _input =lum ,
+                mask   =None,
+                target =None ) * zloss_weight
+                vloss += vloss_z
+                vzloss_sum += vloss_z.detach().item()
+                vloss_sum += vloss.detach().item()
+                if train_with_mrf:
+                    loss_mrf = mrf_loss(out).detach().item()
+                    vloss_sum += loss_mrf
+                    vmrfloss_sum += loss_mrf
+                if qloss is not None:
+                    qloss = qloss.detach().item() * qloss_weight
+                    vloss += qloss
+                    vloss_sum += qloss
+                    vqloss_sum += qloss
+                if ploss is not None:
+                    ploss = ploss.detach().item() * ploss_weight
+                    vloss += ploss
+                    vloss_sum += ploss
+                    vploss_sum += ploss
+                if ewc is not None:
+                    ewc_loss = ewc.calc_ewc_loss(
+                        ewc_weight).detach().item() * ewc_weight
+                    vloss_sum += ewc_loss
+                    vloss += ewc_loss
+                    vewcloss_sum += ewc_loss
+
+        num  = len(train_loader)
+        vnum = len(val_loader)
+        print("\nvloss_sum   \t", vloss_sum      / vnum,
+              "\nvxloss_sum  \t", vxloss_sum     / vnum,
+              "\nvzloss_sum  \t", vzloss_sum     / vnum,
+              "\nvmrfloss_sum  \t", vmrfloss_sum / vnum,
+              "\nvqloss_sum  \t", vqloss_sum     / vnum,
+              "\nvploss_sum  \t", vploss_sum     / vnum,
+              "\nvewcloss_sum\t", vewcloss_sum   / vnum,
+              "\na    \t"       , a.detach().item(),
+              "\nsigma\t"       , sigma.detach().item()
+              )
+        
+        loss_list.append(loss_sum / num)
+        vloss_list.append(vloss_sum / vnum)
+        row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
+                           columns = train_curve.columns)
+        train_curve = pd.concat([train_curve, row], ignore_index=True)
+        train_curve.to_csv(f"./experiments/traincurves/{model_name}.csv",
+                           index=False)
+        
+        if epoch == 1 or epoch % 10 == 0:
+            print(f'Epoch {epoch}, Train {loss_list[-1]},'+\
+                  f' Val {vloss_list[-1]}')
+        vibrate.step()
+        if scheduler is not None:
+            scheduler.step(epoch, vloss_list[-1])
 
 def finetuning_with_simulation_loop(
         n_epochs               ,
@@ -477,7 +620,13 @@ def finetuning_with_simulation_loop(
             loss.backward(retain_graph=False)
             optimizer.step()
             loss_sum += loss.detach().item()
-        vloss_sum, vqloss_sum, vparam_loss_sum = 0., 0., 0.
+        vloss_sum    = 0.
+        vxloss_sum   = 0.
+        vzloss_sum   = 0.
+        vmrfloss_sum = 0.
+        vqloss_sum   = 0.
+        vploss_sum   = 0.
+        vewcloss_sum = 0.
         model.eval()
         with torch.no_grad():
             for val_data in val_loader:
@@ -510,34 +659,38 @@ def finetuning_with_simulation_loop(
                     target =None ) * zloss_weight
                 vloss += vloss_z.item()
                 vloss_sum += vloss.detach().item()
-                if v_verbose: print("valid loss plus loss_z\t", vloss)
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss += qloss
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                    if v_verbose: print("valid loss plus qloss\t", vloss)
-                if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
                     vloss += ploss
-                    if v_verbose: print("valid loss plus ploss\t", vloss)
-                if v_verbose: print("valid loss without ewc\t", vloss)
+                    
                 if ewc is not None:
-                    ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
+                    ewc_loss = ewc.calc_ewc_loss(
+                        ewc_weight).detach().item() * ewc_weight
                     vloss_sum += ewc_loss
                     vloss += ewc_loss
-                    if v_verbose: print("valid loss with ewc\t", vloss)
+                    vewcloss_sum += ewc_loss
 
         num  = len(train_loader)
         vnum = len(val_loader)
-        
         loss_list.append(loss_sum / num)
         vloss_list.append(vloss_sum / vnum)
-        writer.add_scalar('train loss', loss_sum / num, epoch)
-        writer.add_scalar('val loss', vloss_sum / vnum, epoch)
-        writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
-        writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
+        writer.add_scalar('train loss'  , loss_sum     /  num  , epoch)
+        writer.add_scalar('val loss'    , vloss_sum    / vnum  , epoch)
+        writer.add_scalar('val x loss'  , vxloss_sum   / vnum  , epoch)
+        writer.add_scalar('val z loss'  , vzloss_sum   / vnum  , epoch)
+        writer.add_scalar('val mrf loss', vmrfloss_sum / vnum  , epoch)
+        writer.add_scalar('val p loss'  , vploss_sum   / vnum  , epoch)
+        writer.add_scalar('val q loss'  , vqloss_sum   / vnum  , epoch)
+        writer.add_scalar('val ewc loss', vewcloss_sum / vnum  , epoch)
+        writer.add_scalar('a'           , a.detach().item()    , epoch)
+        writer.add_scalar('sigma'       , sigma.detach().item(), epoch)
+        writer.add_scalar('lr', optimizer.param_groups[0]["lr"], epoch)
+        
         row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
                            columns = train_curve.columns)
         train_curve = pd.concat([train_curve, row], ignore_index=True)

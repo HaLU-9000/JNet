@@ -3,6 +3,8 @@ import argparse
 import json
 
 import utils
+import sys
+import os
 
 # get args
 parser = argparse.ArgumentParser(description='')
@@ -49,12 +51,12 @@ if args.dna is not None:
         format       = "tif"                                             ,
         bit          =  12
     )
-
 else:
     image.process_image(model, params, shape, "enhanced_image",
                         overlap=[0, 0, 0], apply_hill=True)
+    os.makedirs(f"_apply_{args.model_name}", exist_ok=True)
     image.save_processed_image(
-        file   = f"_apply_test/{image_basename}_{args.model_name}",
+        file   = f"_apply_{args.model_name}/{image_basename}",
         format = "tif",
         bit    = 12)
 

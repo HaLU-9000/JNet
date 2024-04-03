@@ -1,6 +1,6 @@
 {
-    "explanation":"vibration without warming up slowly pretraining and without vib in finetuning, finetuning with mrf loss x10 as 523, PSF loss x10",
-    "pretrained_model":"JNet_509_pretrain",
+    "explanation":"pretrain with vibration, with gradient clipping, finetuning with mrf loss x20 as 523, PSF loss x10, finetuning is also with gradient clipping, with separated traindataset on finetuning",
+    "pretrained_model":"JNet_542_pretrain",
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -41,10 +41,11 @@
             "sig_eps"               : 0.01                                     ,
             "background"            : 0.01                                     ,
             "scale"                 : 3                                       ,
-            "mid"                   : 20                                       , "$mid"                   : "num of NeurIPSF middle channel"     ,
+            "mid"                   : 40                                       , "$mid"                   : "num of NeurIPSF middle channel"     ,
             "loss_fn"               : "nn.MSELoss()"                           , "$loss_fn"               : "loss func for NeurIPSF"             ,  
             "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
-            "num_iter_psf_pretrain" : 1000                                     , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
+            "num_iter_psf_pretrain" : 20000                                    , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
+            "nipsf_loss_target"     : 1e-5                                     , "$nipsf_loss_target"     : "epoch for pre-training of NeurIPSF" ,
             "device"                : "cuda"
         }                                                                      ,  "$params" : "model configs",
 
@@ -86,7 +87,7 @@
     "pretrain_loop":
         {
            "batch_size"        : 1                   ,
-           "n_epochs"          : 200                 ,
+           "n_epochs"          : 100                 ,
            "lr"                : 1e-3                ,
            "loss_fnx"          : "nn.BCELoss()"      ,
            "loss_fnz"          : "nn.BCELoss()"      ,
@@ -98,7 +99,7 @@
            "is_vibrate"        : true                ,
            "weight_x"          : 1                   ,
            "weight_z"          : 1                   ,
-           "without_noise"     : false                                         
+           "without_noise"     : false                                           
         }                                                                      , "$pretrain_loop" : "",
 
     "simulation_data_generation":
@@ -156,7 +157,7 @@
     "train_loop":
         {
             "batch_size"        : 1              ,
-            "n_epochs"          : 60             ,
+            "n_epochs"          : 100            ,
             "lr"                : 1e-3           ,
             "loss_fn"           : "nn.MSELoss()" ,
             "path"              : "model"        ,
@@ -175,10 +176,10 @@
             "ploss_weight"      : 10.0           ,
             "mrfloss_order"     : 1              ,
             "mrfloss_dilation"  : 1              ,
-            "mrfloss_weights"   : {"l_00" : 0    ,
-                                   "l_01" : 1    ,
-                                   "l_10" : 0.1  ,
-                                   "l_11" : 0
+            "mrfloss_weights"   : {"l_00" : -1.0  ,
+                                   "l_01" : 1.0   ,
+                                   "l_10" : 2.0   ,
+                                   "l_11" : -2.0
                                    }                                                  
         }                                                                      , "$train_loop" : "",
     
