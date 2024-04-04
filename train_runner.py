@@ -39,7 +39,7 @@ if args.train_align:
     optimizer_a    = optim.Adam(train_params, lr = align_params["lr"])
     scheduler      = timm.scheduler.PlateauLRScheduler(
         optimizer      = optimizer_a ,
-        patience_t     = 5           ,
+        patience_t     = 20          ,
         warmup_lr_init = lr * 0.1    ,
         warmup_t       = 10          ,
         )
@@ -51,10 +51,9 @@ else:
     optimizer = optim.Adam(train_params, lr = lr)
     scheduler = timm.scheduler.PlateauLRScheduler(
         optimizer      = optimizer   ,
-        patience_t     = 5           ,
+        patience_t     = 20          ,
         warmup_lr_init = lr * 0.1    ,
         warmup_t       = 10          ,
-        
         )
     
 

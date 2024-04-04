@@ -13,9 +13,9 @@ import timm.scheduler
 import model_new as model
 from dataset import DensityDataset, RandomCutDataset
 
-from   train_loop                           \
-    import finetuning_loop,                 \
-           ElasticWeightConsolidation,      \
+from   train_loop                            \
+    import finetuning_loop,                  \
+           ElasticWeightConsolidation,       \
            finetuning_with_align_model_loop, \
            finetuning_see_loss
 
