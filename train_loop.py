@@ -230,7 +230,7 @@ def finetuning_loop(
         patience    = es_patience,
         window_size = 1          ,
         metric      = "mean"     ,
-        verbose     = True       )
+        verbose     = True        )
     writer = SummaryWriter(f'runs/{model_name}')
     train_curve = pd.DataFrame(columns=["training loss"    ,
                                         "validatation loss"] )
@@ -287,11 +287,11 @@ def finetuning_loop(
                 loss += qloss * qloss_weight
             if ploss is not None:
                 loss += ploss * ploss_weight
+            loss_sum += loss.detach().item()
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-            loss_sum += loss.detach().item()
         vloss_sum    = 0.
         vxloss_sum   = 0.
         vzloss_sum   = 0.
@@ -523,30 +523,30 @@ def finetuning_see_loss(
             scheduler.step(epoch, vloss_list[-1])
 
 def finetuning_with_simulation_loop(
-        n_epochs               ,
-        optimizer              ,
-        model                  ,
-        loss_fn                ,
-        train_loader           ,
-        val_loader             ,
-        device                 ,
-        path                   ,
-        savefig_path           ,
-        model_name             ,
-        params                 ,
-        ewc                    ,
-        train_dataset_params   ,
-        vibration_params       ,
-        adjust_luminance       ,
-        scheduler    = None    ,
-        es_patience  = 10      ,
-        is_vibrate   = False   ,
-        zloss_weight  = 1.     ,
-        ewc_weight   = 1000000 ,
-        qloss_weight = 1/100   ,
-        ploss_weight = 1/100   ,
-        verbose      = False   ,
-        v_verbose    = True    ,
+        n_epochs                ,
+        optimizer               ,
+        model                   ,
+        loss_fn                 ,
+        train_loader            ,
+        val_loader              ,
+        device                  ,
+        path                    ,
+        savefig_path            ,
+        model_name              ,
+        params                  ,
+        ewc                     ,
+        train_dataset_params    ,
+        vibration_params        ,
+        adjust_luminance        ,
+        scheduler    = None     ,
+        es_patience  = 10       ,
+        is_vibrate   = False    ,
+        zloss_weight  = 1.      ,
+        ewc_weight   = 1000000  ,
+        qloss_weight = 1/100    ,
+        ploss_weight = 1/100    ,
+        verbose      = False    ,
+        v_verbose    = True     ,
         train_with_align = False,
         ):
     
@@ -1047,8 +1047,7 @@ def deep_align_net_train_loop(
         vibrate.step()
         earlystopping((vloss_sum / vnum), align_model,
                       condition = vibrate.num_step >= vibrate.max_step)
-        if earlystopping.early_stop:
-            break
+        
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
@@ -1080,6 +1079,9 @@ def finetuning_with_align_model_loop(
     ewc_weight       = train_loop_params["ewc_weight"       ]      
     qloss_weight     = train_loop_params["qloss_weight"     ]    
     ploss_weight     = train_loop_params["ploss_weight"     ]
+    mrfloss_order    = train_loop_params["mrfloss_order"    ]
+    mrfloss_weights  = train_loop_params["mrfloss_weights"  ]
+    dilation         = train_loop_params["mrfloss_dilation" ]
     loss_fn = nn.MSELoss()
     align_model.eval()
     
@@ -1095,6 +1097,14 @@ def finetuning_with_align_model_loop(
                                         "validatation loss"] )
     loss_list, vloss_list= [], []
     mask = Mask()
+    train_with_mrf = True
+    mrf_loss =\
+    MRFLoss(
+        dims     = 3               ,
+        order    = mrfloss_order   ,
+        weights  = mrfloss_weights ,
+        dilation = dilation        ,)
+
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
         model.train()
@@ -1133,12 +1143,18 @@ def finetuning_with_align_model_loop(
                 loss += qloss * qloss_weight
             if ploss is not None:
                 loss += ploss * ploss_weight
+            loss_sum += loss.detach().item()
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
             nn.utils.clip_grad_norm_(align_model.parameters(), 1.0)
             optimizer.step()
-            loss_sum += loss.detach().item()
-        vloss_sum, vqloss_sum, vparam_loss_sum = 0., 0., 0.
+        vloss_sum    = 0.
+        vxloss_sum   = 0.
+        vzloss_sum   = 0.
+        vmrfloss_sum = 0.
+        vqloss_sum   = 0.
+        vploss_sum   = 0.
+        vewcloss_sum = 0.
         model.eval()
         with torch.no_grad():
             for val_data in val_loader:
@@ -1152,46 +1168,59 @@ def finetuning_with_align_model_loop(
                 rec     = outdict["reconstruction" ]
                 a       = outdict["poisson_weight" ]
                 sigma   = outdict["gaussian_sigma" ]
+                out     = outdict["enhanced_image" ]
                 lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss" ]
                 ploss   = outdict["psf_loss"       ]
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
-                vloss = loss_fn(rec, image)
-                vloss = vloss.detach().item()
-                if v_verbose: print("valid loss for reconst\t", vloss)                
+                #vloss   = loss_fn(rec, image) * loss_weight
+                vloss = _loss_fnx(rec, image, a, sigma)
+                vxloss_sum += vloss.detach().item()
+                vloss = vloss.detach().item()             
                 vloss_z = _loss_fnz(
                 _input =lum ,
                 mask   =None,
                 target =None ) * zloss_weight
                 vloss += vloss_z
+                vzloss_sum += vloss_z.detach().item()
                 vloss_sum += vloss.detach().item()
-                if v_verbose: print("valid loss plus loss_z\t", vloss)
+                if train_with_mrf:
+                    loss_mrf = mrf_loss(out).detach().item()
+                    vloss_sum += loss_mrf
+                    vmrfloss_sum += loss_mrf
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
+                    vloss += qloss
                     vloss_sum += qloss
                     vqloss_sum += qloss
-                    if v_verbose: print("valid loss plus qloss\t", vloss)
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
+                    vloss += ploss
                     vloss_sum += ploss
-                    if v_verbose: print("valid loss plus ploss\t", vloss)
-                if v_verbose: print("valid loss without ewc\t", vloss)
+                    vploss_sum += ploss
                 if ewc is not None:
-                    ewc_loss = ewc.calc_ewc_loss(ewc_weight).detach().item()
+                    ewc_loss = ewc.calc_ewc_loss(
+                        ewc_weight).detach().item() * ewc_weight
                     vloss_sum += ewc_loss
                     vloss += ewc_loss
-                    if v_verbose: print("valid loss with ewc\t", vloss)
+                    vewcloss_sum += ewc_loss
 
         num  = len(train_loader)
         vnum = len(val_loader)
-        
         loss_list.append(loss_sum / num)
         vloss_list.append(vloss_sum / vnum)
-        writer.add_scalar('train loss', loss_sum / num, epoch)
-        writer.add_scalar('val loss', vloss_sum / vnum, epoch)
-        writer.add_scalar('val param loss', vparam_loss_sum / vnum, epoch)
-        writer.add_scalar('val vq loss', vqloss_sum / num, epoch)
+        writer.add_scalar('train loss'  , loss_sum     /  num  , epoch)
+        writer.add_scalar('val loss'    , vloss_sum    / vnum  , epoch)
+        writer.add_scalar('val x loss'  , vxloss_sum   / vnum  , epoch)
+        writer.add_scalar('val z loss'  , vzloss_sum   / vnum  , epoch)
+        writer.add_scalar('val mrf loss', vmrfloss_sum / vnum  , epoch)
+        writer.add_scalar('val p loss'  , vploss_sum   / vnum  , epoch)
+        writer.add_scalar('val q loss'  , vqloss_sum   / vnum  , epoch)
+        writer.add_scalar('val ewc loss', vewcloss_sum / vnum  , epoch)
+        writer.add_scalar('a'           , a.detach().item()    , epoch)
+        writer.add_scalar('sigma'       , sigma.detach().item(), epoch)
+        writer.add_scalar('lr', optimizer.param_groups[0]["lr"], epoch)
         row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
                            columns = train_curve.columns)
         train_curve = pd.concat([train_curve, row], ignore_index=True)
@@ -1205,8 +1234,8 @@ def finetuning_with_align_model_loop(
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
         earlystopping(vloss_list[-1], model, condition=True)
-        if earlystopping.early_stop:
-            break
+        #if earlystopping.early_stop:
+        #    break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()

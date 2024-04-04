@@ -63,3 +63,4 @@ else:
 # example usage:
 # python3 apply.py  /home/haruhiko/Downloads/Set_03/MDA15_20230915.nd2 JNet_510
 # python3 apply.py  _wakelabdata_processed/1_Spine_structure_AD_175-11w-D3-xyz6-020C2-T1.tif JNet_510
+# python3 apply.py /home/morita/home/Downloads/Set_03_processed/MDA34_20231110_C_0_no_satu.tif JNet_544

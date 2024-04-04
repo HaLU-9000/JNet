@@ -821,7 +821,7 @@ class DeepAlignNet(nn.Module):
 
 
 if __name__ == '__main__':
-    import torchinfo
+#    import torchinfo
     import torch.optim as optim
     surround = False
     surround_size = [32, 4, 4]
@@ -855,4 +855,4 @@ if __name__ == '__main__':
     print([name for name, _ in model.named_parameters()])
     #a, b, c, d, e = [i for i in model.parameters()][-5:]
     #print(a.item())
-    torchinfo.summary(model, input_size)
+    #torchinfo.summary(model, input_size)

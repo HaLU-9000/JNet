@@ -41,3 +41,7 @@ python3 apply.py /home/haruhiko/Downloads/Set_03/MDA42_20231207.nd2 JNet_544;
 python3 apply.py /home/haruhiko/Downloads/Set_03/MDA44_20231202.nd2 JNet_544;
 python3 apply.py /home/haruhiko/Downloads/Set_03/MDA44_20231204.nd2 JNet_544;
 python3 apply.py /home/haruhiko/Downloads/Set_03/MDA44_20231207.nd2 JNet_544;
+
+python3 train_runner.py JNet_548 --train_align;python3 finetuning.py JNet_548 --train_with_align
+
+python3 train_runner.py JNet_551;python3 train_runner.py JNet_551 --train_align;python3 finetuning.py JNet_551 --train_with_align
