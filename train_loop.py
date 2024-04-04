@@ -648,22 +648,26 @@ def finetuning_with_simulation_loop(
                 lum     = outdict["estim_luminance"]
                 qloss   = outdict["quantized_loss"]
                 ploss   = outdict["psf_loss"]
+                
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
                 vloss   = _loss_fnx(rec, image, a, sigma)
                 vloss = vloss.detach().item()
-                if v_verbose: print("valid loss for reconst\t", vloss)
+
                 vloss_z = _loss_fnz(
                     _input =lum ,
                     mask   =None,
                     target =None ) * zloss_weight
                 vloss += vloss_z.item()
                 vloss_sum += vloss.detach().item()
+
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss += qloss
                     vloss_sum += qloss
                     vqloss_sum += qloss
+
+                if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
                     vloss_sum += ploss
                     vloss += ploss
