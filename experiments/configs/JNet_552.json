@@ -1,5 +1,5 @@
 {
-    "explanation":"pretrain with vibration, with gradient clipping, no mrf",
+    "explanation":"pretrain with vibration, with gradient clipping, finetuning with mrf loss x20 as 523, PSF loss x10, finetuning is also with gradient clipping, with separated traindataset on finetuning, after stackreg",
     "pretrained_model":"JNet_542_pretrain",
     "params":
         {
@@ -116,32 +116,32 @@
 
     "train_dataset":
         {
-            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
-            "size"            : [333,1024,1024]                      ,
-            "cropsize"        : [240, 112, 112]                      ,
-            "I"               : 200                                  ,
-            "scale"           : 3                                    ,
-            "train"           : true                                 ,
-            "mask"            : true                                 ,
-            "mask_size"       : [1, 10, 10]                          ,
-            "mask_num"        : 10                                   ,
-            "surround"        : false                                ,
+            "folderpath"      : "/home/haruhiko/Downloads/Set_03_stackreg_z" ,
+            "size"            : [333,1024,1024]                   ,
+            "cropsize"        : [240, 112, 112]                   ,
+            "I"               : 200                               ,
+            "scale"           : 3                                 ,
+            "train"           : true                              ,
+            "mask"            : true                              ,
+            "mask_size"       : [1, 10, 10]                       ,
+            "mask_num"        : 10                                ,
+            "surround"        : false                             ,
             "surround_size"   : [32, 4, 4]                                
         }                                                                      , "$train_dataset" : "",
 
     "val_dataset":
         {
-            "folderpath"      : "/home/morita/home/Downloads/Set_03" ,
-            "size"            : [333,1024,1024]                      ,
-            "cropsize"        : [240, 112, 112]                      ,
-            "I"               : 20                                   ,
-            "scale"           : 3                                    ,
-            "train"           : false                                ,
-            "mask"            : false                                ,
-            "mask_size"       : [1, 10, 10]                          ,
-            "mask_num"        : 10                                   ,
-            "surround"        : false                                ,
-            "surround_size"   : [32, 4, 4]                           ,
+            "folderpath"      : "/home/haruhiko/Downloads/Set_03_stackreg_z" ,
+            "size"            : [333,1024,1024]                   ,
+            "cropsize"        : [240, 112, 112]                   ,
+            "I"               : 20                                ,
+            "scale"           : 3                                 ,
+            "train"           : false                             ,
+            "mask"            : false                             ,
+            "mask_size"       : [1, 10, 10]                       ,
+            "mask_num"        : 10                                ,
+            "surround"        : false                             ,
+            "surround_size"   : [32, 4, 4]                        ,
             "seed"            : 1204                                      
         }                                                                      , "$val_dataset" : "",
     
@@ -176,10 +176,10 @@
             "ploss_weight"      : 10.0           ,
             "mrfloss_order"     : 1              ,
             "mrfloss_dilation"  : 1              ,
-            "mrfloss_weights"   : {"l_00" : 0.0  ,
-                                   "l_01" : 0.0  ,
-                                   "l_10" : 0.0  ,
-                                   "l_11" : 0.0
+            "mrfloss_weights"   : {"l_00" : -1.0  ,
+                                   "l_01" : 1.0   ,
+                                   "l_10" : 2.0   ,
+                                   "l_11" : -2.0
                                    }                                                  
         }                                                                      , "$train_loop" : "",
     

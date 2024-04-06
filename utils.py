@@ -368,7 +368,10 @@ def init_dna(params):
     return dna
 
 def load_model_weight(model, model_name):
-    model.load_state_dict(torch.load(f'model/{model_name}.pt'), strict=False)
+    model.load_state_dict(torch.load(f'model/{model_name}.pt',
+                                     map_location="cpu"),
+                          strict=False,
+                         )
 
 def mount_model_to_device(model, configs):
     model.to(configs["params"]["device"])
