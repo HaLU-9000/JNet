@@ -210,15 +210,15 @@ def finetuning_loop(
         v_verbose = False    ,
         ):
     
-    n_epochs         = train_loop_params["n_epochs"         ]        
-    path             = train_loop_params["path"             ]            
-    savefig_path     = train_loop_params["savefig_path"     ]    
+    n_epochs         = train_loop_params["n_epochs"         ]
+    path             = train_loop_params["path"             ]
+    savefig_path     = train_loop_params["savefig_path"     ]
     adjust_luminance = train_loop_params["adjust_luminance" ]
     es_patience      = train_loop_params["es_patience"      ]
-    is_vibrate       = train_loop_params["is_vibrate"       ]      
-    zloss_weight     = train_loop_params["zloss_weight"     ]    
-    ewc_weight       = train_loop_params["ewc_weight"       ]      
-    qloss_weight     = train_loop_params["qloss_weight"     ]    
+    is_vibrate       = train_loop_params["is_vibrate"       ]
+    zloss_weight     = train_loop_params["zloss_weight"     ]
+    ewc_weight       = train_loop_params["ewc_weight"       ]
+    qloss_weight     = train_loop_params["qloss_weight"     ]
     ploss_weight     = train_loop_params["ploss_weight"     ]
     mrfloss_order    = train_loop_params["mrfloss_order"    ]
     mrfloss_weights  = train_loop_params["mrfloss_weights"  ]
@@ -523,32 +523,33 @@ def finetuning_see_loss(
             scheduler.step(epoch, vloss_list[-1])
 
 def finetuning_with_simulation_loop(
-        n_epochs                ,
         optimizer               ,
         model                   ,
-        loss_fn                 ,
         train_loader            ,
         val_loader              ,
         device                  ,
-        path                    ,
-        savefig_path            ,
         model_name              ,
         params                  ,
         ewc                     ,
         train_dataset_params    ,
+        train_loop_params       ,
         vibration_params        ,
-        adjust_luminance        ,
         scheduler    = None     ,
-        es_patience  = 10       ,
-        is_vibrate   = False    ,
-        zloss_weight  = 1.      ,
-        ewc_weight   = 1000000  ,
-        qloss_weight = 1/100    ,
-        ploss_weight = 1/100    ,
-        verbose      = False    ,
-        v_verbose    = True     ,
-        train_with_align = False,
         ):
+    
+    n_epochs         = train_loop_params["n_epochs"         ]
+    path             = train_loop_params["path"             ]
+    savefig_path     = train_loop_params["savefig_path"     ]
+    adjust_luminance = train_loop_params["adjust_luminance" ]
+    es_patience      = train_loop_params["es_patience"      ]
+    is_vibrate       = train_loop_params["is_vibrate"       ]
+    zloss_weight     = train_loop_params["zloss_weight"     ]
+    ewc_weight       = train_loop_params["ewc_weight"       ]
+    qloss_weight     = train_loop_params["qloss_weight"     ]
+    ploss_weight     = train_loop_params["ploss_weight"     ]
+    mrfloss_order    = train_loop_params["mrfloss_order"    ]
+    mrfloss_weights  = train_loop_params["mrfloss_weights"  ]
+    dilation         = train_loop_params["mrfloss_dilation" ]
     
     earlystopping = EarlyStopping(name        = model_name ,
                                   path        = path       ,
@@ -563,6 +564,13 @@ def finetuning_with_simulation_loop(
     vibrate = Vibrate(vibration_params)
     vibrate.set_arbitrary_step(100)
     mask = Mask()
+    train_with_mrf = True
+    mrf_loss =\
+    MRFLoss(
+        dims     = 3               ,
+        order    = mrfloss_order   ,
+        weights  = mrfloss_weights ,
+        dilation = dilation        ,)
     torch.save(model.image.state_dict(),
                f"{path}/{model_name}_pre.pt")
     for epoch in range(1, n_epochs + 1):
@@ -579,47 +587,46 @@ def finetuning_with_simulation_loop(
                                            label  = labelz,
                                            device = device,
                                            params = params,)
+                model.image.load_state_dict(
+                    torch.load(f"{path}/{model_name}_tmp.pt"))
                 _image  = model.image.hill.sample(image)
-            _image = mask.apply_mask(train_dataset_params["mask"]     ,
-                                    _image                             ,
-                                    train_dataset_params["mask_size"] ,
-                                    train_dataset_params["mask_num"]  ,)
-            model.image.load_state_dict(
-                torch.load(f"{path}/{model_name}_tmp.pt"))
+            _image = mask.apply_mask(
+                train_dataset_params["mask"]      ,
+                _image                            ,
+                train_dataset_params["mask_size"] ,
+                train_dataset_params["mask_num"]  ,)
             vimage = vibrate(_image) if is_vibrate else _image
             outdict = model(vimage)
-            rec     = outdict["reconstruction"]
-            a       = outdict["poisson_weight"]
-            sigma   = outdict["gaussian_sigma"]
+            rec     = outdict["reconstruction" ]
+            a       = outdict["poisson_weight" ]
+            sigma   = outdict["gaussian_sigma" ]
+            out     = outdict["enhanced_image" ]
             lum     = outdict["estim_luminance"]
-            qloss   = outdict["quantized_loss"]
-            ploss   = outdict["psf_loss"]
+            qloss   = outdict["quantized_loss" ]
+            ploss   = outdict["psf_loss"       ]
             if adjust_luminance:
                 rec = luminance_adjustment(rec, image)
-            #loss = loss_fn(rec, image) * loss_weight
+            #loss  = loss_fn(rec, image) * loss_weight
             loss = _loss_fnx(rec, image, a, sigma)
-            if verbose: print("train loss for reconst\t", loss.item())
             loss_z = _loss_fnz(
-                _input =lum ,
-                mask   =None,
-                target =None ) * zloss_weight
-            loss = loss + loss_z
-            if verbose: print("train loss plus loss_z\t", loss.item())
-            if qloss is not None:
-                loss += qloss * qloss_weight
-                if verbose: print("train loss plus qloss\t", loss.item())
-            if ploss is not None:
-                loss += ploss * ploss_weight
-                if verbose: print("train loss plus ploss \t", loss.item())
-            if verbose: print("train loss without ewc\t", loss.item())
+                _input = lum ,
+                mask   = None,
+                target = None ) * zloss_weight
+            loss += loss_z
+            if train_with_mrf:
+                loss_mrf = mrf_loss(out)
+                loss += loss_mrf
             if ewc is not None:
                 loss += ewc.calc_ewc_loss(ewc_weight)
-            if verbose: print("train loss with ewc\t", loss.item())
-                
+            if qloss is not None:
+                loss += qloss * qloss_weight
+            if ploss is not None:
+                loss += ploss * ploss_weight
+            loss_sum += loss.detach().item()
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
+            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-            loss_sum += loss.detach().item()
         vloss_sum    = 0.
         vxloss_sum   = 0.
         vzloss_sum   = 0.
@@ -644,34 +651,40 @@ def finetuning_with_simulation_loop(
                     torch.load(f"{path}/{model_name}_tmp.pt"))
                 vimage  = vibrate(_image) if is_vibrate else _image
                 outdict = model(vimage)
-                rec     = outdict["reconstruction"]
+                rec     = outdict["reconstruction" ]
+                a       = outdict["poisson_weight" ]
+                sigma   = outdict["gaussian_sigma" ]
+                out     = outdict["enhanced_image" ]
                 lum     = outdict["estim_luminance"]
-                qloss   = outdict["quantized_loss"]
-                ploss   = outdict["psf_loss"]
-                
+                qloss   = outdict["quantized_loss" ]
+                ploss   = outdict["psf_loss"       ]
                 if adjust_luminance:
                     rec = luminance_adjustment(rec, image)
-                vloss   = _loss_fnx(rec, image, a, sigma)
-                vloss = vloss.detach().item()
-
+                #vloss   = loss_fn(rec, image) * loss_weight
+                vloss = _loss_fnx(rec, image, a, sigma)
+                vxloss_sum += vloss.detach().item()
+                vloss = vloss.detach().item()             
                 vloss_z = _loss_fnz(
-                    _input =lum ,
-                    mask   =None,
-                    target =None ) * zloss_weight
-                vloss += vloss_z.item()
+                _input =lum ,
+                mask   =None,
+                target =None ) * zloss_weight
+                vloss += vloss_z
+                vzloss_sum += vloss_z.detach().item()
                 vloss_sum += vloss.detach().item()
-
+                if train_with_mrf:
+                    loss_mrf = mrf_loss(out).detach().item()
+                    vloss_sum += loss_mrf
+                    vmrfloss_sum += loss_mrf
                 if qloss is not None:
                     qloss = qloss.detach().item() * qloss_weight
                     vloss += qloss
                     vloss_sum += qloss
                     vqloss_sum += qloss
-
                 if ploss is not None:
                     ploss = ploss.detach().item() * ploss_weight
-                    vloss_sum += ploss
                     vloss += ploss
-                    
+                    vloss_sum += ploss
+                    vploss_sum += ploss
                 if ewc is not None:
                     ewc_loss = ewc.calc_ewc_loss(
                         ewc_weight).detach().item() * ewc_weight
@@ -694,7 +707,6 @@ def finetuning_with_simulation_loop(
         writer.add_scalar('a'           , a.detach().item()    , epoch)
         writer.add_scalar('sigma'       , sigma.detach().item(), epoch)
         writer.add_scalar('lr', optimizer.param_groups[0]["lr"], epoch)
-        
         row = pd.DataFrame([[loss_list[-1], vloss_list[-1]]],
                            columns = train_curve.columns)
         train_curve = pd.concat([train_curve, row], ignore_index=True)
@@ -702,17 +714,20 @@ def finetuning_with_simulation_loop(
                            index=False)
         
         if epoch == 1 or epoch % 10 == 0:
-            print(f'Epoch {epoch}, Train {loss_list[-1]}, Val {vloss_list[-1]}')
+            print(f'Epoch {epoch}, Train {loss_list[-1]},'+\
+                  f' Val {vloss_list[-1]}')
         vibrate.step()
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
-        earlystopping((vloss_sum / vnum), model, condition = True)
-        if earlystopping.early_stop:
-            break
+        condition = True
+        earlystopping(vloss_list[-1], model, condition = condition)
+        #if earlystopping.early_stop:
+        #    break
     plt.plot(loss_list , label='train loss')
     plt.plot(vloss_list, label='validation loss')
     plt.legend()
-    plt.savefig(f'{savefig_path}/{model_name}_train.png', format='png', dpi=500)
+    plt.savefig(f'{savefig_path}/{model_name}_train.png',
+                format='png', dpi=500)
 
 class ElasticWeightConsolidation():
     """
