@@ -151,37 +151,37 @@ for n in range(len(results)):
         md.new_line(f'MSEz: {evals["MSEz"][n]}, quantized loss: {evals["qloss"][n]}')
         md.new_line()
 md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
-
-#######################################
-## Finetuning Results with Microglia ##
-#######################################
-md.new_header(level=3, title="Finetuning Results with Microglia")
-btype_list = ["original", "aligned", "outputx", "outputz", "reconst", "heatmap"]
-slice_list = ["plane", "depth"]
-for is_finetuning in [False, True]:
-    md.new_header(level=4, title=f"finetuning == {is_finetuning}")
-    binfer = inference.MicrogliaInference(args.model_name,
-                                          is_finetuning=is_finetuning,
-                                          with_align=False)
-    results = binfer.get_result(5)
-    binfer.visualize(results)
-    for n in range(5):
-        md.new_header(level=3, title=f"image {n}")
-        for slice in slice_list:
-            im_list = []
-            for tp in btype_list:
-                path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_microglia_{n}_{tp}_{slice}.png'
-                im_list.append(md.new_reference_image(text=f"{binfer.model_name}_microglia_{n}_{tp}_{slice}", path=path[1:]))
-            md.new_table(columns=len(btype_list), rows=len(slice_list), text=[*btype_list, *im_list],)
-            md.new_line()
-md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
-binfer.psf_visualize()
+infer.psf_visualize()
 psf_list = []
 timing_list = ["pre", "post"]
 for t in timing_list:
-    path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_psf_{t}.png'
-    psf_list.append(md.new_reference_image(text=f"{binfer.model_name}_psf_{t}", path=path[1:]))
+    path = f'./{configs["visualization"]["path"]}/{infer.model_name}_psf_{t}.png'
+    psf_list.append(md.new_reference_image(text=f"{infer.model_name}_psf_{t}", path=path[1:]))
 md.new_table(columns=2, rows=2, text=[*timing_list, *psf_list])
+#######################################
+## Finetuning Results with Microglia ##
+#######################################
+#md.new_header(level=3, title="Finetuning Results with Microglia")
+#btype_list = ["original", "aligned", "outputx", "outputz", "reconst", "heatmap"]
+#slice_list = ["plane", "depth"]
+#for is_finetuning in [False, True]:
+#    md.new_header(level=4, title=f"finetuning == {is_finetuning}")
+#    binfer = inference.MicrogliaInference(args.model_name,
+#                                          is_finetuning=is_finetuning,
+#                                          with_align=False)
+#    results = binfer.get_result(5)
+#    binfer.visualize(results)
+#    for n in range(5):
+#        md.new_header(level=3, title=f"image {n}")
+#        for slice in slice_list:
+#            im_list = []
+#            for tp in btype_list:
+#                path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_microglia_{n}_{tp}_{slice}.png'
+#                im_list.append(md.new_reference_image(text=f"{binfer.model_name}_microglia_{n}_{tp}_{slice}", path=path[1:]))
+#            md.new_table(columns=len(btype_list), rows=len(slice_list), text=[*btype_list, *im_list],)
+#            md.new_line()
+#md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
+
 ###################################
 ## Finetuning Results with Beads ##
 ###################################

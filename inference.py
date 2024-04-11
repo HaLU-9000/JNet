@@ -43,22 +43,13 @@ class SimulationInference():
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
-        if self.is_finetuning:
-            torch.save(
-                self.JNet.image.state_dict(), 
-                f'model/{self.model_name}_image_tmp.pt')
-            
         self.JNet.load_state_dict(
             torch.load(f'model/{self.pre_model_name}.pt'),
             strict=False)
-        self.psf_post = self.JNet.image.blur.show_psf_3d()
-        
+        self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
         if self.is_finetuning:
             self.JNet.load_state_dict(
                 torch.load(f'model/{self.model_name}.pt'),
-                strict=False)
-            self.JNet.image.load_state_dict(
-                torch.load(f'model/{self.model_name}_image_tmp.pt'),
                 strict=False)
         else:
             self.model_name = self.pre_model_name
