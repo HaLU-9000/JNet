@@ -56,12 +56,12 @@ else:
     vibrate = lambda x,y:x
 
 for item in items_new:
-    label = np.load(args.org_folder + "/" + item)
-    label = torch.tensor(label).to(device)[None, :]
+    label = tifffile.imread(args.org_folder + "/" + item)
+    label = torch.tensor(label[None, None, :, :, :]/((2**16 - 1))).to(device)
     image = imagen_instantblur(JNet, label, None, None).detach().cpu()
     image = vibrate(image,True)[0, 0].numpy()
     image = (image * (2**16 - 1)).astype(np.uint16)
     tifffile.imwrite(args.save_folder+ "/"\
                      + utils.get_basename(item)\
-                     + ".tif", image)
+                     + "_1.tif", image)
     del(image)

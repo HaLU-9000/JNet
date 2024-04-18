@@ -291,7 +291,7 @@ def load_anything(image_name):
     input: image_name(str)
     output: torch.tensor
     """
-    if image_name[-3:] == "tif":
+    if image_name[-3:] == "tif" or image_name[-4:] == "tiff":
         image = tifffile.imread(image_name).astype(np.float32)
         image = (image - image.min()) / (image.max() - image.min())
         image = torch.tensor(image)

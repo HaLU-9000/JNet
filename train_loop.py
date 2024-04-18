@@ -1,3 +1,4 @@
+import tqdm
 import torch
 import torchrl
 import torch.nn as nn
@@ -7,6 +8,7 @@ from utils import EarlyStopping, MRFLoss, OldMRFLoss
 import matplotlib.pyplot as plt
 import pandas as pd
 from dataset import Vibrate, Mask
+
 
 def imagen_instantblur(model, label, device, params):
     #image  = model.image.emission.sample(label, params)
@@ -209,7 +211,6 @@ def finetuning_loop(
         scheduler = None     ,
         v_verbose = False    ,
         ):
-    
     n_epochs         = train_loop_params["n_epochs"         ]
     path             = train_loop_params["path"             ]
     savefig_path     = train_loop_params["savefig_path"     ]
@@ -251,7 +252,8 @@ def finetuning_loop(
     for epoch in range(1, n_epochs + 1):
         loss_sum = 0.
         model.train()
-        for train_data in train_loader:
+        for train_data in tqdm(train_loader,
+                               bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}"):
             image  = train_data["image"].to(device = device)
             #_image = model.image.hill.sample(image)
             _image  = model.image.hill.sample(image)
@@ -301,7 +303,8 @@ def finetuning_loop(
         vewcloss_sum = 0.
         model.eval()
         with torch.no_grad():
-            for val_data in val_loader:
+            for val_data in tqdm(val_loader,
+                                 bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}"):
                 image   = val_data["image"].to(device = device)
                 #_image  = model.image.hill.sample(image)
                 _image  = model.image.hill.sample(image)
