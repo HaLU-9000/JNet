@@ -104,18 +104,18 @@
 
     "simulation_data_generation":
         {
-            "dataset_name"         : "_var_num_realisticdata4" ,
+            "dataset_name"         : "_var_num_realisticdata6" ,
             "train_num"            : 16                        ,
             "valid_num"            : 4                         ,
             "image_size"           : [1200, 500, 500]          ,
-            "train_object_num_min" : 1500                      ,
-            "train_object_num_max" : 2500                      ,
-            "valid_object_num_min" : 1500                      ,
-            "valid_object_num_max" : 2500
+            "train_object_num_min" :  200                      ,
+            "train_object_num_max" :  300                      ,
+            "valid_object_num_min" :  200                      ,
+            "valid_object_num_max" :  300
         }                                                                      , "$simulation_data_generation":"",
     "train_dataset":
         {
-            "folderpath"   : "_var_num_realisticdata4" ,
+            "folderpath"   : "_var_num_realisticdata5" ,
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,
@@ -132,7 +132,7 @@
 
     "val_dataset":
         {
-            "folderpath"   : "_var_num_realisticdata4" ,
+            "folderpath"   : "_var_num_realisticdata5" ,
             "labelname"    : "_label"                  ,
             "size"         : [1200, 500, 500]          ,
             "cropsize"     : [ 240, 112, 112]          ,

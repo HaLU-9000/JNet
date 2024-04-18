@@ -296,7 +296,7 @@ def load_anything(image_name):
         image = (image - image.min()) / (image.max() - image.min())
         image = torch.tensor(image)
     elif image_name[-3:] == "npy":
-        image = np.load(image_name).astype(np.float32)
+        image = np.load(image_name, allow_pickle=True).astype(np.float32)
         image = (image - image.min()) / (image.max() - image.min())
         image = torch.tensor(image)
     elif image_name[-3:] == ".pt":
@@ -330,19 +330,19 @@ def find_best_int_n_bit(bit):
 
 def convert_tensor_to__8_bit_ndarray(tensor):
     arr = tensor.detach().cpu().numpy() * (2 ** 8  - 1)
-    return arr.astype(np.int8)
+    return arr.astype(np.uint8)
 
 def convert_tensor_to_16_bit_ndarray(tensor):
-    arr = tensor.detach().cpu().numpy() * (2 ** 12 - 1)
-    return arr.astype(np.int16)
+    arr = tensor.detach().cpu().numpy() * (2 ** 16 - 1)
+    return arr.astype(np.uint16)
 
 def convert_tensor_to_32_bit_ndarray(tensor):
     arr = tensor.detach().cpu().numpy() * (2 ** 32 - 1)
-    return arr.astype(np.int32)
+    return arr.astype(np.uint32)
 
 def convert_tensor_to_64_bit_ndarray(tensor):
     arr = tensor.detach().cpu().numpy() * (2 ** 64 - 1)
-    return arr.astype(np.int64)
+    return arr.astype(np.uint64)
 
 def save_ndarray_in_any_format(
         array, file, format):
