@@ -1,6 +1,6 @@
 {
-    "explanation":"pretrain with vibration, with gradient clipping, finetuning with pretrain data",
-    "pretrained_model":"JNet_542_pretrain",
+    "explanation":"pretrain without vibration, with gradient clipping, finetuning with pretrain data",
+    "pretrained_model":"JNet_559_pretrain",
     "params":
         {
             "hidden_channels_list"  : [16, 32, 64, 128, 256]                   ,
@@ -96,7 +96,7 @@
            "partial"           : "params['partial']" ,
            "ewc"               : null                ,
            "es_patience"       : 10                  ,
-           "is_vibrate"        : true                ,
+           "is_vibrate"        : false               ,
            "weight_x"          : 1                   ,
            "weight_z"          : 1                   ,
            "without_noise"     : false                                           
