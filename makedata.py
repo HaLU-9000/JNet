@@ -82,6 +82,24 @@ def draw_3d_line(length):
     r_arr3 = r_arr2 > 0.1
     return r_arr3
 
+def draw_thick_3d_line(length):
+    z = length
+    x = 11
+    y = 11
+    arr = np.zeros((z, x, y))
+    arr[:, x//2-3:x//2+4, y//2-3:y//2+4] = 1
+    d = randn(3, 5, 1, 1)
+    arr = deform.deform_grid(X=arr, displacement=d*3)
+    r_arr = np.zeros((z, z, z))
+    r_arr[:, (z-x)//2:(z-x)//2+x, (z-y)//2:(z-y)//2+y] = arr
+
+    xd, yd, zd = np.random.random(3) * 360
+    r_arr0 = rotate(r_arr , yd, axes=(1, 0), reshape=False, order=1, mode='nearest', cval=0.0)
+    r_arr1 = rotate(r_arr0, xd, axes=(2, 0), reshape=False, order=1, mode='nearest', cval=0.0)
+    r_arr2 = rotate(r_arr1, zd, axes=(2, 1), reshape=False, order=1, mode='nearest', cval=0.0)
+    r_arr3 = r_arr2 > 0.1
+    return r_arr3
+
 def make_realistic_data(num, datasize = (128, 128, 128), mu=0, sigma=0.5):
     data_x = np.zeros(datasize)
     data_z = np.zeros(datasize)
@@ -101,6 +119,54 @@ def make_realistic_data(num, datasize = (128, 128, 128), mu=0, sigma=0.5):
             form  = form > 0.5
         else:
             form = draw_3d_line(l)
+        z_max = min(z + form.shape[0], datasize[0])
+        x_max = min(x + form.shape[1], datasize[1])
+        y_max = min(y + form.shape[2], datasize[2])
+
+        data_x[z : z + form.shape[0],
+               x : x + form.shape[1],
+               y : y + form.shape[2],]\
+        += \
+        form[0 : z_max - z        ,
+             0 : x_max - x        ,
+             0 : y_max - y        ,]
+
+        data_z[z : z + form.shape[0],
+             x : x + form.shape[1],
+             y : y + form.shape[2],]\
+        = np.maximum(
+            data_z[z : z + form.shape[0],
+                   x : x + form.shape[1],
+                   y : y + form.shape[2],],
+            form  [0 : z_max - z,
+                   0 : x_max - x,
+                   0 : y_max - y,] * min(1., np.exp(lu)))
+    data_x = data_x > 0.5
+    data_x = data_x.astype(np.float32)[None]
+    data_z = data_z.astype(np.float32)[None]
+    return {"data_x": data_x,
+            "data_z": data_z}
+
+def make_thick_realistic_data(num, datasize = (128, 128, 128),
+                              mu=0, sigma=0.5, p=0.1):
+    data_x = np.zeros(datasize)
+    data_z = np.zeros(datasize)
+    r_l  = [randint(10, 30)                        for _ in range(num)]
+    lu_l = [mu + sigma * randn(1)                  for _ in range(num)]
+    l_l  = [randint(120, 240)                       for _ in range(num)]
+    s_l  = [choice(['ball', 'octahedron', 'cube', 'line'],
+                   p=[p/3, p/3, p/3, 1-p])     for _ in range(num)]
+    z_l  = [randint(0, datasize[0])                for _ in range(num)]
+    x_l  = [randint(0, datasize[1])                for _ in range(num)]
+    y_l  = [randint(0, datasize[2])                for _ in range(num)]
+    d_l  = [randn(3, 5, 5, 5)                      for _ in range(num)]
+    for r, l, lu, s, z, x, y, d in zip(r_l, l_l, lu_l, s_l, z_l, x_l, y_l, d_l):
+        if s != 'line':
+            form  = getattr(skimage.morphology, s)(r).astype(np.float32)
+            form  = deform.deform_grid(X=form, displacement=d*3,)
+            form  = form > 0.5
+        else:
+            form = draw_thick_3d_line(l)
         z_max = min(z + form.shape[0], datasize[0])
         x_max = min(x + form.shape[1], datasize[1])
         y_max = min(y + form.shape[2], datasize[2])
