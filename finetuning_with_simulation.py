@@ -13,10 +13,6 @@ import model_new as model
 from dataset import RandomCutDataset
 from train_loop import finetuning_with_simulation_loop, ElasticWeightConsolidation
 
-device = (torch.device('cuda') if torch.cuda.is_available()
-          else torch.device('cpu'))
-print(f"Training on device {device}.")
-
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
 parser.add_argument('--train_with_align', action="store_true")
@@ -31,6 +27,7 @@ val_dataset_params   = configs["pretrain_val_dataset"]
 train_loop_params    = configs["train_loop"]
 without_noise        = configs["pretrain_loop"]["without_noise"]
 vibration_params     = configs["vibration"        ]
+device = params["device"]
 #infer = PretrainingInference(args.model_name, pretrain=True)
 #results = infer.get_result(10)
 #threshold = infer.threshold_argmax_f1score(results)
