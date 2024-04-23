@@ -19,13 +19,13 @@ z, x, y = sample.shape
 
 train_image = np.zeros((1, z, x, y*3))
 c = 0
-for name in (dir):
-    if "GT_90" in name:
+for name in (sorted(dir)):
+    if "GT_90_" in name:
         image = load(os.path.join(path, name))
         train_image[:, :, :, c:c+y] += image
         c+=y
 if use_numpy:
     train_image = train_image * (2 ** 16 - 1)
 os.makedirs(path+"_batch", exist_ok=True)
-tifffile.imwrite(os.path.join(path, f"GT_90.tif"),
+tifffile.imwrite(os.path.join(path, f"GT_090.tif"),
      train_image.astype(np.uint16))

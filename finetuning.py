@@ -62,6 +62,7 @@ train_dataset = DensityDataset(
     mask_size       = train_dataset_params["mask_size"    ] ,
     surround        = train_dataset_params["surround"     ] ,
     surround_size   = train_dataset_params["surround_size"] ,
+    train_data_rate = 1                                     ,
     )
 
 val_dataset   = DensityDataset(
@@ -77,6 +78,7 @@ val_dataset   = DensityDataset(
     surround        = val_dataset_params["surround"       ] ,
     surround_size   = val_dataset_params["surround_size"  ] ,
     seed            = val_dataset_params["seed"           ] ,
+    train_data_rate = 0                                     ,
     )
 
 train_data  = DataLoader(

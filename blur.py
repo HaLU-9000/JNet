@@ -57,11 +57,12 @@ else:
 
 for item in items_new:
     label = tifffile.imread(args.org_folder + "/" + item)
-    label = torch.tensor(label[None, None, :, :, :]/((2**16 - 1))).to(device)
+    s = label.shape[-1]//3
+    label = torch.tensor(label[None, None, :, :, :s]/((2**16 - 1))).to(device)
     image = imagen_instantblur(JNet, label, None, None).detach().cpu()
     image = vibrate(image,True)[0, 0].numpy()
     image = (image * (2**16 - 1)).astype(np.uint16)
     tifffile.imwrite(args.save_folder+ "/"\
                      + utils.get_basename(item)\
-                     + "_1.tif", image)
+                     + "_0.tif", image)
     del(image)

@@ -1,4 +1,4 @@
-import tqdm
+from tqdm import tqdm
 import torch
 import torchrl
 import torch.nn as nn

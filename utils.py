@@ -464,7 +464,7 @@ class ImageProcessing():
         print("[3/3] reconstrusting image...")
         processed_image = self._reconstruct_images(
             processed_chunks, params, type, overlap)
-        
+        processed_image = (processed_image > 0.5) * 1.0
         self.processed_image = processed_image
         return processed_image
     
