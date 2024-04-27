@@ -846,3 +846,101 @@ class OldMRFLoss():
                     torch.zeros_like(mask).narrow(dim, 0, s)],
                                  dim=dim)
         return mask
+
+# load functions needed (like preprocessing)
+def path_of(base, fig, sub, idx=0):
+    """get the first file of folder"""
+    dir  = os.path.join(base, fig, sub)
+    name = sorted(os.listdir(dir))[idx]
+    return os.path.join(dir, name)
+
+def norm(x, bit=16):
+    return x / (2 ** bit - 1)
+
+def float_to_uint16(x):
+    x *= (2 ** 16 - 1)
+    return x.astype(np.uint16)
+
+def care_align(x):
+    return np.flip(np.rot90(x, axes=(-1,-2)), axis=-1)
+
+def quantile_image(x,  q_max):
+    max = np.quantile(x, q = q_max)
+    return np.clip(x, a_min=0, a_max=max)
+
+def quantile_image_minmax(x,  q_min, q_max):
+    max = np.quantile(x, q = q_max)
+    min = np.quantile(x, q = q_min)
+    return np.clip(x, a_min=min, a_max=max)
+
+def hill(x):
+    return 2 * x ** 0.5 / (1 + x ** 0.5)
+
+def mip(x, sec, start=0, range=10):
+    if sec == "xz":
+        _x = x[:, :, start:start+range]
+        return np.max(_x, axis=2)
+
+    elif sec == "yz":
+        _x = x[:, start:start+range, :]
+        return np.max(_x, axis=1)
+    
+    elif sec == "xy":
+        _x = x[start:start+range, :, :]
+        return np.max(_x, axis=0)
+
+def upsample3d(image, scale=3):
+    if len(image.shape) != 3:
+        raise ValueError("shape len must be 3")
+    image = F.interpolate(
+        torch.tensor(image[None, None]*1.0),
+        scale_factor=(scale,1,1),
+        mode = "nearest",
+        ).detach().numpy()
+    return image[0, 0]
+
+def iou(input, target, threshold=0.5, smooth=1e-6):
+    """numpy.ndarray->float"""
+    input  = input  > threshold
+    target = target > 0.5
+    input  = input.flatten() * 1.0
+    target = target.flatten() * 1.0
+    intersection = (input * target).sum()
+    total = np.sum(input + target)
+    union = total - intersection
+    iou   =  (intersection + smooth) / (union + smooth)
+    return iou
+
+def iou_cuda(input, target, threshold=0.5, smooth=1e-6, device="cuda:0"):
+    """numpy.ndarray->float"""
+    input  = torch.tensor(input , device=device)
+    target = torch.tensor(target, device=device)
+    input  = input.flatten()
+    target = target.flatten()
+    input  = (input  > threshold) * 1.0
+    intersection = (input * target).sum()
+    total = torch.sum(input + target)
+    union = total - intersection
+    iou   =  ((intersection + smooth) / (union + smooth)).detach().cpu().numpy()
+    return iou
+
+def get_best_iou(input, target, bins=100, smooth=1e-6, device="cuda:0"):
+    """numpy.ndarray->float"""
+    with torch.no_grad():
+        _input = torch.tensor(input  , device=device)
+        target = torch.tensor(target , device=device)
+        _input = _input.flatten()
+        target = target.flatten()
+        ths = np.linspace(0, 1, bins)
+        iou = np.zeros_like(ths)
+        for n in range(len(ths)):
+            input        = (_input > ths[n]) * 1.0
+            intersection = ( input * target).sum()
+            total        = torch.sum(input + target)
+            union        = total - intersection
+            iou[n]       = ((intersection + smooth) / (union + smooth)
+                            ).detach().cpu().numpy()
+    del(_input)
+    del(target)
+    torch.cuda.empty_cache()
+    return np.max(iou), np.argmax(iou) / bins

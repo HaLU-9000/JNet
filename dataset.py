@@ -543,7 +543,7 @@ class DensityDataset(Dataset):
                     image  = (Crop(icoords, self.scsize
                                   )(load_anything(self.images[idx])))
                     valid = (1, *self.scsize) == image.shape
-                s = image.mean().item()
+                s = image.mean().item() + 0.1
             image, _, _ = Rotate()(image)
             image = self.randomflip(image)
             image = self.apply_mask(
@@ -561,7 +561,7 @@ class DensityDataset(Dataset):
                     image = Crop(icoords, self.scsize
                                  )(load_anything(self.images[_idx]))
                     valid = (1, *self.scsize) == image.shape
-                s = image.mean().item()
+                s = image.mean().item() + 1
             image = self.apply_surround_mask(
                 self.surround, image, self.surround_size)
         return {"image": image}

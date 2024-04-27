@@ -1,7 +1,7 @@
 import torch
 import model_new as model
 import argparse
-from train_loop import imagen_instantblur
+from train_loop import imagen_instantblur, imagen_instantblur_without_noise
 from dataset import Vibrate
 import os
 import numpy as np
@@ -56,13 +56,14 @@ else:
     vibrate = lambda x,y:x
 
 for item in items_new:
-    label = tifffile.imread(args.org_folder + "/" + item)
-    s = label.shape[-1]//3
-    label = torch.tensor(label[None, None, :, :, :s]/((2**16 - 1))).to(device)
-    image = imagen_instantblur(JNet, label, None, None).detach().cpu()
+    label = utils.load_anything(args.org_folder + "/" + item)[None].to(device)
+    print(label.shape)
+#    s = label.shape[-1]//3
+#    label = torch.tensor(label[None, None, :, :,:]/((2**16 - 1))).to(device)
+    image = imagen_instantblur_without_noise(JNet, label, None, None).detach().cpu()
     image = vibrate(image,True)[0, 0].numpy()
     image = (image * (2**16 - 1)).astype(np.uint16)
     tifffile.imwrite(args.save_folder+ "/"\
                      + utils.get_basename(item)\
-                     + "_0.tif", image)
+                     + ".tif", image)
     del(image)
