@@ -224,7 +224,9 @@ def draw_thick_3d_line_fixed_z_angle(length, zangle):
     r_arr = np.zeros((z, z, z))
     r_arr[:, (z-x)//2:(z-x)//2+x, (z-y)//2:(z-y)//2+y] = arr
 
-    xd,= np.random.random(1) * 360
+    xd,zd= np.random.uniform(low=0, high=360, size=2)
+    if zangle == 'random':
+        zangle = zd
     r_arr0 = rotate(r_arr , zangle-90, axes=(2, 0),
                     reshape=False, order=1, mode='nearest', cval=0.0)
     r_arr1 = rotate(r_arr0, xd, axes=(1, 2),
@@ -234,8 +236,7 @@ def draw_thick_3d_line_fixed_z_angle(length, zangle):
 
 def make_determined_zangle_data(num, datasize = (128, 128, 128), angle=45):
     data_x = np.zeros(datasize)
-    data_z = np.zeros(datasize)
-    l_l  = [randint(120, 240)                       for _ in range(num)]
+    l_l  = [randint(20, 40)                       for _ in range(num)]
     z_l  = [randint(0, datasize[0])                for _ in range(num)]
     x_l  = [randint(0, datasize[1])                for _ in range(num)]
     y_l  = [randint(0, datasize[2])                for _ in range(num)]
@@ -255,6 +256,5 @@ def make_determined_zangle_data(num, datasize = (128, 128, 128), angle=45):
              0 : y_max - y        ,]
 
     data_x = data_x > 0.5
-    data_x = data_x.astype(np.float32)[None]
-    return {"data_x": data_x,
-            "data_z": data_z}
+    data_x = (data_x*(2*16-1)).astype(np.uint16)
+    return {"data_x": data_x}

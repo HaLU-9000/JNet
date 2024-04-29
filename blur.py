@@ -60,7 +60,7 @@ for item in items_new:
     print(label.shape)
 #    s = label.shape[-1]//3
 #    label = torch.tensor(label[None, None, :, :,:]/((2**16 - 1))).to(device)
-    image = imagen_instantblur_without_noise(JNet, label, None, None).detach().cpu()
+    image = imagen_instantblur(JNet, label, None, None).detach().cpu()
     image = vibrate(image,True)[0, 0].numpy()
     image = (image * (2**16 - 1)).astype(np.uint16)
     tifffile.imwrite(args.save_folder+ "/"\
