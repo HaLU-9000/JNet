@@ -1,5 +1,5 @@
 {
-    "explanation":"pretrain without vibration angle 00",
+    "explanation":"pretrain without vibration, angle: 90",
     "pretrained_model":"JNet_570_pretrain",
     "params":
         {
@@ -116,7 +116,7 @@
 
     "train_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Documents/JNet/_angle_blur/angle00" ,
+            "folderpath"      : "/home/haruhiko/Documents/JNet/_angle_blur/angle90" ,
             "size"            : [500, 500, 500]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 200                               ,
@@ -131,7 +131,7 @@
 
     "val_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Documents/JNet/_angle_blur/angle00" ,
+            "folderpath"      : "/home/haruhiko/Documents/JNet/_angle_blur/angle90" ,
             "size"            : [500, 500, 500]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 20                                ,

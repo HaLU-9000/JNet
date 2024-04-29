@@ -47,7 +47,7 @@ else:
         if args.keyword in item:
             items_new.append(item)
     items_new.sort()
-os.makedirs(args.save_folder, exist_ok=True)
+
 
 if args.vibrate:
     vibrate = Vibrate(vibration_params=configs["vibration"])
@@ -63,7 +63,11 @@ for item in items_new:
     image = imagen_instantblur(JNet, label, None, None).detach().cpu()
     image = vibrate(image,True)[0, 0].numpy()
     image = (image * (2**16 - 1)).astype(np.uint16)
+    os.makedirs(args.save_folder  + "/"\
+                     + utils.get_basename(item), exist_ok=True)
     tifffile.imwrite(args.save_folder+ "/"\
+                     + utils.get_basename(item)\
+                     + "/"\
                      + utils.get_basename(item)\
                      + ".tif", image)
     del(image)
