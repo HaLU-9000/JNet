@@ -46,7 +46,7 @@
             "lr"                    : 1e-2                                     , "$lr"                    : "lr for pre-training NeurIPSF"       ,
             "num_iter_psf_pretrain" : 20000                                    , "$num_iter_psf_pretrain" : "epoch for pre-training of NeurIPSF" ,
             "nipsf_loss_target"     : 1e-5                                     , "$nipsf_loss_target"     : "epoch for pre-training of NeurIPSF" ,
-            "device"                : "cuda"
+            "device"                : "cuda:0"
         }                                                                      ,  "$params" : "model configs",
 
     "pretrain_dataset":
@@ -116,7 +116,7 @@
 
     "train_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Documents/JNet/_angle_blur/angle90" ,
+            "folderpath"      : "_angle_blur/angle90" ,
             "size"            : [500, 500, 500]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 200                               ,
@@ -131,7 +131,7 @@
 
     "val_dataset":
         {
-            "folderpath"      : "/home/haruhiko/Documents/JNet/_angle_blur/angle90" ,
+            "folderpath"      : "_angle_blur/angle90" ,
             "size"            : [500, 500, 500]                   ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 20                                ,
