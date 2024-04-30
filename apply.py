@@ -19,7 +19,7 @@ args = parser.parse_args()
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs = json.load(configs)
 params  = configs["params"]
-shape = [80, 112, 112]
+shape = [24, 112, 112]
 if args.image_name is not None:
     images = [args.image_name]
 else:
