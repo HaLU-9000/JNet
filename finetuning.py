@@ -38,6 +38,7 @@ without_noise        = configs["pretrain_loop"]["without_noise"]
 val_dataset_params   = configs["val_dataset"      ]
 train_loop_params    = configs["train_loop"       ]
 vibration_params     = configs["vibration"        ]
+test_params          = configs["test_dataset"     ]
 
 device = params["device"]
 print(f"Training on device {device}.")
@@ -62,7 +63,8 @@ train_dataset = DensityDataset(
     mask_size       = train_dataset_params["mask_size"    ] ,
     surround        = train_dataset_params["surround"     ] ,
     surround_size   = train_dataset_params["surround_size"] ,
-    train_data_rate = 1                                     ,
+    test_tuple      = tuple(test_params["test_images"])     ,
+    train_data_rate = 0.8                                   ,
     )
 
 val_dataset   = DensityDataset(
@@ -77,8 +79,9 @@ val_dataset   = DensityDataset(
     mask_num        = val_dataset_params["mask_num"       ] ,
     surround        = val_dataset_params["surround"       ] ,
     surround_size   = val_dataset_params["surround_size"  ] ,
+    test_tuple      = tuple(test_params["test_images"])     ,
     seed            = val_dataset_params["seed"           ] ,
-    train_data_rate = 0                                     ,
+    train_data_rate = 0.8                                   ,
     )
 
 train_data  = DataLoader(

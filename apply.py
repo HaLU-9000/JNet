@@ -19,7 +19,7 @@ args = parser.parse_args()
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs = json.load(configs)
 params  = configs["params"]
-shape = [24, 112, 112]
+shape = [32, 112, 112]
 if args.image_name is not None:
     images = [args.image_name]
 else:
@@ -69,7 +69,7 @@ for image in images:
         )
     else:
         image.process_image(model, params, shape, "enhanced_image",
-                            overlap=[2, 10, 10], apply_hill=True)
+                            overlap=[8, 0, 0], apply_hill=True)
         if args.pretrain:
             os.makedirs(f"_apply_{configs['pretrained_model']}", exist_ok=True)
             image.save_processed_image(

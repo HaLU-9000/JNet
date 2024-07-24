@@ -458,7 +458,7 @@ class DensityDataset(Dataset):
              ([channels, z_size, x_size, y_size]) 
              of randomly cropped/rotated image
     folderpath : large data path ("randomdata" in this repo)
-    imagename : "0001***.pt" `s "**" part. (e.g. "_x1")
+    validation_list : list of the name of validation data "xxxx_**.tif" `s "**" parts. (e.g. "_x1")[list]
     I : sample size. Returns I samples. (e.g. 200)
     low, high : use [low]th ~ [high]th files in folderpath as data.
     scale: scale (should be same as [imagename]'s int part.)
@@ -473,7 +473,7 @@ class DensityDataset(Dataset):
     def __init__(self, folderpath:str,
                  size:list, cropsize:list, I:int, scale:int,
                  train=True, mask=True, train_data_rate=0.8,
-                 mask_size=[10, 10, 10], mask_num=1,
+                 mask_size=[10, 10, 10], mask_num=1, test_tuple=('-1',),
                  surround=True, surround_size=[64, 8, 8],
                  seed=904):
         self.I             = I
@@ -483,7 +483,9 @@ class DensityDataset(Dataset):
         self.images        = [folderpath+"/"+file
                               for file in sorted(
                                   os.listdir(
-                                      folderpath)) if not file.startswith('_')]
+                                      folderpath)
+                                      ) if not file.startswith('_')\
+                and not file.split(".")[0].endswith(test_tuple)]
         self.high          = int(len(self.images) * train_data_rate)
         self.num_images    = len(self.images)
         self.csize         = cropsize
