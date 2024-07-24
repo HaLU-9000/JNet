@@ -436,11 +436,14 @@ class BeadsInference():
             self.params["threshold"] = threshold
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
+        self.JNet.load_state_dict(torch.load(f'model/{self.configs["pretrained_model"]}.pt'),
+                                      strict=False)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
         self.model_name = self.configs["pretrained_model"] if pretrain else model_name
         if os.path.isfile(f'model/{self.model_name}.pt'):
             self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
                                       strict=False)
+
         self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
         #self.JNet.tau = 0.1
