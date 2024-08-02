@@ -1,4 +1,4 @@
-python3 finetuning.py   JNet_581 --cross_validation 0
+python3 finetuning.py   JNet_582 --cross_validation 0
 #for i in {0..9}
 #do
 #    python3 finetuning.py   JNet_581 --cross_validation $i
