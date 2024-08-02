@@ -23,6 +23,7 @@ from   train_loop                            \
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
+parser.add_argument('--cross_validation')
 parser.add_argument('--train_with_align', action="store_true")
 parser.add_argument('--just_wanna_see_loss', action="store_true")
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
@@ -52,7 +53,7 @@ print(f"Training on device {device}.")
 #    json.dump(configs, f, indent=4)
 
 train_dataset = DensityDataset(
-    folderpath      = train_dataset_params["folderpath"   ] ,
+    folderpath      = train_dataset_params["folderpath"   ]+args.cross_validation,
     size            = train_dataset_params["size"         ] , # size after segmentation
     cropsize        = train_dataset_params["cropsize"     ] , # size after segmentation
     I               = train_dataset_params["I"            ] ,
@@ -68,7 +69,7 @@ train_dataset = DensityDataset(
     )
 
 val_dataset   = DensityDataset(
-    folderpath      = val_dataset_params["folderpath"     ] ,
+    folderpath      = val_dataset_params["folderpath"     ]+args.cross_validation,
     size            = val_dataset_params["size"           ] , # size after segmentation
     cropsize        = val_dataset_params["cropsize"       ] ,
     I               = val_dataset_params["I"              ] ,
@@ -218,7 +219,7 @@ if args.train_with_align:
         train_loader         = train_data           ,
         val_loader           = val_data             ,
         device               = device               ,
-        model_name           = args.model_name      ,
+        model_name           = args.model_name+"_cv_"+args.cross_validation ,
         ewc                  = ewc                  ,
         train_dataset_params = train_dataset_params ,
         train_loop_params    = train_loop_params    ,
@@ -233,7 +234,7 @@ else:
         train_loader         = train_data           ,
         val_loader           = val_data             ,
         device               = device               ,
-        model_name           = args.model_name      ,
+        model_name           = args.model_name+"_cv_"+args.cross_validation ,
         ewc                  = ewc                  ,
         train_dataset_params = train_dataset_params ,
         train_loop_params    = train_loop_params    ,
