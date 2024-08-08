@@ -179,7 +179,7 @@ def pretrain_loop(
         else:
             condition = False
 
-        earlystopping((vloss_sum / vnum), model, condition = condition)
+        earlystopping((vloss_sum / vnum), model, optimizer, condition = condition)
         #if earlystopping.early_stop:
         #    break
     plt.plot(loss_list , label='train loss')
@@ -379,7 +379,7 @@ def finetuning_loop(
         if scheduler is not None:
             scheduler.step(epoch, vloss_list[-1])
         condition = True
-        earlystopping(vloss_list[-1], model, condition = condition)
+        earlystopping(vloss_list[-1], model, optimizer, condition = condition)
         #if earlystopping.early_stop:
         #    break
     plt.plot(loss_list , label='train loss')

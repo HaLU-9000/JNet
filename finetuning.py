@@ -23,7 +23,7 @@ from   train_loop                            \
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
-parser.add_argument('--cross_validation')
+parser.add_argument('-cv','--cross_validation')
 parser.add_argument('--train_with_align', action="store_true")
 parser.add_argument('--just_wanna_see_loss', action="store_true")
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
@@ -108,38 +108,38 @@ params["use_x_quantized"] = True
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 
-if args.train_with_align:
-    align_params   = configs["align_params"]
-    deep_align_net = model.DeepAlignNet(align_params)
-    deep_align_net = deep_align_net.to(device=device)
-    deep_align_net.load_state_dict(
-                torch.load(f'model/{configs["align_model"]}.pt'),
-                strict=False)
-
-if args.train_mode == 'decoder' or args.train_mode == 'old':
-    JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
-                         strict=False)
-if args.train_mode == 'all':
-    JNet.load_state_dict(torch.load(f'model/{args.model_name}.pt'),
-                        strict=False)
+#if args.train_with_align:
+#    align_params   = configs["align_params"]
+#    deep_align_net = model.DeepAlignNet(align_params)
+#    deep_align_net = deep_align_net.to(device=device)
+#    deep_align_net.load_state_dict(
+#                torch.load(f'model/{configs["align_model"]}.pt'),
+#                strict=False)
+#
+JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
+                     strict=False)
 
 train_params = JNet.parameters()
 
-if args.train_mode == 'decoder':
-    for param in JNet.parameters():
-        param.requires_grad = False
-    for param in JNet.image.parameters():
-        param.requires_grad = True
-    for param in JNet.image.blur.parameters():
-        param.requires_grad = False
-
-if args.train_mode == 'encoder':
-    for param in JNet.image.parameters():
-        param.requires_grad = False
+#if args.train_mode == 'decoder':
+#    for param in JNet.parameters():
+#        param.requires_grad = False
+#    for param in JNet.image.parameters():
+#        param.requires_grad = True
+#    for param in JNet.image.blur.parameters():
+#        param.requires_grad = False
+#
+#if args.train_mode == 'encoder':
+#    for param in JNet.image.parameters():
+#        param.requires_grad = False
 
 lr = train_loop_params["lr"]
 
 optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)
+optimizer.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}_optim.pt'),
+                    )
+
+train_params = JNet.parameters()
 scheduler            = timm.scheduler.PlateauLRScheduler(
     optimizer      = optimizer   ,
     patience_t     = 20          ,
