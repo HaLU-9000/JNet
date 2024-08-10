@@ -138,7 +138,6 @@ lr = train_loop_params["lr"]
 optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)
 optimizer.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}_optim.pt'),
                     )
-
 train_params = JNet.parameters()
 scheduler            = timm.scheduler.PlateauLRScheduler(
     optimizer      = optimizer   ,
@@ -209,35 +208,34 @@ if args.just_wanna_see_loss:
     )
     sys.exit()
 
-if args.train_with_align:
-    print(f"============= model {args.model_name} train started " + \
-          f"with {align_params['name']} =============")
-    finetuning_with_align_model_loop(
-        optimizer            = optimizer            ,
-        model                = JNet                 ,
-        align_model          = deep_align_net       ,
-        train_loader         = train_data           ,
-        val_loader           = val_data             ,
-        device               = device               ,
-        model_name           = args.model_name+"_cv_"+args.cross_validation ,
-        ewc                  = ewc                  ,
-        train_dataset_params = train_dataset_params ,
-        train_loop_params    = train_loop_params    ,
-        scheduler            = scheduler
-    )
+#if args.train_with_align:
+#    print(f"============= model {args.model_name} train started " + \
+#          f"with {align_params['name']} =============")
+#    finetuning_with_align_model_loop(
+#        optimizer            = optimizer            ,
+#        model                = JNet                 ,
+#        align_model          = deep_align_net       ,
+#        train_loader         = train_data           ,
+#        val_loader           = val_data             ,
+#        device               = device               ,
+#        model_name           = args.model_name+"_cv_"+args.cross_validation ,
+#        ewc                  = ewc                  ,
+#        train_dataset_params = train_dataset_params ,
+#        train_loop_params    = train_loop_params    ,
+#        scheduler            = scheduler
+#    )
 
-else:
-    print(f"============= model {args.model_name} train started =============")
-    finetuning_loop( ####
-        optimizer            = optimizer            ,
-        model                = JNet                 ,
-        train_loader         = train_data           ,
-        val_loader           = val_data             ,
-        device               = device               ,
-        model_name           = args.model_name+"_cv_"+args.cross_validation ,
-        ewc                  = ewc                  ,
-        train_dataset_params = train_dataset_params ,
-        train_loop_params    = train_loop_params    ,
-        vibration_params     = vibration_params     ,
-        scheduler            = scheduler
-    )
+print(f"============= model {args.model_name} train started =============")
+finetuning_loop( ####
+    optimizer            = optimizer            ,
+    model                = JNet                 ,
+    train_loader         = train_data           ,
+    val_loader           = val_data             ,
+    device               = device               ,
+    model_name           = args.model_name+"_cv_"+args.cross_validation ,
+    ewc                  = ewc                  ,
+    train_dataset_params = train_dataset_params ,
+    train_loop_params    = train_loop_params    ,
+    vibration_params     = vibration_params     ,
+    scheduler            = scheduler
+)

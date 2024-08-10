@@ -195,10 +195,15 @@ if "microglia" in args.show:
 if "beads" in args.show:
     btype_list = ["original", "output", "reconst", "heatmap"]
     for pretrain in [True, False]:
+        if pretrain:
+            md.new_header(level=3, title="pretrain")
+        else:
+            md.new_header(level=3, title="finetuning")
         binfer = inference.BeadsInference(args.model_name, pretrain=pretrain)
         results = binfer.get_result()
         bevals  = binfer.evaluate(results)
         binfer.visualize(results)
+        md.new_line(f'volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
         for n in range(len(results)):
             image_name = binfer.images[n][len(binfer.datapath)+1:-3]
             md.new_header(level=3, title=image_name)

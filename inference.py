@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+import glob
 import numpy as np
 import torch
 import torch.nn as nn
@@ -422,7 +423,7 @@ class MicrogliaInference():
         del self.JNet
 
 class BeadsInference():
-    def __init__(self, model_name, pretrain=True, threshold=-1):
+    def __init__(self, model_name, cv=0, pretrain=True, threshold=-1):
         self.device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
@@ -440,9 +441,10 @@ class BeadsInference():
                                       strict=False)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
         self.model_name = self.configs["pretrained_model"] if pretrain else model_name
-        if os.path.isfile(f'model/{self.model_name}.pt'):
-            self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
-                                      strict=False)
+        if not pretrain:
+            self.JNet.load_state_dict(
+                torch.load(
+                    f'model/{self.model_name}_cv_{cv}.pt'), strict=False)
 
         self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
@@ -486,9 +488,15 @@ class BeadsInference():
             volumes.append(volume)
             mses.append(mse)
             qlosses.append(qloss)
+        mean = np.mean(np.array(volumes))
+        sd = np.std(np.array(volumes))
+        
         return {"volume": volumes,
                 "MSE"   : mses   ,
-                "qloss" : qlosses }
+                "qloss" : qlosses,
+                "mean"  : mean   ,
+                "sd"    : sd     ,
+                }
             
     def visualize(self, results):
         for n, [image, output, reconst, qloss] in enumerate(results):
