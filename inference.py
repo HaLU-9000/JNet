@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+import glob
 import numpy as np
 import torch
 import torch.nn as nn
@@ -217,7 +218,7 @@ class SimulationInference():
                 plt.clf()
                 plt.close()
                 plt.axis("off")
-                plt.imshow(image, cmap='gray', vmin=0.0,aspect=aspect)
+                plt.imshow(image, cmap='gray', vmin=0.0,vmax=1.0,aspect=aspect)
                 plt.savefig(path + f'/{self.model_name}_{n}_{name}.png',
                             format='png',dpi=250,bbox_inches='tight',
                             pad_inches=0)
@@ -422,7 +423,7 @@ class MicrogliaInference():
         del self.JNet
 
 class BeadsInference():
-    def __init__(self, model_name, pretrain=True, threshold=-1):
+    def __init__(self, model_name, cv=0, pretrain=True, threshold=-1):
         self.device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
         config = open(os.path.join("experiments/configs", f"{model_name}.json"))
@@ -436,11 +437,15 @@ class BeadsInference():
             self.params["threshold"] = threshold
         JNet = model.JNet(self.params)
         self.JNet = JNet.to(device = self.device)
+        self.JNet.load_state_dict(torch.load(f'model/{self.configs["pretrained_model"]}.pt'),
+                                      strict=False)
         self.psf_pretrain = self.JNet.image.blur.show_psf_3d()
         self.model_name = self.configs["pretrained_model"] if pretrain else model_name
-        if os.path.isfile(f'model/{self.model_name}.pt'):
-            self.JNet.load_state_dict(torch.load(f'model/{self.model_name}.pt'),
-                                      strict=False)
+        if not pretrain:
+            self.JNet.load_state_dict(
+                torch.load(
+                    f'model/{self.model_name}_cv_{cv}.pt'), strict=False)
+
         self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
         #self.JNet.tau = 0.1
@@ -483,9 +488,15 @@ class BeadsInference():
             volumes.append(volume)
             mses.append(mse)
             qlosses.append(qloss)
+        mean = np.mean(np.array(volumes))
+        sd = np.std(np.array(volumes))
+        
         return {"volume": volumes,
                 "MSE"   : mses   ,
-                "qloss" : qlosses }
+                "qloss" : qlosses,
+                "mean"  : mean   ,
+                "sd"    : sd     ,
+                }
             
     def visualize(self, results):
         for n, [image, output, reconst, qloss] in enumerate(results):

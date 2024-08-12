@@ -23,6 +23,7 @@ from   train_loop                            \
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
+parser.add_argument('-cv','--cross_validation')
 parser.add_argument('--train_with_align', action="store_true")
 parser.add_argument('--just_wanna_see_loss', action="store_true")
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])
@@ -38,6 +39,7 @@ without_noise        = configs["pretrain_loop"]["without_noise"]
 val_dataset_params   = configs["val_dataset"      ]
 train_loop_params    = configs["train_loop"       ]
 vibration_params     = configs["vibration"        ]
+test_params          = configs["test_dataset"     ]
 
 device = params["device"]
 print(f"Training on device {device}.")
@@ -51,7 +53,7 @@ print(f"Training on device {device}.")
 #    json.dump(configs, f, indent=4)
 
 train_dataset = DensityDataset(
-    folderpath      = train_dataset_params["folderpath"   ] ,
+    folderpath      = train_dataset_params["folderpath"   ]+args.cross_validation,
     size            = train_dataset_params["size"         ] , # size after segmentation
     cropsize        = train_dataset_params["cropsize"     ] , # size after segmentation
     I               = train_dataset_params["I"            ] ,
@@ -62,11 +64,12 @@ train_dataset = DensityDataset(
     mask_size       = train_dataset_params["mask_size"    ] ,
     surround        = train_dataset_params["surround"     ] ,
     surround_size   = train_dataset_params["surround_size"] ,
-    train_data_rate = 1                                     ,
+    test_tuple      = tuple(test_params["test_images"])     ,
+    train_data_rate = 0.8                                   ,
     )
 
 val_dataset   = DensityDataset(
-    folderpath      = val_dataset_params["folderpath"     ] ,
+    folderpath      = val_dataset_params["folderpath"     ]+args.cross_validation,
     size            = val_dataset_params["size"           ] , # size after segmentation
     cropsize        = val_dataset_params["cropsize"       ] ,
     I               = val_dataset_params["I"              ] ,
@@ -77,8 +80,9 @@ val_dataset   = DensityDataset(
     mask_num        = val_dataset_params["mask_num"       ] ,
     surround        = val_dataset_params["surround"       ] ,
     surround_size   = val_dataset_params["surround_size"  ] ,
+    test_tuple      = tuple(test_params["test_images"])     ,
     seed            = val_dataset_params["seed"           ] ,
-    train_data_rate = 0                                     ,
+    train_data_rate = 0.8                                   ,
     )
 
 train_data  = DataLoader(
@@ -104,38 +108,37 @@ params["use_x_quantized"] = True
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 
-if args.train_with_align:
-    align_params   = configs["align_params"]
-    deep_align_net = model.DeepAlignNet(align_params)
-    deep_align_net = deep_align_net.to(device=device)
-    deep_align_net.load_state_dict(
-                torch.load(f'model/{configs["align_model"]}.pt'),
-                strict=False)
-
-if args.train_mode == 'decoder' or args.train_mode == 'old':
-    JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
-                         strict=False)
-if args.train_mode == 'all':
-    JNet.load_state_dict(torch.load(f'model/{args.model_name}.pt'),
-                        strict=False)
+#if args.train_with_align:
+#    align_params   = configs["align_params"]
+#    deep_align_net = model.DeepAlignNet(align_params)
+#    deep_align_net = deep_align_net.to(device=device)
+#    deep_align_net.load_state_dict(
+#                torch.load(f'model/{configs["align_model"]}.pt'),
+#                strict=False)
+#
+JNet.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}.pt'),
+                     strict=False)
 
 train_params = JNet.parameters()
 
-if args.train_mode == 'decoder':
-    for param in JNet.parameters():
-        param.requires_grad = False
-    for param in JNet.image.parameters():
-        param.requires_grad = True
-    for param in JNet.image.blur.parameters():
-        param.requires_grad = False
-
-if args.train_mode == 'encoder':
-    for param in JNet.image.parameters():
-        param.requires_grad = False
+#if args.train_mode == 'decoder':
+#    for param in JNet.parameters():
+#        param.requires_grad = False
+#    for param in JNet.image.parameters():
+#        param.requires_grad = True
+#    for param in JNet.image.blur.parameters():
+#        param.requires_grad = False
+#
+#if args.train_mode == 'encoder':
+#    for param in JNet.image.parameters():
+#        param.requires_grad = False
 
 lr = train_loop_params["lr"]
 
 optimizer            = optim.Adam(filter(lambda p: p.requires_grad, JNet.parameters()), lr = lr)
+optimizer.load_state_dict(torch.load(f'model/{configs["pretrained_model"]}_optim.pt'),
+                    )
+train_params = JNet.parameters()
 scheduler            = timm.scheduler.PlateauLRScheduler(
     optimizer      = optimizer   ,
     patience_t     = 20          ,
@@ -205,35 +208,34 @@ if args.just_wanna_see_loss:
     )
     sys.exit()
 
-if args.train_with_align:
-    print(f"============= model {args.model_name} train started " + \
-          f"with {align_params['name']} =============")
-    finetuning_with_align_model_loop(
-        optimizer            = optimizer            ,
-        model                = JNet                 ,
-        align_model          = deep_align_net       ,
-        train_loader         = train_data           ,
-        val_loader           = val_data             ,
-        device               = device               ,
-        model_name           = args.model_name      ,
-        ewc                  = ewc                  ,
-        train_dataset_params = train_dataset_params ,
-        train_loop_params    = train_loop_params    ,
-        scheduler            = scheduler
-    )
+#if args.train_with_align:
+#    print(f"============= model {args.model_name} train started " + \
+#          f"with {align_params['name']} =============")
+#    finetuning_with_align_model_loop(
+#        optimizer            = optimizer            ,
+#        model                = JNet                 ,
+#        align_model          = deep_align_net       ,
+#        train_loader         = train_data           ,
+#        val_loader           = val_data             ,
+#        device               = device               ,
+#        model_name           = args.model_name+"_cv_"+args.cross_validation ,
+#        ewc                  = ewc                  ,
+#        train_dataset_params = train_dataset_params ,
+#        train_loop_params    = train_loop_params    ,
+#        scheduler            = scheduler
+#    )
 
-else:
-    print(f"============= model {args.model_name} train started =============")
-    finetuning_loop( ####
-        optimizer            = optimizer            ,
-        model                = JNet                 ,
-        train_loader         = train_data           ,
-        val_loader           = val_data             ,
-        device               = device               ,
-        model_name           = args.model_name      ,
-        ewc                  = ewc                  ,
-        train_dataset_params = train_dataset_params ,
-        train_loop_params    = train_loop_params    ,
-        vibration_params     = vibration_params     ,
-        scheduler            = scheduler
-    )
+print(f"============= model {args.model_name} train started =============")
+finetuning_loop( ####
+    optimizer            = optimizer            ,
+    model                = JNet                 ,
+    train_loader         = train_data           ,
+    val_loader           = val_data             ,
+    device               = device               ,
+    model_name           = args.model_name+"_cv_"+args.cross_validation ,
+    ewc                  = ewc                  ,
+    train_dataset_params = train_dataset_params ,
+    train_loop_params    = train_loop_params    ,
+    vibration_params     = vibration_params     ,
+    scheduler            = scheduler
+)

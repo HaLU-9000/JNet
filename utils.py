@@ -35,7 +35,7 @@ class EarlyStopping():
         self.path = path
         self.name = name
 
-    def __call__(self, val_loss, model, condition=False):
+    def __call__(self, val_loss, model, optimizer, condition=False):
         self.val_losses.append(val_loss)
 
         window = min(len(self.val_losses) , self.window_size)
@@ -48,10 +48,10 @@ class EarlyStopping():
         
         if self.best_stat is None:
             self.best_stat = moving_stat
-            self.checkpoint(moving_stat, model)
+            self.checkpoint(moving_stat, model, optimizer)
         
         elif not condition:
-            self.checkpoint(moving_stat, model)
+            self.checkpoint(moving_stat, model, optimizer)
             self.best_stat = moving_stat
             self.counter = 0
 
@@ -64,14 +64,15 @@ class EarlyStopping():
                     self.early_stop = True
                     print('EarlyStopping!')
             else:
-                self.checkpoint(moving_stat, model)
+                self.checkpoint(moving_stat, model, optimizer)
                 self.best_stat = moving_stat
                 self.counter = 0
 
-    def checkpoint(self, moving_stat, model):
+    def checkpoint(self, moving_stat, model, optimizer):
         if self.verbose:
             print(f'Moving {self.metric.capitalize()} Loss ({self.best_stat:.6f}) -> Current Loss ({moving_stat:.6f}). Saving models...')
         torch.save(model.state_dict(), f'{self.path}/{self.name}.pt')
+        torch.save(optimizer.state_dict(), f'{self.path}/{self.name}_optim.pt')
 
 
 def path_blur():
@@ -464,7 +465,6 @@ class ImageProcessing():
         print("[3/3] reconstrusting image...")
         processed_image = self._reconstruct_images(
             processed_chunks, params, type, overlap)
-        processed_image = (processed_image > 0.8) * 1.0
         self.processed_image = processed_image
         return processed_image
     
