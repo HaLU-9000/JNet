@@ -69,7 +69,7 @@ for image in images:
         )
     else:
         image.process_image(model, params, shape, "enhanced_image",
-                            overlap=[2, 10, 10], apply_hill=True)
+                            overlap=[2, 0, 0], apply_hill=True)
         if args.pretrain:
             os.makedirs(f"_apply_{configs['pretrained_model']}", exist_ok=True)
             image.save_processed_image(
