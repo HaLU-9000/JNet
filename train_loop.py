@@ -250,7 +250,13 @@ def finetuning_loop(
     #           mode="all")
 
     for epoch in range(1, n_epochs + 1):
-        loss_sum = 0.
+        loss_sum    = 0.
+        xloss_sum   = 0.
+        zloss_sum   = 0.
+        mrfloss_sum = 0.
+        qloss_sum   = 0.
+        ploss_sum   = 0.
+        ewcloss_sum = 0.
         model.train()
         for train_data in tqdm(train_loader,
                                bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}"):
@@ -275,20 +281,30 @@ def finetuning_loop(
                 rec = luminance_adjustment(rec, image)
             #loss  = loss_fn(rec, image) * loss_weight
             loss = _loss_fnx(rec, image, a, sigma)
+            xloss_sum += loss.detach().item()
             loss_z = _loss_fnz(
                 _input = lum ,
                 mask   = None,
                 target = None ) * zloss_weight
             loss += loss_z
+            zloss_sum += loss_z.detach().item()
             if train_with_mrf:
                 loss_mrf = mrf_loss(out)
                 loss += loss_mrf
+                mrfloss_sum = loss_mrf.detach().item()
             if ewc is not None:
-                loss += ewc.calc_ewc_loss(ewc_weight)
+                ewc_loss = ewc.calc_ewc_loss(ewc_weight)
+                loss += ewc_loss
+                ewcloss_sum += ewc_loss.detach().item()
             if qloss is not None:
-                loss += qloss * qloss_weight
+                qloss = qloss * qloss_weight
+                loss += qloss
+                qloss_sum += qloss.detach().item()
+
             if ploss is not None:
-                loss += ploss * ploss_weight
+                ploss = ploss * ploss_weight
+                loss += ploss
+                ploss_sum += ploss.detach().item()
             loss_sum += loss.detach().item()
             optimizer.zero_grad()
             loss.backward(retain_graph=False)
@@ -346,7 +362,7 @@ def finetuning_loop(
                     vploss_sum += ploss
                 if ewc is not None:
                     ewc_loss = ewc.calc_ewc_loss(
-                        ewc_weight).detach().item() * ewc_weight
+                        ewc_weight).detach().item()
                     vloss_sum += ewc_loss
                     vloss += ewc_loss
                     vewcloss_sum += ewc_loss
@@ -355,7 +371,13 @@ def finetuning_loop(
         vnum = len(val_loader)
         loss_list.append(loss_sum / num)
         vloss_list.append(vloss_sum / vnum)
-        writer.add_scalar('train loss'  , loss_sum     /  num  , epoch)
+        writer.add_scalar('train loss'     , loss_sum     /  num  , epoch)
+        writer.add_scalar('train x loss'   , xloss_sum    /  num  , epoch)
+        writer.add_scalar('train z loss'   , zloss_sum    /  num  , epoch)
+        writer.add_scalar('train mrf loss' , mrfloss_sum  /  num  , epoch)
+        writer.add_scalar('train p loss'   , ploss_sum    /  num  , epoch)
+        writer.add_scalar('train q loss'   , qloss_sum    /  num  , epoch)
+        writer.add_scalar('train ewc loss' , ewcloss_sum  /  num  , epoch)
         writer.add_scalar('val loss'    , vloss_sum    / vnum  , epoch)
         writer.add_scalar('val x loss'  , vxloss_sum   / vnum  , epoch)
         writer.add_scalar('val z loss'  , vzloss_sum   / vnum  , epoch)

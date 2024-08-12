@@ -1,4 +1,7 @@
-#python3 finetuning.py   JNet_582 --cross_validation 0
+
+python3 train_runner.py JNet_593
+python3 finetuning.py JNet_593 -cv 0
+python3 reporter.py JNet_593 -show pretrain -show beads
 #for i in {0..9}
 #do
 #    python3 finetuning.py   JNet_581 --cross_validation $i
