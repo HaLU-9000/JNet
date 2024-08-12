@@ -300,14 +300,14 @@ class JNetLayer(nn.Module):
     
     def forward(self, x):
         d = self.pool(x)
-        d = self.conv(d) # checkpoint
+        d = checkpoint(self.conv, d)
         for f in self.prev:
             d = f(d)
         d = self.mid(d)
         d = self.attn(d)
         for f in self.post:
             d = f(d)
-        d = self.unpool(d) # checkpoint
+        d = checkpoint(self.unpool, d) # checkpoint
         x = x + d
         return x
     
