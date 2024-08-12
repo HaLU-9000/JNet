@@ -178,7 +178,7 @@
             "adjust_luminance"  : true           ,
             "zloss_weight"      : 1              ,
             "ewc_weight"        : 0.01           ,
-            "qloss_weight"      : 10.0           ,
+            "qloss_weight"      : 100.0          ,
             "ploss_weight"      : 0.1            ,
             "mrfloss_order"     : 1              ,
             "mrfloss_dilation"  : 1              ,
