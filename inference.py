@@ -444,7 +444,8 @@ class BeadsInference():
         if not pretrain:
             self.JNet.load_state_dict(
                 torch.load(
-                    f'model/{self.model_name}_cv_{cv}.pt'), strict=False)
+                    f'model/{self.model_name}_cv_{cv}.pt',
+                    map_location="cuda:0"), strict=False)
 
         self.psf_post = self.JNet.image.blur.show_psf_3d()
         self.JNet.eval()
