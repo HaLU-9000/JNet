@@ -199,10 +199,14 @@ if "beads" in args.show:
             md.new_header(level=3, title="pretrain")
         else:
             md.new_header(level=3, title="finetuning")
-        binfer = inference.BeadsInference(args.model_name, pretrain=pretrain)
+        binfer = inference.BeadsInference(args.model_name, pretrain=pretrain, threshold=0.5)
         results = binfer.get_result()
         bevals  = binfer.evaluate(results)
         binfer.visualize(results)
+        if pretrain:
+            print(f'pretrain: volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
+        else:
+            print(f'finetuning: volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
         md.new_line(f'volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
         for n in range(len(results)):
             image_name = binfer.images[n][len(binfer.datapath)+1:-3]
@@ -243,4 +247,4 @@ md.new_line()
 ## End ##
 #########
 md.new_line()
-md.create_md_file()
+#md.create_md_file()

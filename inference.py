@@ -477,6 +477,8 @@ class BeadsInference():
         mses    = []
         qlosses = []
         for [image, output, rec, qloss] in results:
+            if self.params["threshold"] != -1:
+                output = (output > self.params["threshold"]) * 1.0
             volume = np.sum(output).item() * \
                 (self.params["res_lateral"] ** 3)
             e = 1e-7
