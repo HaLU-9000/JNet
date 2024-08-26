@@ -23,7 +23,7 @@ from   train_loop                            \
 
 parser = argparse.ArgumentParser(description='Pretraining model.')
 parser.add_argument('model_name')
-parser.add_argument('-cv','--cross_validation')
+parser.add_argument('-cv','--cross_validation', default="")
 parser.add_argument('--train_with_align', action="store_true")
 parser.add_argument('--just_wanna_see_loss', action="store_true")
 parser.add_argument('-t', '--train_mode', default='old', choices=['all', 'encoder', 'decoder', 'old'])

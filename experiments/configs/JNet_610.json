@@ -1,5 +1,5 @@
 {
-    "explanation":"microglia analysis",
+    "explanation":"microglia analysis, plossx10, ewcx0.1",
     "pretrained_model":"JNet_607_pretrain",
     "params":
         {
@@ -177,9 +177,9 @@
             "is_vibrate"        : false          ,
             "adjust_luminance"  : false          ,
             "zloss_weight"      : 1              ,
-            "ewc_weight"        : 1.0            ,
+            "ewc_weight"        : 0.1            ,
             "qloss_weight"      : 1.0            ,
-            "ploss_weight"      : 1.0            ,
+            "ploss_weight"      : 10            ,
             "mrfloss_order"     : 1              ,
             "mrfloss_dilation"  : 1              ,
             "mrfloss_weights"   : {"l_00" : -0.5 ,
