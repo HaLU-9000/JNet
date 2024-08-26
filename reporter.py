@@ -194,21 +194,40 @@ if "microglia" in args.show:
 ###################################
 if "beads" in args.show:
     btype_list = ["original", "output", "reconst", "heatmap"]
-    for pretrain in [True, False]:
-        if pretrain:
-            md.new_header(level=3, title="pretrain")
-        else:
-            md.new_header(level=3, title="finetuning")
-        binfer = inference.BeadsInference(args.model_name, pretrain=pretrain, threshold=0.5)
-        results = binfer.get_result()
+    pretrain = True
+    md.new_header(level=3, title="pretrain")    
+    binfer = inference.BeadsInference(args.model_name, pretrain=pretrain, threshold=0.5)
+    results = binfer.get_result()
+    bevals  = binfer.evaluate(results)
+    binfer.visualize(results)
+    print(f'pretrain: volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
+    md.new_line(f'volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
+    for n in range(len(results)):
+        image_name = binfer.images[n][len(binfer.datapath)+1:-3]
+        md.new_header(level=3, title=image_name)
+        im_list = []
+        for tp in btype_list:
+            path = f'./{configs["visualization"]["path"]}/{binfer.model_name}_{image_name}_{tp}_depth.png'
+            im_list.append(md.new_reference_image(text=f"{binfer.model_name}_{image_name}_{tp}_{slice}", path=path[1:]))
+        md.new_table(columns=4, rows=2, text=[*btype_list, *im_list],)
+        md.new_line(f'volume: {bevals["volume"][n]}, MSE: {bevals["MSE"][n]}, quantized loss: {bevals["qloss"][n]}')
+        md.new_line()
+    md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
+
+    pretrain = False
+    md.new_header(level=3, title="finetuning")
+    volumes = np.zeros(30)
+    for i in range(0, 10):
+        btype_list = ["original", "output", "reconst", "heatmap"]
+        binfer = inference.BeadsInference(
+            args.model_name, cv=i, pretrain=False, threshold=0.5)
+        results = binfer.get_result(
+            datapath=f"_20231208_tsuji_beads_roi_stackreged_cv_wise/{i}")
         bevals  = binfer.evaluate(results)
-        binfer.visualize(results)
-        if pretrain:
-            print(f'pretrain: volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
-        else:
-            print(f'finetuning: volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
-        md.new_line(f'volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
+        binfer.visualize(results)    
         for n in range(len(results)):
+            print(f'{i * 3 + n} volume: {bevals["volume"][n]}')
+            volumes[i * 3 + n] = bevals["volume"][n]
             image_name = binfer.images[n][len(binfer.datapath)+1:-3]
             md.new_header(level=3, title=image_name)
             im_list = []
@@ -218,6 +237,7 @@ if "beads" in args.show:
             md.new_table(columns=4, rows=2, text=[*btype_list, *im_list],)
             md.new_line(f'volume: {bevals["volume"][n]}, MSE: {bevals["MSE"][n]}, quantized loss: {bevals["qloss"][n]}')
             md.new_line()
+        md.new_line(f'volume mean: {volumes.mean()}, volume sd: {volumes.std()}')
     md.new_line("If the pixels are red, the reconstructed image is brighter than the original. If they are blue, the reconstructed image is darker.")
 
     binfer.psf_visualize()

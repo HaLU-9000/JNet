@@ -19,7 +19,7 @@ args = parser.parse_args()
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs = json.load(configs)
 params  = configs["params"]
-shape = [24, 112, 112]
+shape = [20, 112, 112]
 if args.image_name is not None:
     images = [args.image_name]
 else:
@@ -75,13 +75,13 @@ for image in images:
             image.save_processed_image(
                 file   = f"_apply_{configs['pretrained_model']}/{image_basename}",
                 format = "tif",
-                bit    = 16)
+                bit    = 8)
         else:
             os.makedirs(f"_apply_{args.model_name}", exist_ok=True)
             image.save_processed_image(
                 file   = f"_apply_{args.model_name}/{image_basename}",
                 format = "tif",
-                bit    = 16)
+                bit    = 8)
 # example usage:
 # python3 apply.py  /home/haruhiko/Downloads/Set_03/MDA15_20230915.nd2 JNet_510
 # python3 apply.py  _wakelabdata_processed/1_Spine_structure_AD_175-11w-D3-xyz6-020C2-T1.tif JNet_510
