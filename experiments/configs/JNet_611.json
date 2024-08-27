@@ -116,8 +116,8 @@
 
     "train_dataset":
         {
-            "folderpath"      : "_wakelabdata_processed/microglia_and_tumor",
-            "size"            : [336, 1972, 1972]                 ,
+            "folderpath"      : "_wakelabdata_processed/microglia_and_tumor_trim",
+            "size"            : [312, 1972, 1972]                 ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 200                               ,
             "scale"           : 12                                ,
@@ -131,8 +131,8 @@
 
     "val_dataset":
         {
-            "folderpath"      : "_wakelabdata_processed/microglia_and_tumor",
-            "size"            : [336, 1972, 1972]                 ,
+            "folderpath"      : "_wakelabdata_processed/microglia_and_tumor_trim",
+            "size"            : [312, 1972, 1972]                 ,
             "cropsize"        : [240, 112, 112]                   ,
             "I"               : 20                                ,
             "scale"           : 12                                ,
