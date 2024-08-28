@@ -105,6 +105,11 @@ params["reconstruct"]     = True
 params["apply_vq"]        = True
 params["use_x_quantized"] = True
 
+if args.cross_validation == "":
+    model_name = args.model_name
+else:
+    model_name = args.model_name + "_cv_"+args.cross_validation
+
 JNet = model.JNet(params)
 JNet = JNet.to(device = device)
 
@@ -232,7 +237,7 @@ finetuning_loop( ####
     train_loader         = train_data           ,
     val_loader           = val_data             ,
     device               = device               ,
-    model_name           = args.model_name+"_cv_"+args.cross_validation ,
+    model_name           = model_name           ,
     ewc                  = ewc                  ,
     train_dataset_params = train_dataset_params ,
     train_loop_params    = train_loop_params    ,
