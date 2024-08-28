@@ -501,6 +501,10 @@ class DensityDataset(Dataset):
                               self.ssize[2] - self.scsize[2],]
         self.options       = [[-3], [-3,-2], [-3,-2,-1], [-3,-1],
                               [-2], [-2,-1], [-1], [-4]]
+        if train:
+            print("num of image:" , self.num_images)
+            print("num of training image:" , self.high)
+            print("num of validation image:" , self.num_images - self.high)
         
         if train == False:
             np.random.seed(seed)
