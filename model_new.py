@@ -752,7 +752,7 @@ class JNet(nn.Module):
             else:
                 _, qloss = self.vq(x)
         if self.reconstruct:
-            lu  = x * z # change here later, separate x and z and input to self.image for each. adjust light for image(x) and not adjut for image(z)
+            lu  = x * z 
             out = self.image(lu)
             r   = out["out"]
             psf_loss = out["psf_loss"]

@@ -179,13 +179,13 @@
             "zloss_weight"      : 1              ,
             "ewc_weight"        : 1.0            ,
             "qloss_weight"      : 1.0            ,
-            "ploss_weight"      : 10            ,
-            "mrfloss_order"     : 1              ,
-            "mrfloss_dilation"  : 1              ,
-            "mrfloss_weights"   : {"l_00" : -1   ,
-                                   "l_01" : 1    ,
-                                   "l_10" : 2    ,
-                                   "l_11" : -2
+            "ploss_weight"      : 10             ,
+            "mrfloss_order"     : 1               ,
+            "mrfloss_dilation"  : 1               ,
+            "mrfloss_weights"   : {"l_00" : -10   ,
+                                   "l_01" : 10    ,
+                                   "l_10" : 20    ,
+                                   "l_11" : -20
                                    }                                                  
         }                                                                      , "$train_loop" : "",
     
