@@ -182,10 +182,10 @@
             "ploss_weight"      : 10             ,
             "mrfloss_order"     : 1              ,
             "mrfloss_dilation"  : 1              ,
-            "mrfloss_weights"   : {"l_00" : -3   ,
-                                   "l_01" :  3   ,
-                                   "l_10" :  6   ,
-                                   "l_11" : -6
+            "mrfloss_weights"   : {"l_00" : -4   ,
+                                   "l_01" :  4   ,
+                                   "l_10" :  8   ,
+                                   "l_11" : -8
                                    }                                                  
         }                                                                      , "$train_loop" : "",
     
