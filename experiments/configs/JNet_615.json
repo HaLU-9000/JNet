@@ -1,5 +1,5 @@
 {
-    "explanation":"microglia analysis, plossx10, mrfx100",
+    "explanation":"microglia analysis, plossx10, mrfx2",
     "pretrained_model":"JNet_607_pretrain",
     "params":
         {
@@ -180,12 +180,12 @@
             "ewc_weight"        : 1.0            ,
             "qloss_weight"      : 1.0            ,
             "ploss_weight"      : 10             ,
-            "mrfloss_order"     : 1               ,
-            "mrfloss_dilation"  : 1               ,
-            "mrfloss_weights"   : {"l_00" : -100   ,
-                                   "l_01" : 100    ,
-                                   "l_10" : 200    ,
-                                   "l_11" : -200
+            "mrfloss_order"     : 1              ,
+            "mrfloss_dilation"  : 1              ,
+            "mrfloss_weights"   : {"l_00" : -2   ,
+                                   "l_01" :  2   ,
+                                   "l_10" :  4   ,
+                                   "l_11" : -4
                                    }                                                  
         }                                                                      , "$train_loop" : "",
     
