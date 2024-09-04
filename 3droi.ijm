@@ -1,9 +1,34 @@
+// Set the folder containing the images
+inputFolder = getDirectory("Choose a Folder with Images");
 
-open("/home/haruhiko/Documents/JNet/_apply_JNet_609/MD495_1G2_D14_FINC1-T04x512_768_y512_768.tif");
-selectImage("MD495_1G2_D14_FINC1-T04x512_768_y512_768.tif");
-run("3D Manager Options", "volume surface compactness fit_ellipse integrated_density mean_grey_value std_dev_grey_value minimum_grey_value maximum_grey_value centroid_(pix) centroid_(unit) distance_to_surface centre_of_mass_(pix) centre_of_mass_(unit) bounding_box radial_distance closest distance_between_centers=10 distance_max_contact=1.80 drawing=Contour display");
-run("3D Manager");
-selectImage("MD495_1G2_D14_FINC1-T04x512_768_y512_768.tif-3Dseg");
-Ext.Manager3D_Segment(128, 255);
-Ext.Manager3D_AddImage();
-Ext.Manager3D_Save("/home/haruhiko/Documents/JNet/_apply_JNet_609/Roi3D.zip");
+// Set the output folder for the ZIP files
+outputFolder = inputFolder; // Save in the same folder as the images
+
+// Get a list of all .tif files in the folder
+fileList = getFileList(inputFolder);
+for (i = 0; i < fileList.length; i++) {
+    if (endsWith(fileList[i], ".tif")) {
+        // Open the image
+        open(inputFolder + fileList[i]);
+
+        // Run 3D Manager
+        run("3D Manager");
+        Ext.Manager3D_Segment(127, 255);
+
+        // Add the image to 3D Manager
+        Ext.Manager3D_AddImage();
+
+        // Measure and save
+        outputFileName = replace(fileList[i], ".tif", ".csv");
+        Ext.Manager3D_Measure();
+        saveAs("Results",outputFolder + outputFileName);
+        
+        // Save the 3D segmentation result as a ZIP file
+        outputFileName = replace(fileList[i], ".tif", ".zip");
+        Ext.Manager3D_Save(outputFolder + outputFileName);
+
+        // Close the image and 3D Manager for the next iteration
+        close();
+        Ext.Manager3D_Reset();
+    }
+}
