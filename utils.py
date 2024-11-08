@@ -653,6 +653,10 @@ class ImageProcessing():
 
 class MRFLoss():
     """
+    First number means the pixel value that will be evaluated and
+    second one means the neighbor pixel.
+    For example, l_10 means loss weight for pixel value 1 when the neighbors 
+    values are 0.
     usage \n
     ```
     mrf_loss = MRFLoss(dims=2, order=1)
