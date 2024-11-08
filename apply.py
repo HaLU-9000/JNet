@@ -15,11 +15,21 @@ parser.add_argument('-keyword'   )
 parser.add_argument('-dna')
 parser.add_argument("--pretrain", action="store_true")
 parser.add_argument('-t', '--train_mode')
+parser.add_argument(-'s','--shape',
+                    default=[20, 112, 112], nargs="*", type=float) 
+parser.add_argument('-o','--overlap',
+                    default=[0, 0, 0], nargs="*", type=float) 
+parser.add_argument('-c', '--omit_margin',
+                    default=[0, 0, 0], nargs="*", type=float) 
+
 args = parser.parse_args()
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs = json.load(configs)
 params  = configs["params"]
-shape = [20, 112, 112]
+shape   = args.shape
+overlap = args.overlap
+omit_margin  = args.omit_margin
+
 if args.image_name is not None:
     images = [args.image_name]
 else:
@@ -46,42 +56,28 @@ for image in images:
     image_org  = utils.load_anything(image)
     image      = utils.ImageProcessing(image_org)
     image.deconv_model = model
-# align model load (if neccesary) and apply
-    if args.dna is not None:
-        align_params  = configs["align_params"]
-        de_noise_aligner = utils.init_dna(align_params)
-        utils.load_model_weight(de_noise_aligner, model_name = args.dna)
-        utils.mount_model_to_device(de_noise_aligner, configs=configs)
-        de_noise_aligner.eval()
-        image.align_model = de_noise_aligner
 
-        image.apply_both(
-            align_model  = de_noise_aligner                                  ,
-            deconv_model = model                                             ,
-            align_params = align_params                                      ,
-            params       = params                                            ,
-            chunk_shape  = shape                                             ,
-            overlap      = [0,0,0]                                           ,
-            file_align   = f"_apply_test/{image_basename}_{args.dna}"        ,
-            file_deconv  = f"_apply_test/{image_basename}_{args.model_name}" ,
-            format       = "tif"                                             ,
-            bit          =  12
-        )
+    image.process_image(
+        model       = model            ,
+        params      = params           ,
+        shape       = shape            ,
+        type        = "enhanced_image" ,
+        overlap     = overlap          ,
+        omit_margin = omit_margin      ,
+        apply_hill  = True
+                        )
+    if args.pretrain:
+        os.makedirs(f"_apply_{configs['pretrained_model']}", exist_ok=True)
+        image.save_processed_image(
+            file   = f"_apply_{configs['pretrained_model']}/{image_basename}",
+            format = "tif",
+            bit    = 8)
     else:
-        image.process_image(model, params, shape, "enhanced_image",
-                            overlap=[2, 0, 0], apply_hill=True)
-        if args.pretrain:
-            os.makedirs(f"_apply_{configs['pretrained_model']}", exist_ok=True)
-            image.save_processed_image(
-                file   = f"_apply_{configs['pretrained_model']}/{image_basename}",
-                format = "tif",
-                bit    = 8)
-        else:
-            os.makedirs(f"_apply_{args.model_name}", exist_ok=True)
-            image.save_processed_image(
-                file   = f"_apply_{args.model_name}/{image_basename}",
-                format = "tif",
-                bit    = 8)
+        os.makedirs(f"_apply_{args.model_name}", exist_ok=True)
+        image.save_processed_image(
+            file   = f"_apply_{args.model_name}/{image_basename}",
+            format = "tif",
+            bit    = 8)
 # example usage:
 # python3 apply.py  /home/haruhiko/Downloads/Set_03/MDA15_20230915.nd2 JNet_510
 # python3 apply.py  _wakelabdata_processed/1_Spine_structure_AD_175-11w-D3-xyz6-020C2-T1.tif JNet_510
