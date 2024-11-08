@@ -15,7 +15,7 @@ parser.add_argument('-keyword'   )
 parser.add_argument('-dna')
 parser.add_argument("--pretrain", action="store_true")
 parser.add_argument('-t', '--train_mode')
-parser.add_argument(-'s','--shape',
+parser.add_argument('-s','--shape',
                     default=[20, 112, 112], nargs="*", type=float) 
 parser.add_argument('-o','--overlap',
                     default=[0, 0, 0], nargs="*", type=float) 
@@ -26,9 +26,9 @@ args = parser.parse_args()
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
 configs = json.load(configs)
 params  = configs["params"]
-shape   = args.shape
-overlap = args.overlap
-omit_margin  = args.omit_margin
+shape        = [int(n) for n in args.shape      ]
+overlap      = [int(n) for n in args.overlap    ]
+omit_margin  = [int(n) for n in args.omit_margin]
 
 if args.image_name is not None:
     images = [args.image_name]
@@ -60,10 +60,10 @@ for image in images:
     image.process_image(
         model       = model            ,
         params      = params           ,
-        shape       = shape            ,
+        chunk_shape = shape            ,
         type        = "enhanced_image" ,
         overlap     = overlap          ,
-        omit_margin = omit_margin      ,
+        margin      = omit_margin      ,
         apply_hill  = True
                         )
     if args.pretrain:

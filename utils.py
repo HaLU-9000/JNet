@@ -461,7 +461,7 @@ class ImageProcessing():
         for chunk in tqdm(
             chunks, bar_format=self.short_progress_bar):
             processed_chunk = self._process(
-                chunk, model, params, type, margin, apply_hill)
+                chunk, model, params, margin, apply_hill)
             processed_chunks.append(processed_chunk)
         print("[3/3] reconstrusting image...")
         processed_image = self._reconstruct_images(
@@ -547,7 +547,7 @@ class ImageProcessing():
     
     def _remove_margin(self, chunk, margin):
         padded = torch.zeros(chunk.shape)
-        z, x, y = margin.shape
+        z, x, y = margin
         padded[
             :,
             z : -z ,
