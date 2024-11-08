@@ -445,13 +445,14 @@ class ImageProcessing():
             )
 
     def process_image(
-            self                    ,
-            model                   ,
-            params                  ,
-            chunk_shape             ,
-            type                    ,
-            overlap     = [ 0, 0, 0],
-            apply_hill  = True
+            self               ,
+            model              ,
+            params             ,
+            chunk_shape        ,
+            type               ,
+            overlap            ,
+            margin             ,
+            apply_hill  = True ,
             ):
         print("[1/3] making chunks...")
         chunks = self._make_chunks(self.image, chunk_shape, overlap)
@@ -460,7 +461,7 @@ class ImageProcessing():
         for chunk in tqdm(
             chunks, bar_format=self.short_progress_bar):
             processed_chunk = self._process(
-                chunk, model, params, type, apply_hill)
+                chunk, model, params, type, margin, apply_hill)
             processed_chunks.append(processed_chunk)
         print("[3/3] reconstrusting image...")
         processed_image = self._reconstruct_images(
@@ -544,28 +545,49 @@ class ImageProcessing():
         
         return padded
     
-    def _process(self, chunk, model, params, type, apply_hill):  
+    def _remove_margin(self, chunk, margin):
+        padded = torch.zeros(chunk.shape)
+        z, x, y = margin.shape
+        padded[
+            :,
+            z : -z ,
+            x : -x ,
+            y : -y ,
+               ] += chunk[     
+            :,
+            z : -z ,
+            x : -x ,
+            y : -y ,
+               ]
+        
+        return padded
+
+    
+    def _process(self, chunk, model, params, margin,apply_hill):  
         chunk = self._make_5d(chunk)
         chunk = self._to_model_device(chunk, params)
         
         if apply_hill:
             chunk = self.deconv_model.image.hill.sample(chunk)
         chunk = model(chunk)
+        enhanced_image = chunk["enhanced_image" ]\
+            .squeeze(0).detach().clone().cpu()
+        estim_luminance = chunk["estim_luminance"]\
+            .squeeze(0).detach().clone().cpu()
+        reconstruction = chunk["reconstruction" ]\
+            .squeeze(0).detach().clone().cpu()
+        
+        enhanced_image  = self._remove_margin(enhanced_image , margin)
+        estim_luminance = self._remove_margin(estim_luminance, margin)
+        reconstruction  = self._remove_margin(reconstruction , margin)
 
-        if type == "aligned_image":
-            return {
-                "aligned_image" : chunk["aligned_image"]\
-                    .squeeze(0).detach().clone().cpu(),
-            }
-        else:
-            return {
-                "enhanced_image" : chunk["enhanced_image" ]\
-                    .squeeze(0).detach().clone().cpu(),
-                "estim_luminance": chunk["estim_luminance"]\
-                    .squeeze(0).detach().clone().cpu(),
-                "reconstruction" : chunk["reconstruction" ]\
-                    .squeeze(0).detach().clone().cpu(),
-            }
+        return {
+            "enhanced_image" : enhanced_image ,
+            "estim_luminance": estim_luminance,
+            "reconstruction" : reconstruction ,
+        }
+        
+
 
     def _make_5d(self, chunk):
         return chunk.unsqueeze(0)

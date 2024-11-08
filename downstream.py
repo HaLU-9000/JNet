@@ -5,6 +5,15 @@ import shutil
 import numpy as np
 import pandas as pd
 
+from skimage import measure
+import matplotlib.pyplot as plt
+
+import geomstats.backend as gs
+from geomstats.geometry.pre_shape import PreShapeSpace
+
+from geomstats.geometry.discrete_curves import DiscreteCurvesStartingAtOrigin
+from geomstats.learning.frechet_mean import FrechetMean
+
 
 def roi2array(path):
     coordinates = []
@@ -71,6 +80,141 @@ def create_h5(path, filename, outpath):
                 f[name].attrs[metrix_name] = annotations[metrix_name].item()
     # delete temp
     shutil.rmtree(os.path.join(path, "temp"))
+
+
+class CellShapeAnalysis():
+    def __init__(self,k_sampling_points, dim):
+        self.k_sampling_points = k_sampling_points
+        self.dim = dim
+
+        self.PRESHAPE_SPACE = PreShapeSpace(
+            ambient_dim=self.dim, k_landmarks=k_sampling_points)
+        self.PRESHAPE_SPACE.equip_with_group_action("rotations")
+        self.PRESHAPE_SPACE.equip_with_quotient()
+
+        self.CURVES_SPACE_SRV = DiscreteCurvesStartingAtOrigin(
+            ambient_dim=self.dim,
+            k_sampling_points=self.k_sampling_points)
+
+    def array_to_curve(self, array):
+
+        verts, _, _, _ = measure.marching_cubes(array, level=0.5)
+
+        return verts
+
+    def interpolate(self, curve, nb_points):
+        """Interpolate a discrete curve with nb_points from a discrete curve.
+
+        Returns
+        -------
+        interpolation : discrete curve with nb_points points
+        """
+        old_length = curve.shape[0]
+        dim        = curve.shape[1]
+        interpolation = gs.zeros((nb_points, dim))
+        incr = old_length / nb_points
+        pos = 0
+        for i in range(nb_points):
+            index = int(gs.floor(pos))
+            interpolation[i] = curve[index] + (pos - index) * (
+                curve[(index + 1) % old_length] - curve[index]
+            )
+            pos += incr
+        return interpolation
+
+    def preprocess(self,curve, tol=1e-10):
+        """Preprocess curve to ensure that there are no consecutive duplicate points.
+
+        Returns
+        -------
+        curve : discrete curve
+        """
+        dist = curve[1:] - curve[:-1]
+        dist_norm = np.sqrt(np.sum(np.square(dist), axis=1))
+
+        if np.any(dist_norm < tol):
+            for i in range(len(curve) - 1):
+                if np.sqrt(np.sum(np.square(curve[i + 1] - curve[i]), axis=0)) < tol:
+                    curve[i + 1] = (curve[i] + curve[i + 2]) / 2
+
+        return curve
+
+    def exhaustive_align(self, curve, base_curve):
+        """Align curve to base_curve to minimize the L² distance.
+
+        Returns
+        -------
+        aligned_curve : discrete curve
+        """
+        nb_sampling = len(curve)
+        distances = gs.zeros(nb_sampling)
+        base_curve = gs.array(base_curve)
+        for shift in range(nb_sampling):
+            reparametrized = [curve[(i + shift) % nb_sampling] for i in range(nb_sampling)]
+            aligned = self.PRESHAPE_SPACE.fiber_bundle.align(
+                point=gs.array(reparametrized), base_point=base_curve
+            )
+            distances[shift] = self.PRESHAPE_SPACE.embedding_space.metric.norm(
+                gs.array(aligned) - gs.array(base_curve)
+            )
+        shift_min = gs.argmin(distances)
+        reparametrized_min = [
+            curve[(i + shift_min) % nb_sampling] for i in range(nb_sampling)
+        ]
+        aligned_curve = self.PRESHAPE_SPACE.fiber_bundle.align(
+            point=gs.array(reparametrized_min), base_point=base_curve
+        )
+
+        return aligned_curve
+
+    def process(self, curve):
+
+        curve = self.interpolate(curve, nb_points=self.k_sampling_points)
+        curve = self.preprocess(curve)
+        curve = self.PRESHAPE_SPACE.projection(curve)
+
+        return curve
+
+    def process_all(self, curves, func):
+
+        curves_new = []
+        for curve in curves:
+          curve_new = func(curve)
+          curves_new.append(curve_new)
+
+        return curves_new
+
+    def process_all_from_basis(self, curves, basis, func):
+
+        curves_new = []
+        for curve in curves:
+          curve_new = func(curve, basis)
+          curves_new.append(curve_new)
+        return curves_new
+
+    def scatter_3d(self, curve):
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.scatter(curve[:, 0], curve[:, 1], curve[:, 2])
+
+        return fig
+
+    def estimate_mean(self, curves):
+
+        mean = FrechetMean(self.CURVES_SPACE_SRV)
+        cell_shapes_at_origin = self.CURVES_SPACE_SRV.projection(curves)
+        mean.fit(cell_shapes_at_origin)
+
+        return mean.estimate_
+
+    def distance_from_mean(self, curve, mean_estimate):
+
+        distance = self.CURVES_SPACE_SRV.metric.dist(
+            self.CURVES_SPACE_SRV.projection(curve), mean_estimate
+        )
+
+        return distance
 
 if __name__ == "__main__":
     path = input("input your folder.\n"+\
