@@ -16,11 +16,11 @@ parser.add_argument('-dna')
 parser.add_argument("--pretrain", action="store_true")
 parser.add_argument('-t', '--train_mode')
 parser.add_argument(-'s','--shape',
-                    default=[20, 112, 112], nargs="*", type=float) 
+                    default=[20, 112, 112], nargs="*", type=float)
 parser.add_argument('-o','--overlap',
-                    default=[0, 0, 0], nargs="*", type=float) 
+                    default=[0, 0, 0], nargs="*", type=float)
 parser.add_argument('-c', '--omit_margin',
-                    default=[0, 0, 0], nargs="*", type=float) 
+                    default=[0, 0, 0], nargs="*", type=float)
 
 args = parser.parse_args()
 configs = open(os.path.join("experiments/configs", f"{args.model_name}.json"))
