@@ -547,7 +547,7 @@ class ImageProcessing():
     
     def _remove_margin(self, chunk, margin):
         padded = torch.zeros(chunk.shape)
-        z, x, y = margin
+        z, x, y = margin.shape
         padded[
             :,
             z : -z ,
