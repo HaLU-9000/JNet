@@ -21,6 +21,7 @@ configs = json.load(configs)
 ## Finetuning Results with Beads ##
 ###################################
 volumes = np.zeros(30)
+os.makedirs(f"_results_for_paper/fig4/tenet/{args.model_name}/")
 for i in range(0, 10):
     btype_list = ["original", "output", "reconst", "heatmap"]
     binfer = inference.BeadsInference(
@@ -32,7 +33,7 @@ for i in range(0, 10):
     #print(f'finetuning: volume mean: {bevals["mean"]}, volume sd: {bevals["sd"]}')
     namelist = os.listdir(f"_20231208_tsuji_beads_roi_stackreged_cv_wise/{i}")
     for n in range(len(results)):
-        tifffile.imwrite("_results_for_paper/fig4/tenet/"+namelist[n], results[n][1])
+        tifffile.imwrite(f"_results_for_paper/fig4/tenet/{args.model_name}/"+namelist[n], results[n][1])
         print(f'{i * 3 + n} volume: {bevals["volume"][n]}')
         volumes[i * 3 + n] = bevals["volume"][n]
 mu = volumes.mean()

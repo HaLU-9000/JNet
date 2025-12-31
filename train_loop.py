@@ -402,6 +402,11 @@ def finetuning_loop(
             scheduler.step(epoch, vloss_list[-1])
         condition = True
         earlystopping(vloss_list[-1], model, optimizer, condition = condition)
+
+        if vloss_list[-1] == float('nan'):
+            print('nan detected in validation loss. terminating...')
+            break
+
         #if earlystopping.early_stop:
         #    break
     plt.plot(loss_list , label='train loss')
