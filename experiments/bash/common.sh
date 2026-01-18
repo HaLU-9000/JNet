@@ -1,39 +1,40 @@
-for i in {0..9}
-do
-    python3 finetuning.py        JNet_624 --cross_validation $i
-    python3 reporter_beads_cv.py JNet_624
-done
+##for i in {0..9}
+##do
+##    python3 finetuning.py        JNet_624 --cross_validation $i
+#python3 report_beads_cv.py JNet_624
+##done
+##
+##for i in {0..9}
+##do
+##    python3 finetuning.py        JNet_625 --cross_validation $i
+#python3 report_beads_cv.py JNet_625
+##done
+##
+##for i in {0..9}
+##do
+##    python3 finetuning.py        JNet_626 --cross_validation $i
+#python3 report_beads_cv.py JNet_626
+##done
+##
+##for i in {0..9}
+##do
+##    python3 finetuning.py        JNet_627 --cross_validation $i
+#python3 report_beads_cv.py JNet_627
+##done
+##
+##for i in {0..9}
+##do
+##    python3 finetuning.py        JNet_628 --cross_validation $i
+#python3 report_beads_cv.py JNet_628
+##done
+##
+##for i in {0..9}
+##do
+##    python3 finetuning.py        JNet_629 --cross_validation $i
+#python3 report_beads_cv.py JNet_629
+##done
 
-for i in {0..9}
-do
-    python3 finetuning.py        JNet_625 --cross_validation $i
-    python3 reporter_beads_cv.py JNet_625
-done
-
-for i in {0..9}
-do
-    python3 finetuning.py        JNet_626 --cross_validation $i
-    python3 reporter_beads_cv.py JNet_626
-done
-
-for i in {0..9}
-do
-    python3 finetuning.py        JNet_627 --cross_validation $i
-    python3 reporter_beads_cv.py JNet_627
-done
-
-for i in {0..9}
-do
-    python3 finetuning.py        JNet_628 --cross_validation $i
-    python3 reporter_beads_cv.py JNet_628
-done
-
-for i in {0..9}
-do
-    python3 finetuning.py        JNet_629 --cross_validation $i
-    python3 reporter_beads_cv.py JNet_629
-done
-
+python3 report_beads_cv.py JNet_603
 # for KUBRICK
 #python3 train_runner.py JNet_529
 #python3 finetuning.py   JNet_529

@@ -21,7 +21,7 @@ configs = json.load(configs)
 ## Finetuning Results with Beads ##
 ###################################
 volumes = np.zeros(30)
-os.makedirs(f"_results_for_paper/fig4/tenet/{args.model_name}/")
+os.makedirs(f"_results_for_paper/fig4/tenet/{args.model_name}/", exist_ok=True)
 for i in range(0, 10):
     btype_list = ["original", "output", "reconst", "heatmap"]
     binfer = inference.BeadsInference(
